@@ -27,7 +27,7 @@ data class HomeUiState(
  * 其余状态编排、分类切换与错误处理逻辑不需要改动 ——
  * 这正是把 UI 状态建模成 [SectionState] 的目的。
  *
- * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §资讯流
+ * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.1
  */
 class HomeViewModel : ViewModel() {
 

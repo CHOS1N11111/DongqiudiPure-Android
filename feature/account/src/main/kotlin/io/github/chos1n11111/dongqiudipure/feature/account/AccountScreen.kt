@@ -168,7 +168,7 @@ private fun AnonymousHeader() {
 
         // TODO(data): 登录属于 M9，需要会话管理与加密存储。
         //  在 :core:data 的 SessionManager 就绪前，此入口保持禁用。
-        //  见 docs/engineering/BACKEND-CONTRACT-TODO.md §登录与会话
+        //  见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.8
         Button(
             onClick = {},
             enabled = false,

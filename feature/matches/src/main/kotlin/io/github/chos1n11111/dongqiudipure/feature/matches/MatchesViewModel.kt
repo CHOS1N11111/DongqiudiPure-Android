@@ -44,7 +44,7 @@ data class MatchesUiState(
  * 实时刷新策略（可取消、感知前后台、终场停止）属于 M4/M5，
  * 需要真实数据源才有意义，此处只保留 [hasLiveMatch] 的判定逻辑。
  *
- * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §比赛
+ * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.3
  */
 class MatchesViewModel : ViewModel() {
 

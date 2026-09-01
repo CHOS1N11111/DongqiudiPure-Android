@@ -33,6 +33,89 @@ UI 层的状态编排（loading / content / empty / error、分类切换、日�
 分栏切换、重试）已经按真实形态写好，接入时**只需替换数据来源，
 不需要改状态逻辑** —— 这正是把页面状态建模成 `SectionState<T>` 的目的。
 
+**开工前先读下一节。** 有两个决策晚定会返工。
+
+## 开工前必须先定的决策
+
+「UI 先做、数据后做」这个顺序本身没有损害架构 —— 恰恰相反，有两条边界因此
+变成了编译器保证的：`:core:model` 是纯 Kotlin JVM 模块，领域层夹带
+Android 依赖会直接编译失败；八个 feature 模块互相零依赖，且因为
+`:core:network` 尚不存在，它们**看不到 DTO**，「Repository 不向上层返回 DTO」
+是靠依赖图挡住的，不靠 review 自觉。
+
+但下面三条留在了待定状态。前两条**必须在写 `:core:data` 之前定**，
+否则会产生返工。
+
+> 每条定下来后，按 `DECISIONS.md` 的 `D-XXX` 模板归档到那里，
+> 再从本节删除 —— 本文是临时文档，会随 `:core:sampledata` 一起删掉，
+> 决策的理由不能跟着消失。
+
+### 决策 1：DI 方式（阻塞 `:core:data`）
+
+**现状**：八个 ViewModel 全是无参构造 ——
+`HomeViewModel`、`MatchesViewModel`、`MatchDetailViewModel`、`ArticleViewModel`、
+`StandingsViewModel`、`TeamProfileViewModel`、`PlayerProfileViewModel`、
+`SearchViewModel`，均通过 `viewModel()` 直接实例化。
+
+Repository 一落地，这八个都需要注入依赖。
+
+**选项**：
+
+| 方案 | 代价 |
+| --- | --- |
+| 手写 `ViewModelProvider.Factory` | 八处样板，每加一个 feature 再加一处 |
+| 引入 Hilt | 一次性接入成本 + annotation processing 构建时间 |
+
+**建议**：`DECISIONS.md` D-007 写的升级 Hilt 触发条件是
+「跨 feature 注入明显重复」—— 八个 feature 各需一个 factory 就是这个条件。
+倾向直接上 Hilt。
+
+**为什么不能拖**：先手写八个 factory 再拆掉是纯浪费。
+定在写第一个 Repository 之前，成本接近零。
+
+### 决策 2：分页方案（阻塞资讯流 / 评论 / 搜索）
+
+**现状**：列表用 `SectionState<List<T>>` 建模，`LazyColumn` 已用稳定 key，
+但没有分页。涉及三处：资讯流、文章评论、搜索结果。
+
+**冲突点**：如果上 **Paging 3**，`LazyPagingItems` 自带一套
+loading / error / append / prepend 状态，与 `SectionState` 是**两套并存的状态模型**。
+这三个页面的状态建模需要改写，`SectionContainer` 也不再适用于它们。
+
+**选项**：
+
+| 方案 | 影响 |
+| --- | --- |
+| 不用 Paging 3，Repository 自管 cursor | `SectionState` 保持不变，UI 零改动；需要自己处理去重、重复请求、错误重试 |
+| 用 Paging 3 | 三个页面改状态模型；获得成熟的预取、重试、占位与 `RemoteMediator` |
+
+**为什么不能拖**：这是全项目唯一一处「晚决定会明确返工」的地方。
+等三个页面都接完真实数据再换分页方案，等于重写这三个页面的状态层。
+
+### 决策 3：主题策略（已实现，仅需归档）
+
+**现状**：已实现为三档（跟随系统 / 浅色 / 深色），DataStore 持久化，
+已验证强杀重启后保持。`DqdTheme` 接受 `darkTheme` 覆盖参数，
+主题本身不读偏好存储，由 `MainActivity` 注入。
+
+**问题**：`DECISIONS.md` 从 D-001 到 D-018 没有任何一条记录主题策略，
+`PRODUCT.md §8` 的非功能要求也只写了兼容性、可访问性和自适应，没提深浅色。
+按你们自己的规矩（跨 module、影响多处的选择必须记录），这条应当补一个 D-019。
+
+**不阻塞任何工作**，只是补记录。
+
+### 一个不算债但要知道的事实
+
+`:core:model` 里的 Domain model 是**按 UI 需要和足球数据的一般形态定的，
+不是按真实 API 定的**。真接上会遇到三类情况：
+
+- 字段不存在 → UI 自动显示 `—`，不崩（这是设计好的）
+- 字段存在但没建模 → 往 model 加
+- 结构根本不同 → 例如事件按半场嵌套、统计返回 map、阵容主客队分两个 endpoint
+
+这些摩擦会**全部集中在 mapper 层**，而 mapper 目前还不存在，所以现在看不出量。
+好处是 model 只在一个无依赖模块里，改它不会牵动 UI 之外的任何东西。
+
 ## 1. 接入方式
 
 每个 ViewModel 里都有一个私有的 `loadXxx()`，当前形如：
