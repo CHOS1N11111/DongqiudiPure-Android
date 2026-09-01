@@ -3,4 +3,8 @@
     <string name="app_name">DongqiudiPure</string>
     <string name="news_title">资讯</string>
     <string name="news_empty">暂无资讯</string>
+    <string name="matches_title">比赛</string>
+    <string name="matches_empty">暂无比赛</string>
+    <string name="data_title">数据</string>
+    <string name="data_empty">暂无数据</string>
 </resources>

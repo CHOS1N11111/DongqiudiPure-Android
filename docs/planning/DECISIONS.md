@@ -21,7 +21,7 @@
 | D-013 | 模块粒度 | 已确定 | 按实际 vertical slice 逐步增加 module | 已完成 |
 | D-014 | session import | 暂缓 | 先作为内部诊断能力，是否公开由登录稳定性决定 | M9 后 |
 | D-015 | 发布渠道 | 待确认 | GitHub Releases 或其他渠道由用户决定 | M17 前 |
-| D-016 | 根 Navigation | 已确定 | `资讯 / 比赛 / 我的` | 已完成 |
+| D-016 | 根 Navigation | 已确定 | `资讯 / 比赛 / 数据` | 已完成 |
 | D-017 | 公开范围分批 | 已确定 | M6/M7 先做主要/热门范围，M11/M12 再完成全部公开覆盖 | 已完成 |
 | D-018 | 账号能力分级 | 已确定 | 账号只读与远端状态变更分开实施和验收 | 已完成 |
 
@@ -120,7 +120,7 @@
 
 ### D-016：根 Navigation
 
-compact width 固定使用 `资讯 / 比赛 / 我的` 三个 destination；medium/expanded width 使用语义相同的 NavigationRail。搜索、榜单和实体资料通过页面入口或 deep link 进入，不增加固定根 tab。
+compact width 固定使用 `资讯 / 比赛 / 数据` 三个 destination；medium/expanded width 使用语义相同的 NavigationRail。`数据` 承载榜单及球员、球队和赛事资料入口；搜索、实体详情和账号能力通过页面入口或 deep link 进入，不增加固定根 tab。
 
 ## 5. 暂缓或待确认事项
 
