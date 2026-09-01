@@ -1,6 +1,7 @@
 package io.github.chos1n11111.dongqiudipure.feature.article
 
 import androidx.lifecycle.ViewModel
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleDetail
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
@@ -26,9 +27,9 @@ data class ArticleUiState(
     val commentSort: CommentSort = CommentSort.Hottest,
 )
 
-enum class CommentSort(val label: String) {
-    Hottest("最热"),
-    Newest("最新"),
+enum class CommentSort(@StringRes val labelRes: Int) {
+    Hottest(R.string.article_comment_sort_hottest),
+    Newest(R.string.article_comment_sort_newest),
 }
 
 /**

@@ -31,12 +31,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.FormBadge
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchStatusBadge
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
@@ -100,7 +102,7 @@ fun TeamProfileScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             painter = painterResource(DqdIcons.ArrowBack),
-                            contentDescription = "返回",
+                            contentDescription = stringResource(DesignR.string.ds_action_back),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -109,7 +111,7 @@ fun TeamProfileScreen(
                     IconButton(onClick = { /* TODO(share): 接入系统分享 */ }) {
                         Icon(
                             painter = painterResource(DqdIcons.Share),
-                            contentDescription = "分享",
+                            contentDescription = stringResource(DesignR.string.ds_action_share),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -150,7 +152,7 @@ fun TeamProfileScreen(
                         unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         text = {
                             Text(
-                                text = tab.label,
+                                text = stringResource(tab.labelRes),
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             )
                         },
@@ -163,8 +165,8 @@ fun TeamProfileScreen(
                     SectionContainer(
                         state = uiState.squad,
                         onRetry = onRetry,
-                        emptyTitle = "暂无阵容",
-                        emptyDescription = "该球队当前没有已收录的公开名单。",
+                        emptyTitle = stringResource(R.string.team_squad_empty_title),
+                        emptyDescription = stringResource(R.string.team_squad_empty_description),
                     ) { squad -> SquadList(squad = squad, onPlayerClick = onPlayerClick) }
                     return@Column
                 }
@@ -173,8 +175,8 @@ fun TeamProfileScreen(
                     SectionContainer(
                         state = uiState.fixtures,
                         onRetry = onRetry,
-                        emptyTitle = "暂无赛程",
-                        emptyDescription = "该球队当前没有已收录的赛程与赛果。",
+                        emptyTitle = stringResource(R.string.team_fixtures_empty_title),
+                        emptyDescription = stringResource(R.string.team_fixtures_empty_description),
                     ) { fixtures ->
                         TeamFixtureList(fixtures = fixtures, onMatchClick = onMatchClick)
                     }
@@ -185,8 +187,8 @@ fun TeamProfileScreen(
                     SectionContainer(
                         state = uiState.detailedStats,
                         onRetry = onRetry,
-                        emptyTitle = "暂无数据",
-                        emptyDescription = "该赛事未提供这支球队的统计数据。",
+                        emptyTitle = stringResource(R.string.team_stats_empty_title),
+                        emptyDescription = stringResource(R.string.team_stats_empty_description),
                     ) { stats -> TeamStatsGrid(stats = stats) }
                     return@Column
                 }
@@ -195,8 +197,8 @@ fun TeamProfileScreen(
                     SectionContainer(
                         state = uiState.news,
                         onRetry = onRetry,
-                        emptyTitle = "暂无相关资讯",
-                        emptyDescription = "最近没有与这支球队关联的公开内容。",
+                        emptyTitle = stringResource(R.string.team_news_empty_title),
+                        emptyDescription = stringResource(R.string.team_news_empty_description),
                     ) { news ->
                         TeamNewsList(news = news, onArticleClick = onArticleClick)
                     }
@@ -211,7 +213,7 @@ fun TeamProfileScreen(
                 state = uiState.profile,
                 onRetry = onRetry,
                 modifier = Modifier.padding(top = DqdSpacing.sm),
-                title = "近期战绩",
+                title = stringResource(R.string.team_recent_form),
             ) { profile ->
                 Row(
                     modifier = Modifier.padding(
@@ -230,7 +232,7 @@ fun TeamProfileScreen(
                 state = uiState.seasonStats,
                 onRetry = onRetry,
                 modifier = Modifier.padding(top = DqdSpacing.sm),
-                title = "本赛季数据",
+                title = stringResource(R.string.team_season_stats),
                 loading = { SeasonStatsSkeleton() },
             ) { stats ->
                 Column {
@@ -251,9 +253,9 @@ fun TeamProfileScreen(
                 state = uiState.nextMatch,
                 onRetry = onRetry,
                 modifier = Modifier.padding(top = DqdSpacing.sm),
-                title = "下一场",
-                emptyTitle = "没有已排定的比赛",
-                emptyDescription = "该球队当前没有已收录的未来赛程。",
+                title = stringResource(R.string.team_next_match),
+                emptyTitle = stringResource(R.string.team_next_match_empty_title),
+                emptyDescription = stringResource(R.string.team_next_match_empty_description),
             ) { match ->
                 Row(
                     modifier = Modifier
@@ -325,7 +327,7 @@ private fun ProfileHeader(profile: TeamProfile) {
                 text = listOfNotNull(
                     profile.competitionName,
                     profile.venue,
-                    profile.foundedLabel?.let { "建于 $it" },
+                    profile.foundedLabel?.let { stringResource(R.string.team_founded, it) },
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -385,42 +387,13 @@ private fun MissingHint(labels: String) {
                 .size(12.dp),
         )
         Text(
-            text = "$labels 该赛事未提供，显示为「—」。这与数值 0 不同。",
+            text = stringResource(R.string.team_missing_hint, labels),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-@Suppress("unused")
-@Composable
-private fun PendingSection(tab: TeamTab) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(DqdSpacing.xl),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
-    ) {
-        Icon(
-            painter = painterResource(DqdIcons.Info),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp),
-        )
-        Text(
-            text = "${tab.label}尚未实现",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = "属于 M7，需要先完成对应的 contract 验证。",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
 
 @Composable
 private fun ProfileHeaderSkeleton() {
@@ -468,11 +441,8 @@ private fun TeamProfileDarkPreview() {
                     io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches.teamProfile,
                 ),
                 seasonStats = SectionState.Content(
-                    listOf(
-                        SeasonStat("积分", "10"),
-                        SeasonStat("进球", "11"),
-                        SeasonStat("预期进球", null),
-                    ),
+                    io.github.chos1n11111.dongqiudipure.core.sampledata.SampleTeamStats
+                        .overview.map { (label, value) -> SeasonStat(label, value) },
                 ),
                 nextMatch = SectionState.Content(
                     io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches.matches[1],

@@ -1,6 +1,7 @@
 package io.github.chos1n11111.dongqiudipure.feature.settings
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -15,10 +16,10 @@ import kotlinx.coroutines.flow.map
  * 三档而不是开关：「跟随系统」必须是可选项且是默认值 ——
  * 用户在系统层面已经表达过一次偏好，应用不该单方面覆盖它。
  */
-enum class ThemeMode(val label: String) {
-    System("跟随系统"),
-    Light("浅色"),
-    Dark("深色"),
+enum class ThemeMode(@StringRes val labelRes: Int) {
+    System(R.string.settings_theme_system),
+    Light(R.string.settings_theme_light),
+    Dark(R.string.settings_theme_dark),
 }
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(

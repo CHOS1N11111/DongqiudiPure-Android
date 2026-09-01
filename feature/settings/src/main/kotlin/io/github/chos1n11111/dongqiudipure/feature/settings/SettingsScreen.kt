@@ -28,9 +28,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
@@ -55,12 +57,12 @@ fun SettingsScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("设置") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             painter = painterResource(DqdIcons.ArrowBack),
-                            contentDescription = "返回",
+                            contentDescription = stringResource(DesignR.string.ds_action_back),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -78,7 +80,7 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
-            SectionHeader(title = "外观")
+            SectionHeader(title = stringResource(R.string.settings_appearance))
 
             Column(
                 modifier = Modifier
@@ -100,8 +102,7 @@ fun SettingsScreen(
             }
 
             Text(
-                text = "深色与浅色两套配色各自独立取值并分别验证过对比度，" +
-                    "不是互相反相得到的。",
+                text = stringResource(R.string.settings_theme_note),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(
@@ -138,7 +139,7 @@ private fun ThemeOptionRow(
             onClick = null,
         )
         Text(
-            text = mode.label,
+            text = stringResource(mode.labelRes),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -158,12 +159,12 @@ fun AboutScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("关于") },
+                title = { Text(stringResource(R.string.about_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             painter = painterResource(DqdIcons.ArrowBack),
-                            contentDescription = "返回",
+                            contentDescription = stringResource(DesignR.string.ds_action_back),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -189,29 +190,17 @@ fun AboutScreen(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "版本 $appVersion",
+                text = stringResource(R.string.about_version, appVersion),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Box(modifier = Modifier.size(DqdSpacing.sm))
 
-            AboutParagraph(
-                "本应用为非官方第三方客户端，与懂球帝及其官方运营方无隶属、授权或认可关系。" +
-                    "「懂球帝」及相关名称与标识归其各自权利人所有。",
-            )
-            AboutParagraph(
-                "本应用不展示广告，不展示赔率、盘口或任何博彩与体育投注相关内容，" +
-                    "也不接入第三方统计分析。",
-            )
-            AboutParagraph(
-                "公开内容无需登录即可完整浏览。应用不为统计或推荐额外采集用户数据；" +
-                    "密码不落盘，凭据不进入日志。",
-            )
-            AboutParagraph(
-                "本应用不保证非官方接口长期可用。接口变化时，" +
-                    "受影响的板块会单独降级，其余内容不受影响。",
-            )
+            AboutParagraph(stringResource(R.string.about_disclaimer_unofficial))
+            AboutParagraph(stringResource(R.string.about_disclaimer_no_ads))
+            AboutParagraph(stringResource(R.string.about_disclaimer_privacy))
+            AboutParagraph(stringResource(R.string.about_disclaimer_availability))
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -223,7 +212,7 @@ fun AboutScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "开源许可",
+                    text = stringResource(R.string.license_title),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
@@ -257,12 +246,12 @@ fun LicenseScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("开源许可") },
+                title = { Text(stringResource(R.string.license_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             painter = painterResource(DqdIcons.ArrowBack),
-                            contentDescription = "返回",
+                            contentDescription = stringResource(DesignR.string.ds_action_back),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -287,26 +276,21 @@ fun LicenseScreen(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            AboutParagraph(
-                "本项目以 GPL-3.0-only 发布，不提供任何担保。" +
-                    "完整条款见源码仓库根目录的 LICENSE 文件。",
-            )
+            AboutParagraph(stringResource(R.string.license_project))
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             Text(
-                text = "第三方依赖",
+                text = stringResource(R.string.license_third_party_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            ThirdParty("Android Jetpack（Compose、Navigation、Lifecycle、DataStore）", "Apache-2.0")
-            ThirdParty("Kotlin 标准库与 Coroutines", "Apache-2.0")
+            ThirdParty(stringResource(R.string.license_third_party_jetpack), "Apache-2.0")
+            ThirdParty(stringResource(R.string.license_third_party_kotlin), "Apache-2.0")
 
             // TODO(release): 发布前用构建期生成的依赖清单替换这份手写列表，
             //  避免与实际依赖脱节（PLAN.md M17）。
-            AboutParagraph(
-                "以上为主要依赖。发布前将由构建期生成完整的第三方声明。",
-            )
+            AboutParagraph(stringResource(R.string.license_third_party_note))
         }
     }
 }

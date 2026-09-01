@@ -1,6 +1,7 @@
 package io.github.chos1n11111.dongqiudipure.feature.search
 
 import androidx.lifecycle.ViewModel
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
@@ -14,12 +15,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class SearchFilter(val label: String) {
-    All("全部"),
-    Teams("球队"),
-    Players("球员"),
-    Competitions("赛事"),
-    Articles("资讯"),
+enum class SearchFilter(@StringRes val labelRes: Int) {
+    All(R.string.search_filter_all),
+    Teams(R.string.search_group_teams),
+    Players(R.string.search_group_players),
+    Competitions(R.string.search_group_competitions),
+    Articles(R.string.search_group_articles),
 }
 
 /**

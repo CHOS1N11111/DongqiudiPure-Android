@@ -31,9 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
@@ -63,12 +65,12 @@ fun AccountRoute(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("我的") },
+                title = { Text(stringResource(R.string.account_title)) },
                 actions = {
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             painter = painterResource(DqdIcons.Settings),
-                            contentDescription = "设置",
+                            contentDescription = stringResource(DesignR.string.ds_action_settings),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -96,27 +98,27 @@ fun AccountRoute(
             ) {
                 SettingsRow(
                     icon = DqdIcons.Settings,
-                    label = "设置",
+                    label = stringResource(R.string.account_row_settings),
                     onClick = onSettingsClick,
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 SettingsRow(
                     icon = DqdIcons.Info,
-                    label = "关于 DongqiudiPure",
+                    label = stringResource(R.string.account_row_about),
                     value = appVersion,
                     onClick = onAboutClick,
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 SettingsRow(
                     icon = DqdIcons.File,
-                    label = "开源许可",
+                    label = stringResource(R.string.account_row_license),
                     value = "GPL-3.0",
                     onClick = onLicenseClick,
                 )
             }
 
             Text(
-                text = "本应用为非官方第三方客户端，\n与懂球帝及其官方运营方无隶属、授权或认可关系。",
+                text = stringResource(R.string.account_disclaimer),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -154,13 +156,13 @@ private fun AnonymousHeader() {
         }
 
         Text(
-            text = "未登录",
+            text = stringResource(R.string.account_anonymous_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
 
         Text(
-            text = "资讯、比赛、榜单和资料\n无需登录即可完整浏览",
+            text = stringResource(R.string.account_anonymous_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -183,13 +185,13 @@ private fun AnonymousHeader() {
                 modifier = Modifier.size(18.dp),
             )
             Text(
-                text = "登录以进入主队",
+                text = stringResource(R.string.account_login_cta),
                 modifier = Modifier.padding(start = DqdSpacing.sm),
             )
         }
 
         Text(
-            text = "登录功能尚未实现（M9）",
+            text = stringResource(R.string.account_login_pending),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -1,6 +1,7 @@
 package io.github.chos1n11111.dongqiudipure.feature.matches
 
 import androidx.lifecycle.ViewModel
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import io.github.chos1n11111.dongqiudipure.core.model.MatchEvent
 import io.github.chos1n11111.dongqiudipure.core.model.MatchLineup
@@ -17,10 +18,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class MatchTab(val label: String) {
-    Events("事件"),
-    Lineup("阵容"),
-    Stats("统计"),
+enum class MatchTab(@StringRes val labelRes: Int) {
+    Events(R.string.match_tab_events),
+    Lineup(R.string.match_tab_lineup),
+    Stats(R.string.match_tab_stats),
 }
 
 /**

@@ -20,6 +20,7 @@ import io.github.chos1n11111.dongqiudipure.feature.entities.TeamProfileRoute
 import io.github.chos1n11111.dongqiudipure.feature.home.HomeRoute
 import io.github.chos1n11111.dongqiudipure.feature.matches.MatchDetailRoute
 import io.github.chos1n11111.dongqiudipure.feature.matches.MatchesRoute
+import io.github.chos1n11111.dongqiudipure.feature.rankings.DataHubRoute
 import io.github.chos1n11111.dongqiudipure.feature.rankings.StandingsRoute
 import io.github.chos1n11111.dongqiudipure.feature.search.SearchRoute
 import io.github.chos1n11111.dongqiudipure.feature.settings.AboutScreen
@@ -52,6 +53,15 @@ fun DqdNavHost(
             MatchesRoute(
                 onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
                 onSearchClick = { navController.navigate(DqdRoutes.SEARCH) },
+            )
+        }
+
+        composable(DqdDestination.Data.route) {
+            DataHubRoute(
+                onSearchClick = { navController.navigate(DqdRoutes.SEARCH) },
+                onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
+                onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
+                onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
             )
         }
 

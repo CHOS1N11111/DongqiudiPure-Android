@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="matches_title">比赛</string>
+    <string name="matches_empty_title">当天没有比赛</string>
+    <string name="matches_empty_description">该日期没有已收录的赛事。可以切换日期查看其他比赛。</string>
+
+    <!-- 日期条。格式化在 UI 层做（ARCHITECTURE.md §5.2）。 -->
+    <string name="matches_date_today">今天</string>
+    <string name="matches_weekday_mon">周一</string>
+    <string name="matches_weekday_tue">周二</string>
+    <string name="matches_weekday_wed">周三</string>
+    <string name="matches_weekday_thu">周四</string>
+    <string name="matches_weekday_fri">周五</string>
+    <string name="matches_weekday_sat">周六</string>
+    <string name="matches_weekday_sun">周日</string>
+    <string name="matches_date_a11y">%1$s %2$d 日</string>
+    <string name="matches_date_a11y_has_live">%1$s %2$d 日，有进行中的比赛</string>
+
+    <!-- 比赛详情分栏 -->
+    <string name="match_tab_events">事件</string>
+    <string name="match_tab_lineup">阵容</string>
+    <string name="match_tab_stats">统计</string>
+
+    <string name="match_events_empty_title">暂无事件</string>
+    <string name="match_events_empty_description">这场比赛还没有已收录的事件记录。</string>
+    <string name="match_stats_empty_title">暂无技术统计</string>
+    <string name="match_stats_empty_description">该赛事未提供这场比赛的技术统计。</string>
+    <string name="match_lineup_empty_title">暂无阵容</string>
+    <string name="match_lineup_empty_description">该场比赛还没有公布首发名单。</string>
+
+    <!-- 事件类型。未知类型原样显示服务端返回值，不在此列。 -->
+    <string name="match_event_goal">进球</string>
+    <string name="match_event_own_goal">乌龙球</string>
+    <string name="match_event_penalty">点球</string>
+    <string name="match_event_yellow_card">黄牌</string>
+    <string name="match_event_red_card">红牌</string>
+    <string name="match_event_second_yellow">两黄变红</string>
+    <string name="match_event_substitution">换人</string>
+    <string name="match_event_var">VAR 回看</string>
+
+    <!-- 阵容 -->
+    <string name="lineup_side_home">主队</string>
+    <string name="lineup_side_away">客队</string>
+    <string name="lineup_formation">阵型</string>
+    <string name="lineup_substitutes">替补</string>
+    <string name="lineup_coach">主教练</string>
+    <string name="lineup_absentees">缺阵</string>
+    <!-- 服务端没给站位时的说明。不能按位置猜一个阵型画出来。 -->
+    <string name="lineup_no_grid_notice">该场比赛未提供球员站位，按名单展示。</string>
+</resources>

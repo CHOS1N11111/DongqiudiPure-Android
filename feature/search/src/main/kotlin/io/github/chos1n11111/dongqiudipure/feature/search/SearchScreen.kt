@@ -38,6 +38,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -46,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.TeamCrest
@@ -123,7 +125,7 @@ fun SearchScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 painter = painterResource(DqdIcons.ArrowBack),
-                                contentDescription = "返回",
+                                contentDescription = stringResource(DesignR.string.ds_action_back),
                                 modifier = Modifier.size(DqdSize.iconMedium),
                             )
                         }
@@ -153,8 +155,8 @@ fun SearchScreen(
                 SectionContainer(
                     state = results,
                     onRetry = onRetry,
-                    emptyTitle = "没有找到相关内容",
-                    emptyDescription = "换个关键词试试。当前仅支持搜索资讯、球队、球员和赛事。",
+                    emptyTitle = stringResource(R.string.search_empty_title),
+                    emptyDescription = stringResource(R.string.search_empty_description),
                 ) { content ->
                     ResultList(
                         results = content,
@@ -203,7 +205,7 @@ private fun SearchField(
         Box(modifier = Modifier.weight(1f)) {
             if (query.isEmpty()) {
                 Text(
-                    text = "搜索球队、球员、赛事或资讯",
+                    text = stringResource(R.string.search_placeholder),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -233,7 +235,7 @@ private fun SearchField(
             ) {
                 Icon(
                     painter = painterResource(DqdIcons.Close),
-                    contentDescription = "清空搜索",
+                    contentDescription = stringResource(R.string.search_clear),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(DqdSize.iconSmall),
                 )
@@ -254,7 +256,7 @@ private fun FilterRow(selected: SearchFilter, onSelect: (SearchFilter) -> Unit) 
         SearchFilter.entries.forEach { filter ->
             val isSelected = filter == selected
             Text(
-                text = filter.label,
+                text = stringResource(filter.labelRes),
                 style = MaterialTheme.typography.labelMedium,
                 color = if (isSelected) {
                     MaterialTheme.colorScheme.onPrimaryContainer
@@ -282,7 +284,7 @@ private fun FilterRow(selected: SearchFilter, onSelect: (SearchFilter) -> Unit) 
 private fun RecentQueries(queries: List<String>, onClick: (String) -> Unit) {
     if (queries.isEmpty()) return
     Column(modifier = Modifier.fillMaxWidth()) {
-        SectionHeader(title = "搜索历史")
+        SectionHeader(title = stringResource(R.string.search_history_title))
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
@@ -320,7 +322,10 @@ private fun ResultList(
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         if ((showAll || filter == SearchFilter.Teams) && results.teams.isNotEmpty()) {
             item(key = "h-teams") {
-                GroupHeader("球队", "${results.teams.size} 个结果")
+                GroupHeader(
+                    stringResource(R.string.search_group_teams),
+                    stringResource(R.string.search_result_count, results.teams.size),
+                )
             }
             items(results.teams, key = { "t-${it.id.raw}" }) { team ->
                 ResultRow(
@@ -340,7 +345,10 @@ private fun ResultList(
 
         if ((showAll || filter == SearchFilter.Players) && results.players.isNotEmpty()) {
             item(key = "h-players") {
-                GroupHeader("球员", "${results.players.size} 个结果")
+                GroupHeader(
+                    stringResource(R.string.search_group_players),
+                    stringResource(R.string.search_result_count, results.players.size),
+                )
             }
             items(results.players, key = { "p-${it.id.raw}" }) { player ->
                 ResultRow(
@@ -361,7 +369,10 @@ private fun ResultList(
 
         if ((showAll || filter == SearchFilter.Competitions) && results.competitions.isNotEmpty()) {
             item(key = "h-comps") {
-                GroupHeader("赛事", "${results.competitions.size} 个结果")
+                GroupHeader(
+                    stringResource(R.string.search_group_competitions),
+                    stringResource(R.string.search_result_count, results.competitions.size),
+                )
             }
             items(results.competitions, key = { "c-${it.id.raw}" }) { competition ->
                 ResultRow(
@@ -382,7 +393,10 @@ private fun ResultList(
 
         if ((showAll || filter == SearchFilter.Articles) && results.articles.isNotEmpty()) {
             item(key = "h-articles") {
-                GroupHeader("资讯", "共 ${results.articleTotal} 条")
+                GroupHeader(
+                    stringResource(R.string.search_group_articles),
+                    stringResource(R.string.search_article_total, results.articleTotal),
+                )
             }
             items(results.articles, key = { "a-${it.id.raw}" }) { article ->
                 ResultRow(

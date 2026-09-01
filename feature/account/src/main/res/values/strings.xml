@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="account_title">我的</string>
+    <string name="account_anonymous_title">未登录</string>
+    <string name="account_anonymous_hint">资讯、比赛、榜单和资料\n无需登录即可完整浏览</string>
+    <string name="account_login_cta">登录以进入主队</string>
+    <string name="account_login_pending">登录功能尚未实现（M9）</string>
+
+    <string name="account_row_settings">设置</string>
+    <string name="account_row_about">关于 DongqiudiPure</string>
+    <string name="account_row_license">开源许可</string>
+
+    <!-- 常驻页尾。发布边界要求保留非官方声明（PRODUCT.md §9）。 -->
+    <string name="account_disclaimer">本应用为非官方第三方客户端，\n与懂球帝及其官方运营方无隶属、授权或认可关系。</string>
+</resources>

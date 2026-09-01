@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -21,7 +22,7 @@ import io.github.chos1n11111.dongqiudipure.navigation.DqdNavHost
  *
  * 使用 [NavigationSuiteScaffold] 实现 DECISIONS.md D-016：
  * compact 宽度显示底栏，medium / expanded 自动切换为 NavigationRail，
- * 三个目的地的语义保持一致。折叠屏与平板不需要另写一套导航。
+ * 四个目的地的语义保持一致。折叠屏与平板不需要另写一套导航。
  */
 @Composable
 fun DqdApp(
@@ -60,7 +61,7 @@ fun DqdApp(
                         )
                     },
                     // 底栏项必须同时有图标与文字标签：纯图标导航损害可发现性。
-                    label = { Text(destination.label) },
+                    label = { Text(stringResource(destination.labelRes)) },
                 )
             }
         },

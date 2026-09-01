@@ -23,11 +23,12 @@
 | `:feature:home` | 资讯流 UI 已完成 |
 | `:feature:article` | 文章详情 + 评论 UI 已完成 |
 | `:feature:matches` | 比赛列表 + 比赛详情（事件 / 阵容 / 统计）UI 已完成 |
-| `:feature:rankings` | 积分榜 / 射手榜 / 助攻榜 / 赛程四个分栏 UI 均已完成 |
+| `:feature:rankings` | 积分榜 / 射手榜 / 助攻榜 / 赛程四个分栏 UI 均已完成；同时提供「数据」根 tab（`DataHubRoute`，赛事切换器 + 榜单）与赛事详情页（`StandingsRoute`），共用 `RankingsContent` |
 | `:feature:entities` | 球队五个分栏 + 球员资料页 UI 均已完成 |
 | `:feature:search` | 搜索 UI 已完成 |
 | `:feature:account` | 「我的」未登录态已完成；登录属于 M9 |
-| `:feature:settings` | 已完成，且**不需要网络**（主题偏好走 DataStore） |
+| `:feature:settings` | 已完成，且**不需要网络**（主题偏好走 DataStore，见 D-019） |
+| 界面文案 | 全部走 string 资源，各模块自带 `strings.xml`；服务端驱动的指标名留在 `:core:sampledata`，不抽资源 |
 
 UI 层的状态编排（loading / content / empty / error、分类切换、日期切换、
 分栏切换、重试）已经按真实形态写好，接入时**只需替换数据来源，
@@ -43,8 +44,9 @@ Android 依赖会直接编译失败；八个 feature 模块互相零依赖，且
 `:core:network` 尚不存在，它们**看不到 DTO**，「Repository 不向上层返回 DTO」
 是靠依赖图挡住的，不靠 review 自觉。
 
-但下面三条留在了待定状态。前两条**必须在写 `:core:data` 之前定**，
-否则会产生返工。
+下面两条留在了待定状态，**必须在写 `:core:data` 之前定**，否则会产生返工。
+
+（原第三条「主题策略」已归档为 `DECISIONS.md` D-019。）
 
 > 每条定下来后，按 `DECISIONS.md` 的 `D-XXX` 模板归档到那里，
 > 再从本节删除 —— 本文是临时文档，会随 `:core:sampledata` 一起删掉，
@@ -91,18 +93,6 @@ loading / error / append / prepend 状态，与 `SectionState` 是**两套并存
 
 **为什么不能拖**：这是全项目唯一一处「晚决定会明确返工」的地方。
 等三个页面都接完真实数据再换分页方案，等于重写这三个页面的状态层。
-
-### 决策 3：主题策略（已实现，仅需归档）
-
-**现状**：已实现为三档（跟随系统 / 浅色 / 深色），DataStore 持久化，
-已验证强杀重启后保持。`DqdTheme` 接受 `darkTheme` 覆盖参数，
-主题本身不读偏好存储，由 `MainActivity` 注入。
-
-**问题**：`DECISIONS.md` 从 D-001 到 D-018 没有任何一条记录主题策略，
-`PRODUCT.md §8` 的非功能要求也只写了兼容性、可访问性和自适应，没提深浅色。
-按你们自己的规矩（跨 module、影响多处的选择必须记录），这条应当补一个 D-019。
-
-**不阻塞任何工作**，只是补记录。
 
 ### 一个不算债但要知道的事实
 

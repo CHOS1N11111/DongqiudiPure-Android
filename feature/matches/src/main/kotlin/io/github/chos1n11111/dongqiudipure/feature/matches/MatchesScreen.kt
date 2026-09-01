@@ -1,6 +1,7 @@
 package io.github.chos1n11111.dongqiudipure.feature.matches
 
 import androidx.compose.foundation.background
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -40,6 +42,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchRow
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
@@ -84,12 +87,12 @@ fun MatchesScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text("比赛") },
+                    title = { Text(stringResource(R.string.matches_title)) },
                     actions = {
                         IconButton(onClick = onSearchClick) {
                             Icon(
                                 painter = painterResource(DqdIcons.Search),
-                                contentDescription = "搜索",
+                                contentDescription = stringResource(DesignR.string.ds_action_search),
                                 modifier = Modifier.size(DqdSize.iconMedium),
                             )
                         }
@@ -114,8 +117,8 @@ fun MatchesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            emptyTitle = "当天没有比赛",
-            emptyDescription = "该日期没有已收录的赛事。可以切换日期查看其他比赛。",
+            emptyTitle = stringResource(R.string.matches_empty_title),
+            emptyDescription = stringResource(R.string.matches_empty_description),
             loading = { MatchesSkeleton() },
         ) { groups ->
             LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -178,6 +181,19 @@ private fun DateCell(
         MaterialTheme.colorScheme.onSurfaceVariant
     }
 
+    // 展示文本在 UI 层生成，ViewModel 只给原始日期。
+    val weekdayLabel = if (day.isToday) {
+        stringResource(R.string.matches_date_today)
+    } else {
+        stringResource(weekdayLabelRes(day.date))
+    }
+    val dayLabel = day.date.dayOfMonth.toString()
+    val a11y = if (day.hasLiveMatch) {
+        stringResource(R.string.matches_date_a11y_has_live, weekdayLabel, day.date.dayOfMonth)
+    } else {
+        stringResource(R.string.matches_date_a11y, weekdayLabel, day.date.dayOfMonth)
+    }
+
     Column(
         modifier = Modifier
             .width(52.dp)
@@ -187,19 +203,18 @@ private fun DateCell(
             .padding(vertical = 6.dp)
             .semantics {
                 this.selected = selected
-                contentDescription = "${day.weekdayLabel} ${day.dayLabel} 日" +
-                    if (day.hasLiveMatch) "，有进行中的比赛" else ""
+                contentDescription = a11y
             },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = day.weekdayLabel,
+            text = weekdayLabel,
             style = MaterialTheme.typography.labelSmall,
             color = content,
             textAlign = TextAlign.Center,
         )
         Text(
-            text = day.dayLabel,
+            text = dayLabel,
             style = DqdTheme.dataText.scoreMedium,
             color = content,
             textAlign = TextAlign.Center,
@@ -294,15 +309,26 @@ private fun MatchesLightPreview() {
     }
 }
 
+@StringRes
+private fun weekdayLabelRes(date: LocalDate): Int = when (date.dayOfWeek.value) {
+    1 -> R.string.matches_weekday_mon
+    2 -> R.string.matches_weekday_tue
+    3 -> R.string.matches_weekday_wed
+    4 -> R.string.matches_weekday_thu
+    5 -> R.string.matches_weekday_fri
+    6 -> R.string.matches_weekday_sat
+    else -> R.string.matches_weekday_sun
+}
+
 private fun previewState(): MatchesUiState {
     val today = LocalDate.of(2026, 9, 1)
     val samples = io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches.matches
     return MatchesUiState(
         days = listOf(
-            MatchDay(today.minusDays(2), "30", "周六", true),
-            MatchDay(today.minusDays(1), "31", "周日", false),
-            MatchDay(today, "1", "今天", true),
-            MatchDay(today.plusDays(1), "2", "周三", false),
+            MatchDay(today.minusDays(2), isToday = false, hasLiveMatch = true),
+            MatchDay(today.minusDays(1), isToday = false, hasLiveMatch = false),
+            MatchDay(today, isToday = true, hasLiveMatch = true),
+            MatchDay(today.plusDays(1), isToday = false, hasLiveMatch = false),
         ),
         selectedDate = today,
         groups = SectionState.Content(

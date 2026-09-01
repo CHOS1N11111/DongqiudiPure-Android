@@ -1,13 +1,16 @@
 package io.github.chos1n11111.dongqiudipure.feature.rankings
 
 import androidx.lifecycle.ViewModel
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
+import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerRankingTable
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.StandingTable
 import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches
+import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleCompetitions
 import io.github.chos1n11111.dongqiudipure.core.sampledata.SamplePlayers
 import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleStandings
 import kotlinx.coroutines.delay
@@ -18,14 +21,22 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** 赛事页的分栏。 */
-enum class RankingTab(val label: String) {
-    Standings("积分榜"),
-    Scorers("射手榜"),
-    Assists("助攻榜"),
-    Fixtures("赛程"),
+enum class RankingTab(@StringRes val labelRes: Int) {
+    Standings(R.string.rankings_tab_standings),
+    Scorers(R.string.rankings_tab_scorers),
+    Assists(R.string.rankings_tab_assists),
+    Fixtures(R.string.rankings_tab_fixtures),
 }
 
 data class RankingsUiState(
+    /**
+     * 「数据」根 tab 的赛事切换器数据源。
+     *
+     * ⚠️ 真实实现由服务端提供（M2 归档的官方匿名默认入口），
+     * **不得在客户端写死名单**（FEATURES.md：M6/M7 不在代码中写死永久名单）。
+     */
+    val competitions: List<CompetitionRef> = emptyList(),
+    val selectedCompetition: CompetitionRef? = null,
     val competitionName: String = "",
     val seasonLabel: String = "",
     val selectedTab: RankingTab = RankingTab.Standings,
@@ -51,9 +62,35 @@ class StandingsViewModel : ViewModel() {
 
     private var competitionId: CompetitionId? = null
 
+    /** 「数据」根 tab 用：加载赛事列表并选中默认项。 */
+    fun loadHub() {
+        if (_uiState.value.competitions.isNotEmpty()) return
+        // TODO(data): 替换为 Repository 调用；默认项取服务端返回的默认赛事。
+        val competitions = SampleCompetitions.all
+        val default = SampleCompetitions.default
+        _uiState.update {
+            it.copy(competitions = competitions, selectedCompetition = default)
+        }
+        load(default.id)
+    }
+
+    fun selectCompetition(competition: CompetitionRef) {
+        if (competition.id == competitionId) return
+        _uiState.update { it.copy(selectedCompetition = competition) }
+        load(competition.id)
+    }
+
     fun load(id: CompetitionId) {
         if (competitionId == id) return
         competitionId = id
+        _uiState.update {
+            it.copy(
+                table = SectionState.Loading,
+                scorers = SectionState.Loading,
+                assists = SectionState.Loading,
+                fixtures = SectionState.Loading,
+            )
+        }
         loadTable()
         loadScorers()
         loadAssists()

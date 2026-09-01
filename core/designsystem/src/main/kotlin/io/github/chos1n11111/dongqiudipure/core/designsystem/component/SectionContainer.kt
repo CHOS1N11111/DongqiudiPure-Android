@@ -16,7 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
@@ -39,8 +41,8 @@ fun <T> SectionContainer(
     modifier: Modifier = Modifier,
     title: String? = null,
     trailing: @Composable (() -> Unit)? = null,
-    emptyTitle: String = "暂无内容",
-    emptyDescription: String = "该板块目前没有可显示的数据。",
+    emptyTitle: String = stringResource(R.string.ds_section_empty_title),
+    emptyDescription: String = stringResource(R.string.ds_section_empty_description),
     @DrawableRes emptyIcon: Int = DqdIcons.Inbox,
     loading: @Composable () -> Unit = { DefaultSectionSkeleton() },
     content: @Composable (T) -> Unit,

@@ -31,12 +31,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.TeamCrest
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ValueText
@@ -89,7 +92,7 @@ fun PlayerProfileScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             painter = painterResource(DqdIcons.ArrowBack),
-                            contentDescription = "返回",
+                            contentDescription = stringResource(DesignR.string.ds_action_back),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -98,7 +101,7 @@ fun PlayerProfileScreen(
                     IconButton(onClick = { /* TODO(share): 接入系统分享 */ }) {
                         Icon(
                             painter = painterResource(DqdIcons.Share),
-                            contentDescription = "分享",
+                            contentDescription = stringResource(DesignR.string.ds_action_share),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -129,7 +132,7 @@ fun PlayerProfileScreen(
                 state = uiState.profile,
                 onRetry = onRetry,
                 modifier = Modifier.padding(top = DqdSpacing.sm),
-                title = "资料",
+                title = stringResource(R.string.player_profile_section),
             ) { profile ->
                 AttributeGrid(profile)
             }
@@ -138,9 +141,9 @@ fun PlayerProfileScreen(
                 state = uiState.seasonStats,
                 onRetry = onRetry,
                 modifier = Modifier.padding(top = DqdSpacing.sm),
-                title = "本赛季数据",
-                emptyTitle = "暂无赛季数据",
-                emptyDescription = "该赛事未提供这名球员的本赛季统计。",
+                title = stringResource(R.string.player_season_stats),
+                emptyTitle = stringResource(R.string.player_season_stats_empty_title),
+                emptyDescription = stringResource(R.string.player_season_stats_empty_description),
             ) { stats ->
                 TeamStatsGrid(stats = stats)
             }
@@ -149,9 +152,9 @@ fun PlayerProfileScreen(
                 state = uiState.career,
                 onRetry = onRetry,
                 modifier = Modifier.padding(top = DqdSpacing.sm),
-                title = "履历",
-                emptyTitle = "暂无履历",
-                emptyDescription = "没有已收录的历史赛季记录。",
+                title = stringResource(R.string.player_career),
+                emptyTitle = stringResource(R.string.player_career_empty_title),
+                emptyDescription = stringResource(R.string.player_career_empty_description),
             ) { career ->
                 CareerTable(career)
             }
@@ -190,7 +193,7 @@ private fun PlayerHeader(profile: PlayerProfile, onTeamClick: (TeamId) -> Unit) 
                 // 号码缺失时显示「—」而不是省略这一位。
                 Box(contentAlignment = Alignment.Center) {
                     ValueText(
-                        value = profile.shirtNumber?.let { "#$it" },
+                        value = profile.shirtNumber?.let { stringResource(R.string.player_shirt_number, it) },
                         style = DqdTheme.dataText.statValue.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
@@ -212,14 +215,14 @@ private fun PlayerHeader(profile: PlayerProfile, onTeamClick: (TeamId) -> Unit) 
                         size = 16.dp,
                     )
                     Text(
-                        text = "${team.name} · ${profile.position.label}",
+                        text = "${team.name} · ${stringResource(profile.position.labelRes())}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             } else {
                 Text(
-                    text = profile.position.label,
+                    text = stringResource(profile.position.labelRes()),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -231,10 +234,10 @@ private fun PlayerHeader(profile: PlayerProfile, onTeamClick: (TeamId) -> Unit) 
 @Composable
 private fun AttributeGrid(profile: PlayerProfile) {
     val attributes = listOf(
-        "国籍" to profile.nationality,
-        "年龄" to profile.ageLabel,
-        "身高" to profile.heightLabel,
-        "惯用脚" to profile.footLabel,
+        stringResource(R.string.player_attr_nationality) to profile.nationality,
+        stringResource(R.string.player_attr_age) to profile.ageLabel,
+        stringResource(R.string.player_attr_height) to profile.heightLabel,
+        stringResource(R.string.player_attr_foot) to profile.footLabel,
     )
 
     Column(
@@ -297,26 +300,26 @@ private fun CareerTable(career: List<CareerEntry>) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "赛季",
+                text = stringResource(R.string.player_career_column_season),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.width(64.dp),
             )
             Text(
-                text = "球队",
+                text = stringResource(R.string.player_career_column_team),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = "出场",
+                text = stringResource(R.string.player_career_column_appearances),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.width(44.dp),
             )
             Text(
-                text = "进球",
+                text = stringResource(R.string.player_career_column_goals),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

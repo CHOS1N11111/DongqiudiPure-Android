@@ -16,10 +16,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ImagePlaceholder
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
+import io.github.chos1n11111.dongqiudipure.feature.home.R
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleMedia
@@ -44,7 +46,7 @@ fun ArticleRow(
             article = article,
             url = media.url,
             // 张数缺失时不显示角标，而不是显示「0 张」。
-            badgeLabel = media.photoCount?.let { "$it 图" },
+            badgeLabel = media.photoCount?.let { stringResource(R.string.home_gallery_count, it) },
             badgeIcon = null,
             onClick = onClick,
             modifier = modifier,
@@ -160,7 +162,7 @@ private fun ArticleMeta(article: ArticleSummary) {
         ) {
             if (article.commentCount != null) {
                 Text(
-                    text = "${article.commentCount} 评论",
+                    text = stringResource(R.string.home_comment_count, article.commentCount!!),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

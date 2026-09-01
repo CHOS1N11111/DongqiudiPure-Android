@@ -11,9 +11,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 
 /**
@@ -36,8 +38,9 @@ fun MissingValue(
     style: TextStyle = LocalTextStyle.current,
 ) {
     val missingColor = DqdTheme.sports.missing
+    val label = stringResource(R.string.ds_no_data)
     Box(
-        modifier = modifier.semantics { contentDescription = "暂无数据" },
+        modifier = modifier.semantics { contentDescription = label },
     ) {
         Text(
             text = "—",

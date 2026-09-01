@@ -119,3 +119,39 @@ object SamplePlayers {
         SquadMember(PlayerId("p-h11"), "多库", null, PlayerPosition.Forward, "比利时", null),
     )
 }
+
+/**
+ * 球队维度的示例统计。
+ *
+ * 指标名（`label`）在真实实现中**来自服务端**（`StatItem.name` / `PlayerSeasonStat.label`），
+ * 不是客户端选定的界面文案 —— 所以留在示例数据里，不抽成字符串资源。
+ * 抽成资源等于客户端声称拥有这些指标名，与「统计指标由服务端驱动」矛盾。
+ */
+object SampleTeamStats {
+
+    /** 球队主页「本赛季数据」的三块概览。 */
+    val overview: List<Pair<String, String?>> = listOf(
+        "积分" to "10",
+        "进球" to "11",
+        // 该赛事未提供预期进球。必须保持 null。
+        "预期进球" to null,
+    )
+
+    /** 球队「数据」分栏的完整指标表。 */
+    val detailed: List<io.github.chos1n11111.dongqiudipure.core.model.PlayerSeasonStat> = listOf(
+        stat("played", "场次", "4", 1),
+        stat("won", "胜", "3", 2),
+        stat("drawn", "平", "1", 3),
+        stat("lost", "负", "0", 4),
+        stat("gf", "进球", "11", 5),
+        stat("ga", "失球", "4", 6),
+        stat("clean", "零封", "2", 7),
+        stat("possession", "场均控球", "61%", 8),
+        // 该赛事未提供这两项。与上面的「负 0」必须视觉可区分。
+        stat("xg", "预期进球", null, 9),
+        stat("xga", "预期失球", null, 10),
+    )
+
+    private fun stat(id: String, label: String, value: String?, order: Int) =
+        io.github.chos1n11111.dongqiudipure.core.model.PlayerSeasonStat(id, label, value, order)
+}

@@ -15,11 +15,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-/** 日期条的一格。 */
+/**
+ * 日期条的一格。
+ *
+ * 只带原始日期与标记，**不带已格式化的文案** ——
+ * 「周一」「今天」这类展示文本由 UI 层按用户语言与时区生成
+ * （ARCHITECTURE.md §5.2：只有 UI 层做格式化）。
+ */
 data class MatchDay(
     val date: LocalDate,
-    val dayLabel: String,
-    val weekdayLabel: String,
+    val isToday: Boolean,
     val hasLiveMatch: Boolean,
 )
 
@@ -95,23 +100,12 @@ class MatchesViewModel : ViewModel() {
             val date = today.plusDays(offset.toLong())
             MatchDay(
                 date = date,
-                dayLabel = date.dayOfMonth.toString(),
-                weekdayLabel = if (offset == 0) "今天" else weekdayOf(date),
+                isToday = offset == 0,
                 // TODO(data): 真实实现应由服务端的当日比赛状态决定，而不是示例数据。
                 hasLiveMatch = offset == -1 ||
                     (offset == 0 && SampleMatches.matches.any { it.status.needsLiveRefresh }),
             )
         }
-
-    private fun weekdayOf(date: LocalDate): String = when (date.dayOfWeek.value) {
-        1 -> "周一"
-        2 -> "周二"
-        3 -> "周三"
-        4 -> "周四"
-        5 -> "周五"
-        6 -> "周六"
-        else -> "周日"
-    }
 
     private companion object {
         const val SAMPLE_LOAD_DELAY_MS = 600L

@@ -2,6 +2,7 @@ package io.github.chos1n11111.dongqiudipure.core.designsystem.component
 
 import android.provider.Settings
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -27,9 +28,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
@@ -144,17 +147,21 @@ fun DqdErrorState(
         iconTint = if (copy.isWarning) sports.yellowCard else MaterialTheme.colorScheme.error,
         iconBackground = (if (copy.isWarning) sports.yellowCard else MaterialTheme.colorScheme.error)
             .copy(alpha = 0.14f),
-        title = copy.title,
-        description = copy.description,
+        title = stringResource(copy.titleRes),
+        description = stringResource(copy.descriptionRes),
         diagnostic = error.diagnostic,
-        actionLabel = if (error.isRetryable) "重试" else null,
+        actionLabel = if (error.isRetryable) stringResource(R.string.ds_action_retry) else null,
         onAction = onRetry.takeIf { error.isRetryable },
     )
 }
 
+/**
+ * 错误文案。持有资源 id 而不是已解析的字符串 —— [errorCopy] 是普通函数，
+ * 不在 composable 上下文里，无法（也不该）自己解析字符串。
+ */
 private data class ErrorCopy(
-    val title: String,
-    val description: String,
+    @StringRes val titleRes: Int,
+    @StringRes val descriptionRes: Int,
     @DrawableRes val icon: Int,
     val isWarning: Boolean,
 )
@@ -162,66 +169,66 @@ private data class ErrorCopy(
 private fun errorCopy(error: AppError): ErrorCopy = when (error) {
     is AppError.Network -> when (error.kind) {
         NetworkKind.NoConnection -> ErrorCopy(
-            title = "网络连接失败",
-            description = "请检查网络后重试。已缓存的内容仍可继续浏览。",
+            titleRes = R.string.ds_error_no_connection_title,
+            descriptionRes = R.string.ds_error_no_connection_description,
             icon = DqdIcons.WifiOff,
             isWarning = false,
         )
 
         NetworkKind.Timeout -> ErrorCopy(
-            title = "请求超时",
-            description = "服务器响应过慢。稍后重试，或切换到更稳定的网络。",
+            titleRes = R.string.ds_error_timeout_title,
+            descriptionRes = R.string.ds_error_timeout_description,
             icon = DqdIcons.WifiOff,
             isWarning = false,
         )
 
         NetworkKind.TlsFailure -> ErrorCopy(
-            title = "安全连接失败",
-            description = "无法建立加密连接。若使用了代理或公共网络，请切换后重试。",
+            titleRes = R.string.ds_error_tls_title,
+            descriptionRes = R.string.ds_error_tls_description,
             icon = DqdIcons.WifiOff,
             isWarning = false,
         )
 
         NetworkKind.Unknown -> ErrorCopy(
-            title = "网络异常",
-            description = "请稍后重试。",
+            titleRes = R.string.ds_error_network_title,
+            descriptionRes = R.string.ds_error_network_description,
             icon = DqdIcons.WifiOff,
             isWarning = false,
         )
     }
 
     is AppError.RateLimited -> ErrorCopy(
-        title = "请求过于频繁",
-        description = "已被服务端限流，请稍后再试。",
+        titleRes = R.string.ds_error_rate_limited_title,
+        descriptionRes = R.string.ds_error_rate_limited_description,
         icon = DqdIcons.Alert,
         isWarning = true,
     )
 
     // 非官方客户端特有：服务端改了结构。用户需要知道这不是自己的网络问题。
     is AppError.UnsupportedContract, is AppError.Parse -> ErrorCopy(
-        title = "该板块暂时无法显示",
-        description = "数据格式与当前版本不兼容。其余内容不受影响，可尝试更新应用。",
+        titleRes = R.string.ds_error_contract_title,
+        descriptionRes = R.string.ds_error_contract_description,
         icon = DqdIcons.Alert,
         isWarning = true,
     )
 
     is AppError.Http, is AppError.Server -> ErrorCopy(
-        title = "加载失败",
-        description = "服务端暂时无法返回该内容，请稍后重试。",
+        titleRes = R.string.ds_error_server_title,
+        descriptionRes = R.string.ds_error_server_description,
         icon = DqdIcons.Alert,
         isWarning = false,
     )
 
     AppError.AuthenticationRequired -> ErrorCopy(
-        title = "需要登录",
-        description = "该内容需要登录后才能查看。公开内容不受影响。",
+        titleRes = R.string.ds_error_auth_required_title,
+        descriptionRes = R.string.ds_error_auth_required_description,
         icon = DqdIcons.Login,
         isWarning = true,
     )
 
     AppError.SessionExpired -> ErrorCopy(
-        title = "登录已过期",
-        description = "请重新登录。公开内容仍可正常浏览。",
+        titleRes = R.string.ds_error_session_expired_title,
+        descriptionRes = R.string.ds_error_session_expired_description,
         icon = DqdIcons.Login,
         isWarning = true,
     )

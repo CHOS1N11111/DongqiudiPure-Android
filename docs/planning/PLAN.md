@@ -72,7 +72,7 @@ M0 范围与决策
 - [x] 确认应用名 `DongqiudiPure` 与 `applicationId` `io.github.chos1n11111.dongqiudipure`。
 - [x] 确认 `minSdk` 为 API 26，License 为 `GPL-3.0-only`。
 - [x] 确认 Kotlin/Compose、OkHttp/kotlinx.serialization、手动 DI 等技术基线。
-- [x] 确认 `资讯 / 比赛 / 我的` 根 Navigation。
+- [x] 确认 `资讯 / 比赛 / 数据` 根 Navigation。
 - [x] 确认“匿名核心 -> 登录与主队 -> 完整匿名公开数据 -> 账号能力”的四阶段顺序。
 
 ### 退出条件

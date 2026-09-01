@@ -1,6 +1,7 @@
 package io.github.chos1n11111.dongqiudipure.feature.matches
 
 import androidx.compose.foundation.Canvas
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,11 +33,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
@@ -49,9 +52,9 @@ import io.github.chos1n11111.dongqiudipure.core.model.PlayerPosition
 import io.github.chos1n11111.dongqiudipure.core.model.TeamLineup
 
 /** 阵容分栏当前展示哪一侧。 */
-enum class LineupSide(val label: String) {
-    Home("主队"),
-    Away("客队"),
+enum class LineupSide(@StringRes val labelRes: Int) {
+    Home(R.string.lineup_side_home),
+    Away(R.string.lineup_side_away),
 }
 
 @Composable
@@ -93,11 +96,11 @@ fun LineupContent(
         }
 
         if (team.substitutes.isNotEmpty()) {
-            SectionHeader(title = "替补")
+            SectionHeader(title = stringResource(R.string.lineup_substitutes))
             PlayerList(players = team.substitutes, onPlayerClick = onPlayerClick)
         }
 
-        SectionHeader(title = "主教练")
+        SectionHeader(title = stringResource(R.string.lineup_coach))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -120,7 +123,7 @@ fun LineupContent(
         }
 
         if (team.absentees.isNotEmpty()) {
-            SectionHeader(title = "缺阵")
+            SectionHeader(title = stringResource(R.string.lineup_absentees))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -217,7 +220,7 @@ private fun FormationBar(team: TeamLineup) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "阵型",
+            text = stringResource(R.string.lineup_formation),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -389,7 +392,7 @@ private fun NoGridNotice() {
                 .size(12.dp),
         )
         Text(
-            text = "该场比赛未提供球员站位，按名单展示。",
+            text = stringResource(R.string.lineup_no_grid_notice),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -421,7 +424,7 @@ private fun PlayerList(
             if (group.isEmpty()) return@forEach
 
             Text(
-                text = position.label,
+                text = stringResource(position.labelRes()),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(

@@ -14,6 +14,7 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.R
 object DqdIcons {
     val News = R.drawable.ic_news
     val Calendar = R.drawable.ic_calendar
+    val Data = R.drawable.ic_data
     val Person = R.drawable.ic_person
     val Search = R.drawable.ic_search
     val ChevronRight = R.drawable.ic_chevron_right

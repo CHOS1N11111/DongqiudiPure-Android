@@ -36,12 +36,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchStatusBadge
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
@@ -110,7 +112,7 @@ fun MatchDetailScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             painter = painterResource(DqdIcons.ArrowBack),
-                            contentDescription = "返回",
+                            contentDescription = stringResource(DesignR.string.ds_action_back),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -119,7 +121,7 @@ fun MatchDetailScreen(
                     IconButton(onClick = { /* TODO(share): 接入系统分享 */ }) {
                         Icon(
                             painter = painterResource(DqdIcons.Share),
-                            contentDescription = "分享",
+                            contentDescription = stringResource(DesignR.string.ds_action_share),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -159,7 +161,7 @@ fun MatchDetailScreen(
                         unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         text = {
                             Text(
-                                text = tab.label,
+                                text = stringResource(tab.labelRes),
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             )
                         },
@@ -171,8 +173,8 @@ fun MatchDetailScreen(
                 MatchTab.Events -> SectionContainer(
                     state = uiState.events,
                     onRetry = onRetryEvents,
-                    emptyTitle = "暂无事件",
-                    emptyDescription = "这场比赛还没有已收录的事件记录。",
+                    emptyTitle = stringResource(R.string.match_events_empty_title),
+                    emptyDescription = stringResource(R.string.match_events_empty_description),
                     loading = { EventsSkeleton() },
                 ) { events ->
                     EventTimeline(events)
@@ -181,8 +183,8 @@ fun MatchDetailScreen(
                 MatchTab.Stats -> SectionContainer(
                     state = uiState.stats,
                     onRetry = onRetryStats,
-                    emptyTitle = "暂无技术统计",
-                    emptyDescription = "该赛事未提供这场比赛的技术统计。",
+                    emptyTitle = stringResource(R.string.match_stats_empty_title),
+                    emptyDescription = stringResource(R.string.match_stats_empty_description),
                     loading = { StatsSkeleton() },
                 ) { stats ->
                     Column(modifier = Modifier.padding(vertical = DqdSpacing.sm)) {
@@ -193,8 +195,8 @@ fun MatchDetailScreen(
                 MatchTab.Lineup -> SectionContainer(
                     state = uiState.lineup,
                     onRetry = onRetryLineup,
-                    emptyTitle = "暂无阵容",
-                    emptyDescription = "该场比赛还没有公布首发名单。",
+                    emptyTitle = stringResource(R.string.match_lineup_empty_title),
+                    emptyDescription = stringResource(R.string.match_lineup_empty_description),
                     loading = { LineupSkeleton() },
                 ) { lineup ->
                     LineupContent(
@@ -353,7 +355,7 @@ private fun EventRow(event: MatchEvent) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            val subtitle = event.secondaryName ?: event.kind.label()
+            val subtitle = event.secondaryName ?: eventKindLabel(event.kind)
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelSmall,
@@ -422,17 +424,23 @@ private fun EventIcon(kind: MatchEventKind) {
     }
 }
 
-private fun MatchEventKind.label(): String = when (this) {
-    MatchEventKind.Goal -> "进球"
-    MatchEventKind.OwnGoal -> "乌龙球"
-    MatchEventKind.PenaltyGoal -> "点球"
-    MatchEventKind.YellowCard -> "黄牌"
-    MatchEventKind.RedCard -> "红牌"
-    MatchEventKind.SecondYellow -> "两黄变红"
-    MatchEventKind.Substitution -> "换人"
-    MatchEventKind.VarReview -> "VAR 回看"
-    // 未知事件类型不丢弃，原样显示服务端返回的值。
-    is MatchEventKind.Unknown -> rawValue
+/**
+ * 事件类型文案。
+ *
+ * [MatchEventKind.Unknown] 原样返回服务端的值，不走资源 ——
+ * 那是服务端给的原始字符串，客户端没有对应译文，也不该编一个。
+ */
+@Composable
+private fun eventKindLabel(kind: MatchEventKind): String = when (kind) {
+    MatchEventKind.Goal -> stringResource(R.string.match_event_goal)
+    MatchEventKind.OwnGoal -> stringResource(R.string.match_event_own_goal)
+    MatchEventKind.PenaltyGoal -> stringResource(R.string.match_event_penalty)
+    MatchEventKind.YellowCard -> stringResource(R.string.match_event_yellow_card)
+    MatchEventKind.RedCard -> stringResource(R.string.match_event_red_card)
+    MatchEventKind.SecondYellow -> stringResource(R.string.match_event_second_yellow)
+    MatchEventKind.Substitution -> stringResource(R.string.match_event_substitution)
+    MatchEventKind.VarReview -> stringResource(R.string.match_event_var)
+    is MatchEventKind.Unknown -> kind.rawValue
 }
 
 /**

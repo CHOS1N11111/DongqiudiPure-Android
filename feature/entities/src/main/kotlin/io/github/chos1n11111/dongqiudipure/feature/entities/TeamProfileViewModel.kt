@@ -1,6 +1,7 @@
 package io.github.chos1n11111.dongqiudipure.feature.entities
 
 import androidx.lifecycle.ViewModel
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.MatchStatus
@@ -13,6 +14,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamProfile
 import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleFeed
 import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches
 import io.github.chos1n11111.dongqiudipure.core.sampledata.SamplePlayers
+import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleTeamStats
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,12 +22,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class TeamTab(val label: String) {
-    Overview("资料"),
-    Squad("阵容"),
-    Fixtures("赛程"),
-    Stats("数据"),
-    News("资讯"),
+enum class TeamTab(@StringRes val labelRes: Int) {
+    Overview(R.string.team_tab_overview),
+    Squad(R.string.team_tab_squad),
+    Fixtures(R.string.team_tab_fixtures),
+    Stats(R.string.team_tab_stats),
+    News(R.string.team_tab_news),
 }
 
 /** 一项赛季统计。[value] 为 null 表示该赛事未提供，不等于 0。 */
@@ -106,13 +108,11 @@ class TeamProfileViewModel : ViewModel() {
             delay(650)
             _uiState.update {
                 it.copy(
+                    // 指标名来自服务端，属于数据而非界面文案，所以在 sampledata 里。
                     seasonStats = SectionState.Content(
-                        listOf(
-                            SeasonStat("积分", "10"),
-                            SeasonStat("进球", "11"),
-                            // 该赛事未提供预期进球。必须保持 null。
-                            SeasonStat("预期进球", null),
-                        ),
+                        SampleTeamStats.overview.map { (label, value) ->
+                            SeasonStat(label, value)
+                        },
                     ),
                 )
             }
@@ -157,23 +157,7 @@ class TeamProfileViewModel : ViewModel() {
         viewModelScope.launch {
             delay(750)
             _uiState.update {
-                it.copy(
-                    detailedStats = SectionState.Content(
-                        listOf(
-                            PlayerSeasonStat("played", "场次", "4", 1),
-                            PlayerSeasonStat("won", "胜", "3", 2),
-                            PlayerSeasonStat("drawn", "平", "1", 3),
-                            PlayerSeasonStat("lost", "负", "0", 4),
-                            PlayerSeasonStat("gf", "进球", "11", 5),
-                            PlayerSeasonStat("ga", "失球", "4", 6),
-                            PlayerSeasonStat("clean", "零封", "2", 7),
-                            PlayerSeasonStat("possession", "场均控球", "61%", 8),
-                            // 该赛事未提供这两项。
-                            PlayerSeasonStat("xg", "预期进球", null, 9),
-                            PlayerSeasonStat("xga", "预期失球", null, 10),
-                        ),
-                    ),
-                )
+                it.copy(detailedStats = SectionState.Content(SampleTeamStats.detailed))
             }
         }
     }

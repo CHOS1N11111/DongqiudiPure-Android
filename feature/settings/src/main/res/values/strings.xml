@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">设置</string>
+    <string name="settings_appearance">外观</string>
+
+    <!-- 主题三档。「跟随系统」是默认值：用户在系统层面已经表达过一次偏好。 -->
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="settings_theme_note">深色与浅色两套配色各自独立取值并分别验证过对比度，不是互相反相得到的。</string>
+
+    <string name="about_title">关于</string>
+    <string name="about_version">版本 %1$s</string>
+    <string name="about_disclaimer_unofficial">本应用为非官方第三方客户端，与懂球帝及其官方运营方无隶属、授权或认可关系。「懂球帝」及相关名称与标识归其各自权利人所有。</string>
+    <string name="about_disclaimer_no_ads">本应用不展示广告，不展示赔率、盘口或任何博彩与体育投注相关内容，也不接入第三方统计分析。</string>
+    <string name="about_disclaimer_privacy">公开内容无需登录即可完整浏览。应用不为统计或推荐额外采集用户数据；密码不落盘，凭据不进入日志。</string>
+    <string name="about_disclaimer_availability">本应用不保证非官方接口长期可用。接口变化时，受影响的板块会单独降级，其余内容不受影响。</string>
+
+    <string name="license_title">开源许可</string>
+    <string name="license_project">本项目以 GPL-3.0-only 发布，不提供任何担保。完整条款见源码仓库根目录的 LICENSE 文件。</string>
+    <string name="license_third_party_title">第三方依赖</string>
+    <string name="license_third_party_jetpack">Android Jetpack（Compose、Navigation、Lifecycle、DataStore）</string>
+    <string name="license_third_party_kotlin">Kotlin 标准库与 Coroutines</string>
+    <string name="license_third_party_note">以上为主要依赖。发布前将由构建期生成完整的第三方声明。</string>
+</resources>

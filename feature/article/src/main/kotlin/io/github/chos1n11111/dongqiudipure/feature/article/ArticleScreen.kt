@@ -33,11 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ImagePlaceholder
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
@@ -107,7 +109,7 @@ fun ArticleScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             painter = painterResource(DqdIcons.ArrowBack),
-                            contentDescription = "返回",
+                            contentDescription = stringResource(DesignR.string.ds_action_back),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -118,7 +120,7 @@ fun ArticleScreen(
                     IconButton(onClick = { /* TODO(share): 接入系统分享 */ }) {
                         Icon(
                             painter = painterResource(DqdIcons.Share),
-                            contentDescription = "分享",
+                            contentDescription = stringResource(DesignR.string.ds_action_share),
                             modifier = Modifier.size(DqdSize.iconMedium),
                         )
                     }
@@ -150,14 +152,14 @@ fun ArticleScreen(
                 state = uiState.comments,
                 onRetry = onRetryComments,
                 modifier = Modifier.padding(top = DqdSpacing.sm),
-                title = "评论",
+                title = stringResource(R.string.article_comments_title),
                 trailing = {
                     Box(modifier = Modifier.clickable(onClick = onSortToggle)) {
-                        SectionAction(label = uiState.commentSort.label)
+                        SectionAction(label = stringResource(uiState.commentSort.labelRes))
                     }
                 },
-                emptyTitle = "还没有评论",
-                emptyDescription = "这篇文章暂时没有公开评论。",
+                emptyTitle = stringResource(R.string.article_comments_empty_title),
+                emptyDescription = stringResource(R.string.article_comments_empty_description),
             ) { comments ->
                 Column {
                     comments.forEach { comment ->
@@ -279,11 +281,13 @@ private fun RelatedEntities(
 
 @Composable
 private fun EntityChip(entity: EntityRef, onClick: () -> Unit) {
-    val typeLabel = when (entity) {
-        is EntityRef.Team -> "球队"
-        is EntityRef.Player -> "球员"
-        is EntityRef.Competition -> "赛事"
-    }
+    val typeLabel = stringResource(
+        when (entity) {
+            is EntityRef.Team -> R.string.article_entity_type_team
+            is EntityRef.Player -> R.string.article_entity_type_player
+            is EntityRef.Competition -> R.string.article_entity_type_competition
+        },
+    )
 
     Row(
         modifier = Modifier
@@ -351,7 +355,7 @@ private fun CommentRow(comment: Comment) {
                 // 回复数缺失时显示「—」，不显示「0 条回复」。
                 if (comment.replyCount != null) {
                     Text(
-                        text = "${comment.replyCount} 条回复",
+                        text = stringResource(R.string.article_reply_count, comment.replyCount!!),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

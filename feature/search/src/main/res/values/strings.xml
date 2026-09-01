@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_placeholder">搜索球队、球员、赛事或资讯</string>
+    <string name="search_clear">清空搜索</string>
+    <string name="search_history_title">搜索历史</string>
+    <string name="search_empty_title">没有找到相关内容</string>
+    <string name="search_empty_description">换个关键词试试。当前仅支持搜索资讯、球队、球员和赛事。</string>
+
+    <!-- 结果按实体类型分组：用户搜「曼城」时想要的是球队，不是第 40 条资讯。 -->
+    <string name="search_filter_all">全部</string>
+    <string name="search_group_teams">球队</string>
+    <string name="search_group_players">球员</string>
+    <string name="search_group_competitions">赛事</string>
+    <string name="search_group_articles">资讯</string>
+
+    <string name="search_result_count">%1$d 个结果</string>
+    <string name="search_article_total">共 %1$d 条</string>
+</resources>

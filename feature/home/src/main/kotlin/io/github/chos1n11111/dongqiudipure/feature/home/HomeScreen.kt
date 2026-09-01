@@ -27,11 +27,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
@@ -80,7 +82,7 @@ fun HomeScreen(
                             Icon(
                                 painter = painterResource(DqdIcons.Search),
                                 // 图标按钮必须有可访问名称
-                                contentDescription = "搜索",
+                                contentDescription = stringResource(DesignR.string.ds_action_search),
                                 modifier = Modifier.size(DqdSize.iconMedium),
                             )
                         }
@@ -104,8 +106,11 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            emptyTitle = "该分类暂无资讯",
-            emptyDescription = "「${uiState.selectedCategory}」下目前没有已收录的内容，可以切换其他分类。",
+            emptyTitle = stringResource(R.string.home_feed_empty_title),
+            emptyDescription = stringResource(
+                R.string.home_feed_empty_description,
+                uiState.selectedCategory,
+            ),
             loading = { FeedSkeleton() },
         ) { articles ->
             LazyColumn(modifier = Modifier.fillMaxSize()) {

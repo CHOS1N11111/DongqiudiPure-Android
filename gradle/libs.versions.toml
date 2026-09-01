@@ -23,6 +23,10 @@ androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-ru
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 
+# 注：不引入 material-icons-extended。应用自带一套 vector drawable
+# （:core:designsystem 的 DqdIcons），线宽与圆角风格统一，
+# 也避免为几个图标引入一个体积很大的依赖。
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }

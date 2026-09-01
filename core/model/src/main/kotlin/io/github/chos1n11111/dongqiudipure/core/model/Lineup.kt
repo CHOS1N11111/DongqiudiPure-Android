@@ -1,12 +1,18 @@
 package io.github.chos1n11111.dongqiudipure.core.model
 
-/** 球员位置。[Unknown] 保留服务端原值，不猜测归类。 */
-enum class PlayerPosition(val label: String) {
-    Goalkeeper("门将"),
-    Defender("后卫"),
-    Midfielder("中场"),
-    Forward("前锋"),
-    Unknown("未知"),
+/**
+ * 球员位置。[Unknown] 保留服务端原值，不猜测归类。
+ *
+ * 不带展示文案：位置名是界面文字，属于 UI 层的字符串资源
+ * （见 :core:designsystem 的 `playerPositionLabel`）。
+ * 纯领域模块不持有本地化文本。
+ */
+enum class PlayerPosition {
+    Goalkeeper,
+    Defender,
+    Midfielder,
+    Forward,
+    Unknown,
 }
 
 data class PlayerRef(
