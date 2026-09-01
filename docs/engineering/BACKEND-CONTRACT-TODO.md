@@ -22,9 +22,9 @@
 | `:core:data` | 未创建 |
 | `:feature:home` | 资讯流 UI 已完成 |
 | `:feature:article` | 文章详情 + 评论 UI 已完成 |
-| `:feature:matches` | 比赛列表 + 比赛详情（事件 / 统计）UI 已完成；阵容待定义 model |
-| `:feature:rankings` | 积分榜 UI 已完成；射手 / 助攻 / 赛程分栏待实现 |
-| `:feature:entities` | 球队资料 UI 已完成；阵容 / 赛程 / 数据 / 资讯分栏待实现 |
+| `:feature:matches` | 比赛列表 + 比赛详情（事件 / 阵容 / 统计）UI 已完成 |
+| `:feature:rankings` | 积分榜 / 射手榜 / 助攻榜 / 赛程四个分栏 UI 均已完成 |
+| `:feature:entities` | 球队五个分栏 + 球员资料页 UI 均已完成 |
 | `:feature:search` | 搜索 UI 已完成 |
 | `:feature:account` | 「我的」未登录态已完成；登录属于 M9 |
 | `:feature:settings` | 已完成，且**不需要网络**（主题偏好走 DataStore） |
@@ -130,7 +130,7 @@ Milestone M4。
 
 ### 2.4 比赛详情 · `:feature:matches`
 
-UI 已完成：比分头（含 LIVE 状态）、事件时间线、技术统计对比条。
+UI 已完成：比分头（含 LIVE 状态）、事件时间线、阵型图 / 阵容名单、技术统计对比条。
 每个 section 一个独立 `SectionState`，互不等待、互不影响。
 
 需要按 section 分别接入：
@@ -139,9 +139,17 @@ UI 已完成：比分头（含 LIVE 状态）、事件时间线、技术统计�
 | --- | --- |
 | 比分头 | UI 完成，需 `loadMatch(id)` |
 | 事件 | UI 完成，需 `loadEvents(id)` |
+| 阵容 | UI 完成，需 `loadLineup(id)` |
 | 技术统计 | UI 完成，需 `loadStats(id)` |
-| 阵容 | **未实现** —— 需先定义 Domain model（首发 / 替补 / 教练 / 阵型 / 位置 / 号码 / 缺阵） |
-| 赛前 / 赛后信息 | 未实现 |
+| 赛前 / 赛后信息 | 未实现（需先确认服务端提供哪些字段） |
+
+**阵容的关键约定**：`LineupPlayer.gridRow` / `gridColumn` 是阵型图坐标，
+服务端未提供时**必须为 null**。此时 UI 自动降级为按位置分组的名单，
+并显示「该场比赛未提供球员站位」。**mapper 不得按位置推断站位** ——
+`TeamLineup.hasFormationGrid` 要求所有首发都有坐标才绘制阵型图，
+半张编造的阵型图比一份诚实的名单更容易误导。
+
+`formation`、`coach`、`Absentee.reason`、`shirtNumber` 缺失时 UI 均显示「—」。
 
 - 技术统计必须用服务端驱动的开放模型（`StatItem` 的 `id` + `name` + `displayOrder`），
   **不要写死指标集合**。新增指标应自动出现。
@@ -162,7 +170,13 @@ Milestone M5。
   不要统一压成 0（`PLAN.md` M6 退出条件）。
 - `StandingZone` 到分区名称的映射需要来自服务端，不同赛事的分区规则不同，
   当前 enum 只覆盖常见五种，长尾赛制（小组赛、附加赛）需扩展。
-- **射手榜 / 助攻榜 / 赛程分栏未实现**，当前显示所属 milestone 的说明页。
+
+射手榜 / 助攻榜 UI 已完成，共用 `PlayerRankingTable` 一套版式 ——
+只有 `valueColumnLabel` 不同。需要 `loadScorers(...)` 与 `loadAssists(...)`。
+`PlayerRankingRow.team` 为 null（转会期未确定）时显示「—」，不要猜一个球队。
+
+赛程分栏 UI 已完成，复用 `:core:designsystem` 的 `MatchRow`。
+需要 `loadFixtures(competitionId, seasonId, round?)`，并支持按轮次分组。
 
 Milestone M6。
 
@@ -177,7 +191,18 @@ Milestone M6。
 本页必须能接收任意 `TeamId` —— 范围外的球队让各 section 分别降级，
 而不是整页显示「不支持该球队」。这是 M10 主队入口能复用同一条链路的前提。
 
-未实现：阵容 / 赛程 / 数据 / 资讯四个分栏；球员与赛事资料页的 Domain model 与页面。
+五个分栏 UI 均已完成，各自独立 `SectionState`：
+`loadTeamProfile` / `loadSquad` / `loadTeamFixtures` / `loadTeamStats` / `loadTeamNews`。
+
+**球员资料页 UI 也已完成**（`PlayerProfileScreen`）：资料、本赛季数据、履历。
+需要 `loadPlayerProfile(id)`、`loadPlayerSeasonStats(id, seasonId)`、`loadPlayerCareer(id)`。
+履历的历史赛季常缺数据，缺失行显示「—」而不是 0 —— 补 0 会被读成「那个赛季一场没打」。
+
+⚠️ 当前示例数据无论传入哪个 `PlayerId` 都返回同一份资料，
+接入 Repository 后必须按 ID 查询。
+
+赛事资料本身由榜单页（`StandingsScreen`）承担，四个分栏即赛事主页的内容。
+若后续需要独立的「赛事资料」分栏（参赛队、阶段、历史冠军），再另加。
 
 Milestone M7。
 
@@ -191,7 +216,7 @@ UI 已完成：焦点输入框、清空、类型筛选 chip、按实体类型分
 - 输入防抖尚未实现，接入时加在 `SearchViewModel.updateQuery` 里。
 - 搜索历史当前来自示例数据，真实实现需本机持久化（DataStore）。
 - 只搜索第一阶段已支持的实体类型；未覆盖类型不应出现空分组。
-- 球员结果的点击当前为空实现（球员资料页属于 M7）。
+- 球队 / 球员 / 赛事 / 资讯四类结果均已接通对应详情页。
 
 Milestone M8。
 

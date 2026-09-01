@@ -11,9 +11,11 @@ import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.EntityRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.feature.account.AccountRoute
 import io.github.chos1n11111.dongqiudipure.feature.article.ArticleRoute
+import io.github.chos1n11111.dongqiudipure.feature.entities.PlayerProfileRoute
 import io.github.chos1n11111.dongqiudipure.feature.entities.TeamProfileRoute
 import io.github.chos1n11111.dongqiudipure.feature.home.HomeRoute
 import io.github.chos1n11111.dongqiudipure.feature.matches.MatchDetailRoute
@@ -82,8 +84,8 @@ fun DqdNavHost(
                         is EntityRef.Competition ->
                             navController.navigate(DqdRoutes.standings(entity.id.raw))
 
-                        // 球员资料页属于 M7，尚未实现。
-                        is EntityRef.Player -> Unit
+                        is EntityRef.Player ->
+                            navController.navigate(DqdRoutes.player(entity.id.raw))
                     }
                 },
             )
@@ -98,6 +100,7 @@ fun DqdNavHost(
                 matchId = MatchId(id),
                 onBack = navController::popBackStack,
                 onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
+                onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
             )
         }
 
@@ -110,6 +113,20 @@ fun DqdNavHost(
                 teamId = TeamId(id),
                 onBack = navController::popBackStack,
                 onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
+                onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
+                onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
+            )
+        }
+
+        composable(
+            route = DqdRoutes.PLAYER,
+            arguments = listOf(navArgument(ARG_PLAYER_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString(ARG_PLAYER_ID).orEmpty()
+            PlayerProfileRoute(
+                playerId = PlayerId(id),
+                onBack = navController::popBackStack,
+                onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
             )
         }
 
@@ -122,6 +139,8 @@ fun DqdNavHost(
                 competitionId = CompetitionId(id),
                 onBack = navController::popBackStack,
                 onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
+                onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
+                onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
             )
         }
 
@@ -131,6 +150,7 @@ fun DqdNavHost(
                 onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
                 onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
                 onCompetitionClick = { navController.navigate(DqdRoutes.standings(it.raw)) },
+                onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
             )
         }
 

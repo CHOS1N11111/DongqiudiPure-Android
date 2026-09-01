@@ -2,11 +2,17 @@ package io.github.chos1n11111.dongqiudipure.feature.entities
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
+import io.github.chos1n11111.dongqiudipure.core.model.MatchStatus
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerSeasonStat
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
+import io.github.chos1n11111.dongqiudipure.core.model.SquadMember
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamProfile
+import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleFeed
 import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches
+import io.github.chos1n11111.dongqiudipure.core.sampledata.SamplePlayers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +38,10 @@ data class TeamProfileUiState(
     val profile: SectionState<TeamProfile> = SectionState.Loading,
     val seasonStats: SectionState<List<SeasonStat>> = SectionState.Loading,
     val nextMatch: SectionState<MatchSummary> = SectionState.Loading,
+    val squad: SectionState<List<SquadMember>> = SectionState.Loading,
+    val fixtures: SectionState<List<MatchSummary>> = SectionState.Loading,
+    val detailedStats: SectionState<List<PlayerSeasonStat>> = SectionState.Loading,
+    val news: SectionState<List<ArticleSummary>> = SectionState.Loading,
     val selectedTab: TeamTab = TeamTab.Overview,
 )
 
@@ -57,6 +67,10 @@ class TeamProfileViewModel : ViewModel() {
         loadProfile()
         loadSeasonStats()
         loadNextMatch()
+        loadSquad()
+        loadFixtures()
+        loadDetailedStats()
+        loadNews()
     }
 
     fun selectTab(tab: TeamTab) {
@@ -69,11 +83,13 @@ class TeamProfileViewModel : ViewModel() {
                 profile = SectionState.Loading,
                 seasonStats = SectionState.Loading,
                 nextMatch = SectionState.Loading,
+                squad = SectionState.Loading,
+                fixtures = SectionState.Loading,
+                detailedStats = SectionState.Loading,
+                news = SectionState.Loading,
             )
         }
-        loadProfile()
-        loadSeasonStats()
-        loadNextMatch()
+        load(teamId ?: return)
     }
 
     private fun loadProfile() {
@@ -107,7 +123,7 @@ class TeamProfileViewModel : ViewModel() {
         viewModelScope.launch {
             delay(500)
             val next = SampleMatches.matches.firstOrNull {
-                it.status is io.github.chos1n11111.dongqiudipure.core.model.MatchStatus.NotStarted
+                it.status is MatchStatus.NotStarted
             }
             _uiState.update {
                 it.copy(
@@ -115,6 +131,63 @@ class TeamProfileViewModel : ViewModel() {
                         SectionState.Empty
                     } else {
                         SectionState.Content(next)
+                    },
+                )
+            }
+        }
+    }
+
+    private fun loadSquad() {
+        viewModelScope.launch {
+            delay(700)
+            _uiState.update { it.copy(squad = SectionState.Content(SamplePlayers.squad)) }
+        }
+    }
+
+    private fun loadFixtures() {
+        viewModelScope.launch {
+            delay(600)
+            _uiState.update {
+                it.copy(fixtures = SectionState.Content(SampleMatches.matches))
+            }
+        }
+    }
+
+    private fun loadDetailedStats() {
+        viewModelScope.launch {
+            delay(750)
+            _uiState.update {
+                it.copy(
+                    detailedStats = SectionState.Content(
+                        listOf(
+                            PlayerSeasonStat("played", "场次", "4", 1),
+                            PlayerSeasonStat("won", "胜", "3", 2),
+                            PlayerSeasonStat("drawn", "平", "1", 3),
+                            PlayerSeasonStat("lost", "负", "0", 4),
+                            PlayerSeasonStat("gf", "进球", "11", 5),
+                            PlayerSeasonStat("ga", "失球", "4", 6),
+                            PlayerSeasonStat("clean", "零封", "2", 7),
+                            PlayerSeasonStat("possession", "场均控球", "61%", 8),
+                            // 该赛事未提供这两项。
+                            PlayerSeasonStat("xg", "预期进球", null, 9),
+                            PlayerSeasonStat("xga", "预期失球", null, 10),
+                        ),
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun loadNews() {
+        viewModelScope.launch {
+            delay(800)
+            val news = SampleFeed.articles.take(4)
+            _uiState.update {
+                it.copy(
+                    news = if (news.isEmpty()) {
+                        SectionState.Empty
+                    } else {
+                        SectionState.Content(news)
                     },
                 )
             }

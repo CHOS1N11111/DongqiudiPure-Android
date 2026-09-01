@@ -24,6 +24,7 @@ internal const val ARG_ARTICLE_ID = "articleId"
 internal const val ARG_MATCH_ID = "matchId"
 internal const val ARG_TEAM_ID = "teamId"
 internal const val ARG_COMPETITION_ID = "competitionId"
+internal const val ARG_PLAYER_ID = "playerId"
 
 /**
  * 非根目的地的路由。
@@ -36,6 +37,7 @@ object DqdRoutes {
     const val MATCH = "match/{$ARG_MATCH_ID}"
     const val TEAM = "team/{$ARG_TEAM_ID}"
     const val STANDINGS = "standings/{$ARG_COMPETITION_ID}"
+    const val PLAYER = "player/{$ARG_PLAYER_ID}"
     const val SEARCH = "search"
     const val SETTINGS = "settings"
     const val ABOUT = "about"
@@ -45,4 +47,5 @@ object DqdRoutes {
     fun match(matchId: String) = "match/$matchId"
     fun team(teamId: String) = "team/$teamId"
     fun standings(competitionId: String) = "standings/$competitionId"
+    fun player(playerId: String) = "player/$playerId"
 }

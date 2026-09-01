@@ -3,6 +3,7 @@ package io.github.chos1n11111.dongqiudipure.feature.matches
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -54,6 +55,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.MatchEvent
 import io.github.chos1n11111.dongqiudipure.core.model.MatchEventKind
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.StatItem
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
@@ -64,6 +66,7 @@ fun MatchDetailRoute(
     matchId: MatchId,
     onBack: () -> Unit,
     onTeamClick: (TeamId) -> Unit,
+    onPlayerClick: (PlayerId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MatchDetailViewModel = viewModel(),
 ) {
@@ -77,6 +80,9 @@ fun MatchDetailRoute(
         onTabSelect = viewModel::selectTab,
         onRetryEvents = viewModel::retryEvents,
         onRetryStats = viewModel::retryStats,
+        onRetryLineup = viewModel::retryLineup,
+        onLineupSideChange = viewModel::selectLineupSide,
+        onPlayerClick = onPlayerClick,
         modifier = modifier,
     )
 }
@@ -90,6 +96,9 @@ fun MatchDetailScreen(
     onTabSelect: (MatchTab) -> Unit,
     onRetryEvents: () -> Unit,
     onRetryStats: () -> Unit,
+    onRetryLineup: () -> Unit,
+    onLineupSideChange: (LineupSide) -> Unit,
+    onPlayerClick: (PlayerId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -181,11 +190,20 @@ fun MatchDetailScreen(
                     }
                 }
 
-                // 阵容模型（首发 / 替补 / 教练 / 阵型 / 号码 / 缺阵）尚未定义。
-                MatchTab.Lineup -> PendingSection(
-                    title = "阵容尚未实现",
-                    description = "属于 M5，需要先定义阵容 Domain model 并完成 contract 验证。",
-                )
+                MatchTab.Lineup -> SectionContainer(
+                    state = uiState.lineup,
+                    onRetry = onRetryLineup,
+                    emptyTitle = "暂无阵容",
+                    emptyDescription = "该场比赛还没有公布首发名单。",
+                    loading = { LineupSkeleton() },
+                ) { lineup ->
+                    LineupContent(
+                        lineup = lineup,
+                        side = uiState.lineupSide,
+                        onSideChange = onLineupSideChange,
+                        onPlayerClick = onPlayerClick,
+                    )
+                }
             }
         }
     }
@@ -511,6 +529,24 @@ private fun DashedTrack() {
 }
 
 @Composable
+private fun LineupSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(DqdSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+    ) {
+        SkeletonBox(Modifier.fillMaxWidth().height(36.dp))
+        SkeletonBox(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.74f),
+        )
+    }
+}
+
+@Suppress("unused")
+@Composable
 private fun PendingSection(title: String, description: String) {
     Column(
         modifier = Modifier
@@ -626,6 +662,9 @@ private fun MatchDetailDarkPreview() {
             onTabSelect = {},
             onRetryEvents = {},
             onRetryStats = {},
+            onRetryLineup = {},
+            onLineupSideChange = {},
+            onPlayerClick = {},
         )
     }
 }

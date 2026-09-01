@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -44,6 +45,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchRow
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.TeamCrest
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ValueText
@@ -53,6 +55,8 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.SportsColors
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
+import io.github.chos1n11111.dongqiudipure.core.model.MatchId
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.StandingRow
 import io.github.chos1n11111.dongqiudipure.core.model.StandingZone
@@ -63,6 +67,8 @@ fun StandingsRoute(
     competitionId: CompetitionId,
     onBack: () -> Unit,
     onTeamClick: (TeamId) -> Unit,
+    onPlayerClick: (PlayerId) -> Unit,
+    onMatchClick: (MatchId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StandingsViewModel = viewModel(),
 ) {
@@ -73,6 +79,8 @@ fun StandingsRoute(
         uiState = uiState,
         onBack = onBack,
         onTeamClick = onTeamClick,
+        onPlayerClick = onPlayerClick,
+        onMatchClick = onMatchClick,
         onTabSelect = viewModel::selectTab,
         onRetry = viewModel::retry,
         modifier = modifier,
@@ -85,6 +93,8 @@ fun StandingsScreen(
     uiState: RankingsUiState,
     onBack: () -> Unit,
     onTeamClick: (TeamId) -> Unit,
+    onPlayerClick: (PlayerId) -> Unit,
+    onMatchClick: (MatchId) -> Unit,
     onTabSelect: (RankingTab) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
@@ -133,12 +143,46 @@ fun StandingsScreen(
         containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (uiState.selectedTab != RankingTab.Standings) {
-                PendingTab(tab = uiState.selectedTab)
-                return@Box
-            }
+            when (uiState.selectedTab) {
+                RankingTab.Scorers -> SectionContainer(
+                    state = uiState.scorers,
+                    onRetry = onRetry,
+                    emptyTitle = "暂无射手榜",
+                    emptyDescription = "该赛事本赛季还没有可用的射手数据。",
+                ) { scorers ->
+                    PlayerRankingList(table = scorers, onPlayerClick = onPlayerClick)
+                }
 
-            SectionContainer(
+                RankingTab.Assists -> SectionContainer(
+                    state = uiState.assists,
+                    onRetry = onRetry,
+                    emptyTitle = "暂无助攻榜",
+                    emptyDescription = "该赛事未提供助攻统计，属于正常情况。",
+                ) { assists ->
+                    PlayerRankingList(table = assists, onPlayerClick = onPlayerClick)
+                }
+
+                RankingTab.Fixtures -> SectionContainer(
+                    state = uiState.fixtures,
+                    onRetry = onRetry,
+                    emptyTitle = "暂无赛程",
+                    emptyDescription = "该赛事当前没有已收录的赛程。",
+                ) { fixtures ->
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(fixtures, key = { it.id.raw }) { match ->
+                            MatchRow(
+                                match = match,
+                                onClick = { onMatchClick(match.id) },
+                                modifier = Modifier.background(
+                                    MaterialTheme.colorScheme.surfaceContainer,
+                                ),
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                    }
+                }
+
+                RankingTab.Standings -> SectionContainer(
                 state = uiState.table,
                 onRetry = onRetry,
                 emptyTitle = "该赛事没有积分榜",
@@ -177,6 +221,7 @@ fun StandingsScreen(
                     }
 
                     item(key = "legend") { ZoneLegend(rows.mapNotNull { it.zone }.distinct()) }
+                    }
                 }
             }
         }
@@ -500,6 +545,8 @@ private fun StandingsDarkPreview() {
             ),
             onBack = {},
             onTeamClick = {},
+            onPlayerClick = {},
+            onMatchClick = {},
             onTabSelect = {},
             onRetry = {},
         )

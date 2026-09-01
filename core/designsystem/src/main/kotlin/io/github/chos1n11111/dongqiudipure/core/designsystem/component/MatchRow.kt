@@ -1,4 +1,4 @@
-package io.github.chos1n11111.dongqiudipure.feature.matches
+package io.github.chos1n11111.dongqiudipure.core.designsystem.component
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,9 +20,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchStatusBadge
-import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
-import io.github.chos1n11111.dongqiudipure.core.designsystem.component.TeamCrest
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing

@@ -3,10 +3,12 @@ package io.github.chos1n11111.dongqiudipure.feature.matches
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.chos1n11111.dongqiudipure.core.model.MatchEvent
+import io.github.chos1n11111.dongqiudipure.core.model.MatchLineup
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.StatItem
+import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleLineup
 import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +34,8 @@ data class MatchDetailUiState(
     val header: SectionState<MatchSummary> = SectionState.Loading,
     val events: SectionState<List<MatchEvent>> = SectionState.Loading,
     val stats: SectionState<List<StatItem>> = SectionState.Loading,
+    val lineup: SectionState<MatchLineup> = SectionState.Loading,
+    val lineupSide: LineupSide = LineupSide.Home,
     val selectedTab: MatchTab = MatchTab.Events,
 )
 
@@ -53,6 +57,16 @@ class MatchDetailViewModel : ViewModel() {
         loadHeader()
         loadEvents()
         loadStats()
+        loadLineup()
+    }
+
+    fun selectLineupSide(side: LineupSide) {
+        _uiState.update { it.copy(lineupSide = side) }
+    }
+
+    fun retryLineup() {
+        _uiState.update { it.copy(lineup = SectionState.Loading) }
+        loadLineup()
     }
 
     fun selectTab(tab: MatchTab) {
@@ -91,6 +105,15 @@ class MatchDetailViewModel : ViewModel() {
                         SectionState.Content(events)
                     },
                 )
+            }
+        }
+    }
+
+    private fun loadLineup() {
+        viewModelScope.launch {
+            delay(700)
+            _uiState.update {
+                it.copy(lineup = SectionState.Content(SampleLineup.matchLineup))
             }
         }
     }

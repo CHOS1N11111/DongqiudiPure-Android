@@ -47,7 +47,9 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
+import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamProfile
@@ -57,6 +59,8 @@ fun TeamProfileRoute(
     teamId: TeamId,
     onBack: () -> Unit,
     onMatchClick: (MatchId) -> Unit,
+    onPlayerClick: (PlayerId) -> Unit,
+    onArticleClick: (ArticleId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TeamProfileViewModel = viewModel(),
 ) {
@@ -67,6 +71,8 @@ fun TeamProfileRoute(
         uiState = uiState,
         onBack = onBack,
         onMatchClick = onMatchClick,
+        onPlayerClick = onPlayerClick,
+        onArticleClick = onArticleClick,
         onTabSelect = viewModel::selectTab,
         onRetry = viewModel::retryAll,
         modifier = modifier,
@@ -79,6 +85,8 @@ fun TeamProfileScreen(
     uiState: TeamProfileUiState,
     onBack: () -> Unit,
     onMatchClick: (MatchId) -> Unit,
+    onPlayerClick: (PlayerId) -> Unit,
+    onArticleClick: (ArticleId) -> Unit,
     onTabSelect: (TeamTab) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
@@ -150,9 +158,52 @@ fun TeamProfileScreen(
                 }
             }
 
-            if (uiState.selectedTab != TeamTab.Overview) {
-                PendingSection(tab = uiState.selectedTab)
-                return@Column
+            when (uiState.selectedTab) {
+                TeamTab.Squad -> {
+                    SectionContainer(
+                        state = uiState.squad,
+                        onRetry = onRetry,
+                        emptyTitle = "暂无阵容",
+                        emptyDescription = "该球队当前没有已收录的公开名单。",
+                    ) { squad -> SquadList(squad = squad, onPlayerClick = onPlayerClick) }
+                    return@Column
+                }
+
+                TeamTab.Fixtures -> {
+                    SectionContainer(
+                        state = uiState.fixtures,
+                        onRetry = onRetry,
+                        emptyTitle = "暂无赛程",
+                        emptyDescription = "该球队当前没有已收录的赛程与赛果。",
+                    ) { fixtures ->
+                        TeamFixtureList(fixtures = fixtures, onMatchClick = onMatchClick)
+                    }
+                    return@Column
+                }
+
+                TeamTab.Stats -> {
+                    SectionContainer(
+                        state = uiState.detailedStats,
+                        onRetry = onRetry,
+                        emptyTitle = "暂无数据",
+                        emptyDescription = "该赛事未提供这支球队的统计数据。",
+                    ) { stats -> TeamStatsGrid(stats = stats) }
+                    return@Column
+                }
+
+                TeamTab.News -> {
+                    SectionContainer(
+                        state = uiState.news,
+                        onRetry = onRetry,
+                        emptyTitle = "暂无相关资讯",
+                        emptyDescription = "最近没有与这支球队关联的公开内容。",
+                    ) { news ->
+                        TeamNewsList(news = news, onArticleClick = onArticleClick)
+                    }
+                    return@Column
+                }
+
+                TeamTab.Overview -> Unit
             }
 
             // 近期战绩
@@ -341,6 +392,7 @@ private fun MissingHint(labels: String) {
     }
 }
 
+@Suppress("unused")
 @Composable
 private fun PendingSection(tab: TeamTab) {
     Column(
@@ -428,6 +480,8 @@ private fun TeamProfileDarkPreview() {
             ),
             onBack = {},
             onMatchClick = {},
+            onPlayerClick = {},
+            onArticleClick = {},
             onTabSelect = {},
             onRetry = {},
         )

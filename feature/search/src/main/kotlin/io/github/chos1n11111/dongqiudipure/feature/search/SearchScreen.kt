@@ -55,6 +55,7 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleSearch
@@ -65,6 +66,7 @@ fun SearchRoute(
     onTeamClick: (TeamId) -> Unit,
     onArticleClick: (ArticleId) -> Unit,
     onCompetitionClick: (CompetitionId) -> Unit,
+    onPlayerClick: (PlayerId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = viewModel(),
 ) {
@@ -80,6 +82,7 @@ fun SearchRoute(
         onTeamClick = onTeamClick,
         onArticleClick = onArticleClick,
         onCompetitionClick = onCompetitionClick,
+        onPlayerClick = onPlayerClick,
         modifier = modifier,
     )
 }
@@ -97,6 +100,7 @@ fun SearchScreen(
     onTeamClick: (TeamId) -> Unit,
     onArticleClick: (ArticleId) -> Unit,
     onCompetitionClick: (CompetitionId) -> Unit,
+    onPlayerClick: (PlayerId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -158,6 +162,7 @@ fun SearchScreen(
                         onTeamClick = onTeamClick,
                         onArticleClick = onArticleClick,
                         onCompetitionClick = onCompetitionClick,
+                        onPlayerClick = onPlayerClick,
                     )
                 }
             }
@@ -308,6 +313,7 @@ private fun ResultList(
     onTeamClick: (TeamId) -> Unit,
     onArticleClick: (ArticleId) -> Unit,
     onCompetitionClick: (CompetitionId) -> Unit,
+    onPlayerClick: (PlayerId) -> Unit,
 ) {
     val showAll = filter == SearchFilter.All
 
@@ -340,8 +346,7 @@ private fun ResultList(
                 ResultRow(
                     title = player.name,
                     subtitle = player.subtitle,
-                    // 球员资料页属于 M7，尚未实现。
-                    onClick = {},
+                    onClick = { onPlayerClick(player.id) },
                     leading = {
                         Box(
                             modifier = Modifier
@@ -493,6 +498,7 @@ private fun SearchDarkPreview() {
             onTeamClick = {},
             onArticleClick = {},
             onCompetitionClick = {},
+            onPlayerClick = {},
         )
     }
 }
