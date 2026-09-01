@@ -12,6 +12,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import io.github.chos1n11111.dongqiudipure.feature.settings.ThemeMode
 import io.github.chos1n11111.dongqiudipure.navigation.DqdDestination
 import io.github.chos1n11111.dongqiudipure.navigation.DqdNavHost
 
@@ -24,15 +25,25 @@ import io.github.chos1n11111.dongqiudipure.navigation.DqdNavHost
  */
 @Composable
 fun DqdApp(
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    appVersion: String,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
 
+    // 只有停留在根目的地时才显示导航栏。进入文章、比赛详情等内容页后隐藏，
+    // 让内容占满屏幕 —— 这些页面靠返回而不是切 tab 退出。
+    val isRootDestination = DqdDestination.entries.any { destination ->
+        currentDestination?.hierarchy?.any { it.route == destination.route } == true
+    }
+
     NavigationSuiteScaffold(
         modifier = modifier,
         navigationSuiteItems = {
+            if (!isRootDestination) return@NavigationSuiteScaffold
             DqdDestination.entries.forEach { destination ->
                 val selected = currentDestination?.hierarchy?.any {
                     it.route == destination.route
@@ -54,7 +65,12 @@ fun DqdApp(
             }
         },
     ) {
-        DqdNavHost(navController = navController)
+        DqdNavHost(
+            themeMode = themeMode,
+            onThemeModeChange = onThemeModeChange,
+            appVersion = appVersion,
+            navController = navController,
+        )
     }
 }
 

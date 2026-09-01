@@ -18,6 +18,8 @@ android {
 
     buildFeatures {
         compose = true
+        // BuildConfig.VERSION_NAME 用于「关于」页展示版本号。
+        buildConfig = true
     }
 
     compileOptions {
@@ -35,11 +37,17 @@ dependencies {
     // feature 之间不得互相依赖（ARCHITECTURE.md §4）。
     implementation(project(":core:designsystem"))
     implementation(project(":feature:home"))
+    implementation(project(":feature:article"))
     implementation(project(":feature:matches"))
+    implementation(project(":feature:rankings"))
+    implementation(project(":feature:entities"))
+    implementation(project(":feature:search"))
     implementation(project(":feature:account"))
+    implementation(project(":feature:settings"))
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)

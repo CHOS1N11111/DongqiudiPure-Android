@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#006D3B</color>
+    <!-- 图标背景：深青。与应用主色同色相，但明度压低以保证前景描边可读。 -->
+    <color name="ic_launcher_background">#0D3833</color>
+
+    <!--
+      冷启动窗口背景。必须与应用主题的 surface 一致，
+      否则启动瞬间会闪一下系统默认底色（深色模式下尤其明显）。
+    -->
+    <color name="window_background">#F1F5F5</color>
 </resources>

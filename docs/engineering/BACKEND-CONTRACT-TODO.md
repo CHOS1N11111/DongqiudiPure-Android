@@ -10,18 +10,28 @@
 
 ## 0. 当前状态
 
+**前端已完成。** 全部页面、状态、样式与资产均已实现并在模拟器验证；
+缺的只有真实数据源。
+
 | 层 | 状态 |
 | --- | --- |
 | `:core:model` | 已完成。Domain model、`MatchStatus`、`AppError`、`SectionState` 均已定义，**不需要改动** |
-| `:core:designsystem` | 已完成。主题、组件、状态视图均已实现 |
+| `:core:designsystem` | 已完成。深浅两套主题、语义色、组件、状态视图、18 个图标 |
 | `:core:sampledata` | **临时**。接入后整个模块删除 |
 | `:core:network` | 未创建 |
 | `:core:data` | 未创建 |
-| `:feature:home` / `matches` / `account` | UI 已完成，数据源为假 |
+| `:feature:home` | 资讯流 UI 已完成 |
+| `:feature:article` | 文章详情 + 评论 UI 已完成 |
+| `:feature:matches` | 比赛列表 + 比赛详情（事件 / 统计）UI 已完成；阵容待定义 model |
+| `:feature:rankings` | 积分榜 UI 已完成；射手 / 助攻 / 赛程分栏待实现 |
+| `:feature:entities` | 球队资料 UI 已完成；阵容 / 赛程 / 数据 / 资讯分栏待实现 |
+| `:feature:search` | 搜索 UI 已完成 |
+| `:feature:account` | 「我的」未登录态已完成；登录属于 M9 |
+| `:feature:settings` | 已完成，且**不需要网络**（主题偏好走 DataStore） |
 
-UI 层的状态编排（loading / content / empty / error、分类切换、日期切换、重试）
-已经按真实形态写好，接入时**只需替换数据来源，不需要改状态逻辑** ——
-这正是把页面状态建模成 `SectionState<T>` 的目的。
+UI 层的状态编排（loading / content / empty / error、分类切换、日期切换、
+分栏切换、重试）已经按真实形态写好，接入时**只需替换数据来源，
+不需要改状态逻辑** —— 这正是把页面状态建模成 `SectionState<T>` 的目的。
 
 ## 1. 接入方式
 
@@ -58,7 +68,11 @@ private fun loadFeed() {
 ```
 
 `SectionState.Failed` 一旦带上 `AppError`，`SectionContainer` 会自动渲染
-对应的文案、诊断串与「重试」按钮（不可重试的错误不显示按钮）。**不需要在页面里写错误分支。**
+对应的文案、诊断串与「重试」按钮（不可重试的错误不显示按钮）。
+**不需要在页面里写错误分支。**
+
+各 ViewModel 中的 `delay(...)` 只是为了让 Loading 骨架在开发期真实可见，
+接入时全部删除。
 
 ## 2. 逐项清单
 
@@ -68,7 +82,7 @@ private fun loadFeed() {
 | --- | --- | --- |
 | 分类列表 | 官方公开分类（M2 归档，不写死名单） | `SampleFeed.categories` |
 | 资讯流 | `loadHomeFeed(category, cursor)`，支持分页与去重 | `SampleFeed.articles` |
-| 缩略图 / 封面图 | 图片加载库（Coil），`ImagePlaceholder` 作为 loading / error 回退 | 纯色占位块 |
+| 缩略图 / 封面图 | 图片加载库（Coil），`ImagePlaceholder` 作为 loading / error 回退 | 占位块 |
 
 补充说明：
 
@@ -77,19 +91,24 @@ private fun loadFeed() {
 - 分页与滚动位置恢复尚未实现（`LazyColumn` 已用稳定 key，接入分页后不会跳动）。
 - 下拉刷新尚未实现。
 
-对应 `FEATURES.md`：首页资讯流、分类资讯。Milestone M3。
+Milestone M3。
 
-### 2.2 文章详情 · 未实现
+### 2.2 文章详情 · `:feature:article`
 
-`ArticleDetail`、`ArticleBlock`、`Comment`、`EntityRef` 已在 `:core:model` 定义，
-`SampleFeed.articleDetail` / `SampleFeed.comments` 已备好示例，**页面本身尚未编写**。
-当前路由指向 `PendingScreen`。
+UI 已完成：标题、来源、正文块、图片位、关联实体 chip、评论列表与排序切换。
+正文与评论是**两个独立 section**，评论失败不影响正文。
 
 需要：`loadArticle(id)`、`loadComments(id, sort, cursor)`。
-正文富文本需按 `ARCHITECTURE.md §7` 先清理危险 scheme 与不可控 embed。
 
-注意：第一阶段**不要**在此页添加点赞 / 收藏 / 发表评论入口 ——
-它们属于 M14 / M15 的远端写操作，设计上刻意不画。
+- 正文富文本需按 `ARCHITECTURE.md §7` 先清理危险 scheme 与不可控 embed。
+- `Comment.replyCount` 为 null 时 UI 显示 `—`，不要补 0。
+- 顶栏的「分享」当前是空实现，需接入系统 `ACTION_SEND`（标记为 `TODO(share)`）。
+- 评论分页尚未实现。
+
+**注意**：本页**刻意没有**点赞 / 收藏 / 发表评论入口 ——
+它们属于 M14 / M15 的远端写操作。接入数据时不要顺手加上。
+
+Milestone M3。
 
 ### 2.3 比赛列表 · `:feature:matches`
 
@@ -103,52 +122,78 @@ private fun loadFeed() {
 实时刷新的判定逻辑已经有了：`MatchStatus.needsLiveRefresh`
 在 `Live` 与 `HalfTime` 时为 `true`，其余为 `false`。轮询调度器接上即可。
 
-`MatchStatus.Unknown(rawValue)` 分支已在 UI 中验证可用
-（示例数据里的 `AWARD` 会原样显示为「AWARD / 未知状态」）。
+`MatchStatus.Unknown(rawValue)` 分支已在模拟器验证可用
+（示例数据里的 `AWARD` 会显示为「AWARDED / 未知状态」）。
 **mapper 遇到不认识的状态时必须走这个分支，不能 fallback 到 `Finished`。**
 
-对应 `FEATURES.md`：比赛日历、比赛状态与比分。Milestone M4 / M5。
+Milestone M4。
 
-### 2.4 比赛详情 · 未实现
+### 2.4 比赛详情 · `:feature:matches`
 
-`MatchEvent`、`MatchEventKind`、`StatItem` 已定义，
-`SampleMatches.events` / `SampleMatches.stats` 已备好，**页面尚未编写**。
+UI 已完成：比分头（含 LIVE 状态）、事件时间线、技术统计对比条。
+每个 section 一个独立 `SectionState`，互不等待、互不影响。
 
-需要按 section 分别接入，每个 section 独立 `SectionState`：
-基础信息 / 事件 / 阵容 / 技术统计 / 赛前信息 / 赛后信息。
+需要按 section 分别接入：
+
+| Section | 状态 |
+| --- | --- |
+| 比分头 | UI 完成，需 `loadMatch(id)` |
+| 事件 | UI 完成，需 `loadEvents(id)` |
+| 技术统计 | UI 完成，需 `loadStats(id)` |
+| 阵容 | **未实现** —— 需先定义 Domain model（首发 / 替补 / 教练 / 阵型 / 位置 / 号码 / 缺阵） |
+| 赛前 / 赛后信息 | 未实现 |
 
 - 技术统计必须用服务端驱动的开放模型（`StatItem` 的 `id` + `name` + `displayOrder`），
   **不要写死指标集合**。新增指标应自动出现。
-- `StatItem.homeValue` 为 null 表示该赛事未提供此项，
-  与值为 `"0"` 是两回事，UI 已分别处理。
-- 阵容模型尚未定义（首发 / 替补 / 教练 / 阵型 / 位置 / 号码 / 缺阵）。
+- `StatItem.homeValue` 为 null 表示该赛事未提供此项，与值为 `"0"` 是两回事。
+  UI 已分别处理：前者是虚线破折号 + 虚线空槽，后者是数字 + 实心零长条。
+- 事件的 `MatchEventKind.Unknown` 会原样显示服务端返回值，不丢弃。
 
-### 2.5 榜单 · 未实现
+Milestone M5。
 
-`StandingRow` / `StandingZone` / `StandingTable` 已定义，
-`SampleStandings.premierLeague` 已备好，**页面尚未编写**。
+### 2.5 榜单 · `:feature:rankings`
+
+积分榜 UI 已完成：分区色条 + 具名分隔行 + 图例三重编码、
+名次断档提示、缺失值降级。
 
 需要：`loadStandings(competitionId, seasonId, stageId?)`。
 
 - 所有数值字段为 nullable。并列排名、扣分、「不适用」在服务端表示不同，
   不要统一压成 0（`PLAN.md` M6 退出条件）。
 - `StandingZone` 到分区名称的映射需要来自服务端，不同赛事的分区规则不同，
-  当前 enum 只覆盖常见几种，长尾赛制（小组赛、附加赛）需扩展。
+  当前 enum 只覆盖常见五种，长尾赛制（小组赛、附加赛）需扩展。
+- **射手榜 / 助攻榜 / 赛程分栏未实现**，当前显示所属 milestone 的说明页。
 
-### 2.6 球队 / 球员 / 赛事资料 · 未实现
+Milestone M6。
 
-`TeamProfile` 已定义（仅基础字段 + 近期战绩），
-`SampleMatches.teamProfile` 已备好，**页面尚未编写**。
-球员与赛事的 Domain model 尚未定义。
+### 2.6 球队资料 · `:feature:entities`
 
-关键约束（`PLAN.md` M7）：Repository **不得按热门名单分支**，
-通用页面必须能接收范围外的实体 ID，未覆盖 section 明确降级，
-不能显示「不支持该球队」。这是 M10 主队入口能复用同一条链路的前提。
+球队主页的「资料」分栏 UI 已完成：基本资料头、近期战绩、本赛季数据、下一场。
 
-### 2.7 搜索 · 未实现
+需要：`loadTeamProfile(teamId)`、`loadTeamSeasonStats(teamId, seasonId)`、
+`loadTeamNextMatch(teamId)`。
 
-路由 `search` 已在导航图中，指向 `PendingScreen`。
-Domain model 与页面均未编写。
+**关键约束（`PLAN.md` M7）**：Repository **不得按热门名单分支**。
+本页必须能接收任意 `TeamId` —— 范围外的球队让各 section 分别降级，
+而不是整页显示「不支持该球队」。这是 M10 主队入口能复用同一条链路的前提。
+
+未实现：阵容 / 赛程 / 数据 / 资讯四个分栏；球员与赛事资料页的 Domain model 与页面。
+
+Milestone M7。
+
+### 2.7 搜索 · `:feature:search`
+
+UI 已完成：焦点输入框、清空、类型筛选 chip、按实体类型分组的结果列表、
+搜索历史。上一次搜索可取消，慢响应不会覆盖新查询。
+
+需要：`search(query, filter, cursor)`。
+
+- 输入防抖尚未实现，接入时加在 `SearchViewModel.updateQuery` 里。
+- 搜索历史当前来自示例数据，真实实现需本机持久化（DataStore）。
+- 只搜索第一阶段已支持的实体类型；未覆盖类型不应出现空分组。
+- 球员结果的点击当前为空实现（球员资料页属于 M7）。
+
+Milestone M8。
 
 ### 2.8 登录与会话 · `:feature:account`
 
@@ -164,15 +209,16 @@ Domain model 与页面均未编写。
 **注意**：账号能力不得反向影响公开内容 ——
 退出登录后所有公开页面必须仍然完整可用。
 
-### 2.9 设置 / 关于 / 开源许可 · 未实现
+### 2.9 本机功能 · `:feature:settings`
 
-三个路由都指向 `PendingScreen`。这三项**不需要网络**，
-属于纯本机功能，可以随时实现：
+**已完成，不需要网络。**
 
-- 设置：主题三档切换（跟随系统 / 浅色 / 深色）需要 DataStore。
-  `DqdTheme` 已接受 `darkTheme` 参数，传入覆盖值即可，主题本身不读偏好存储。
-- 关于：应用版本、非官方声明。
-- 开源许可：复用仓库根目录 `LICENSE`，另需第三方依赖声明。
+- 设置：主题三档（跟随系统 / 浅色 / 深色），DataStore 持久化，已验证重启保持。
+- 关于：版本、非官方声明、无广告无博彩声明、隐私说明。
+- 开源许可：GPL-3.0-only 与主要第三方依赖。
+
+唯一遗留项标记为 `TODO(release)`：开源许可页的第三方清单目前手写，
+发布前应改为构建期生成，避免与实际依赖脱节（`PLAN.md` M17）。
 
 ## 3. 接入时必须保持的约束
 
