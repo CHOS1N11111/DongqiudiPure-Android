@@ -31,10 +31,19 @@ kotlin {
 }
 
 dependencies {
+    // :app 是 composition root，也是唯一允许同时依赖多个 feature 的 module。
+    // feature 之间不得互相依赖（ARCHITECTURE.md §4）。
+    implementation(project(":core:designsystem"))
+    implementation(project(":feature:home"))
+    implementation(project(":feature:matches"))
+    implementation(project(":feature:account"))
+
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.navigation.compose)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
 

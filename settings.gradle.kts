@@ -16,4 +16,13 @@ dependencyResolutionManagement {
 
 rootProject.name = "DongqiudiPure"
 
+// Module 按实际 vertical slice 增加（DECISIONS.md D-013）。
 include(":app")
+include(":core:model")
+include(":core:designsystem")
+
+// 临时模块，接入真实数据后删除。见 docs/engineering/BACKEND-CONTRACT-TODO.md
+include(":core:sampledata")
+include(":feature:home")
+include(":feature:matches")
+include(":feature:account")
