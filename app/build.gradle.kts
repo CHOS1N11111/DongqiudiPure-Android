@@ -18,6 +18,8 @@ android {
 
     buildFeatures {
         compose = true
+        // BuildConfig.VERSION_NAME 用于「关于」页展示版本号。
+        buildConfig = true
     }
 
     compileOptions {
@@ -31,14 +33,27 @@ kotlin {
 }
 
 dependencies {
+    // :app 是 composition root，也是唯一允许同时依赖多个 feature 的 module。
+    // feature 之间不得互相依赖（ARCHITECTURE.md §4）。
+    implementation(project(":core:designsystem"))
+    implementation(project(":feature:home"))
+    implementation(project(":feature:article"))
+    implementation(project(":feature:matches"))
+    implementation(project(":feature:rankings"))
+    implementation(project(":feature:entities"))
+    implementation(project(":feature:search"))
+    implementation(project(":feature:account"))
+    implementation(project(":feature:settings"))
+
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.navigation.compose)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

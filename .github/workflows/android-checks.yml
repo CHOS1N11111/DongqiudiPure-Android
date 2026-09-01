@@ -33,4 +33,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Run Android checks
-        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+        # 不加 :app: 前缀 —— 现在是多模块工程，:app:lintDebug 只会检查 app
+        # 模块，八个 feature 与三个 core 模块的 lint 和测试都不会跑。
+        run: ./gradlew --no-daemon assembleDebug testDebugUnitTest lintDebug

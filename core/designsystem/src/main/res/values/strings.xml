@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ── 通用动作 ───────────────────────────────────────────────── -->
+    <string name="ds_action_back">返回</string>
+    <string name="ds_action_share">分享</string>
+    <string name="ds_action_search">搜索</string>
+    <string name="ds_action_settings">设置</string>
+    <string name="ds_action_retry">重试</string>
+
+    <!-- ── 缺失值 ─────────────────────────────────────────────────── -->
+    <!-- MissingValue 的无障碍描述。视觉上是虚线破折号，读屏必须说清是「没有数据」
+         而不是把破折号读成标点。 -->
+    <string name="ds_no_data">暂无数据</string>
+
+    <!-- ── section 默认空态 ───────────────────────────────────────── -->
+    <string name="ds_section_empty_title">暂无内容</string>
+    <string name="ds_section_empty_description">该板块目前没有可显示的数据。</string>
+
+    <!-- ── 比赛状态 ───────────────────────────────────────────────── -->
+    <string name="ds_match_live">进行中</string>
+    <string name="ds_match_live_badge">LIVE</string>
+    <string name="ds_match_halftime">中场</string>
+    <string name="ds_match_halftime_secondary">休息</string>
+    <string name="ds_match_not_started">未开始</string>
+    <string name="ds_match_finished">完场</string>
+    <string name="ds_match_postponed">延期</string>
+    <string name="ds_match_postponed_secondary">待定</string>
+    <string name="ds_match_cancelled">取消</string>
+    <string name="ds_match_unknown">未知状态</string>
+
+    <!-- 状态的无障碍描述。颜色不是唯一提示，读屏也必须能听懂状态。 -->
+    <string name="ds_match_a11y_live">进行中，%1$s</string>
+    <string name="ds_match_a11y_live_unknown_minute">进行中，时间未知</string>
+    <string name="ds_match_a11y_halftime">中场休息</string>
+    <string name="ds_match_a11y_not_started">未开始，%1$s 开球</string>
+    <string name="ds_match_a11y_finished">已完场</string>
+    <string name="ds_match_a11y_postponed">已延期，时间待定</string>
+    <string name="ds_match_a11y_cancelled">已取消</string>
+    <string name="ds_match_a11y_unknown">未知状态：%1$s</string>
+
+    <!-- ── 近期战绩 ───────────────────────────────────────────────── -->
+    <!-- 用汉字而非纯色圆点：色觉差异用户无法只靠红绿分辨结果。 -->
+    <string name="ds_form_win">胜</string>
+    <string name="ds_form_draw">平</string>
+    <string name="ds_form_loss">负</string>
+
+    <!-- ── 球员位置 ───────────────────────────────────────────────── -->
+    <!-- 位置名是客户端选定的展示文案，不是服务端字段，因此放在资源里。 -->
+    <string name="ds_position_goalkeeper">门将</string>
+    <string name="ds_position_defender">后卫</string>
+    <string name="ds_position_midfielder">中场</string>
+    <string name="ds_position_forward">前锋</string>
+    <string name="ds_position_unknown">未知</string>
+
+    <!-- ── 错误状态 ───────────────────────────────────────────────── -->
+    <string name="ds_error_no_connection_title">网络连接失败</string>
+    <string name="ds_error_no_connection_description">请检查网络后重试。已缓存的内容仍可继续浏览。</string>
+    <string name="ds_error_timeout_title">请求超时</string>
+    <string name="ds_error_timeout_description">服务器响应过慢。稍后重试，或切换到更稳定的网络。</string>
+    <string name="ds_error_tls_title">安全连接失败</string>
+    <string name="ds_error_tls_description">无法建立加密连接。若使用了代理或公共网络，请切换后重试。</string>
+    <string name="ds_error_network_title">网络异常</string>
+    <string name="ds_error_network_description">请稍后重试。</string>
+    <string name="ds_error_rate_limited_title">请求过于频繁</string>
+    <string name="ds_error_rate_limited_description">已被服务端限流，请稍后再试。</string>
+
+    <!-- 非官方客户端特有：服务端改了结构。用户需要知道这不是自己的网络问题，
+         而且重试不会成功。 -->
+    <string name="ds_error_contract_title">该板块暂时无法显示</string>
+    <string name="ds_error_contract_description">数据格式与当前版本不兼容。其余内容不受影响，可尝试更新应用。</string>
+
+    <string name="ds_error_server_title">加载失败</string>
+    <string name="ds_error_server_description">服务端暂时无法返回该内容，请稍后重试。</string>
+    <string name="ds_error_auth_required_title">需要登录</string>
+    <string name="ds_error_auth_required_description">该内容需要登录后才能查看。公开内容不受影响。</string>
+    <string name="ds_error_session_expired_title">登录已过期</string>
+    <string name="ds_error_session_expired_description">请重新登录。公开内容仍可正常浏览。</string>
+</resources>

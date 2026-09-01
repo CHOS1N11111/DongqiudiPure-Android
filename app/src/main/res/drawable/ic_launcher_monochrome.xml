@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  单色图层（Android 13+ 主题化图标）。
+
+  系统会按用户壁纸取色重新着色，所以这里的颜色值本身不重要，
+  重要的是形状必须在纯色下依然可读 —— 因此只保留描边，不加填充。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:pathData="M30,34 L78,34 A2,2 0 0 1 80,36 L80,72 A2,2 0 0 1 78,74 L30,74 A2,2 0 0 1 28,72 L28,36 A2,2 0 0 1 30,34 Z"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="5" />
+
+    <path
+        android:pathData="M28,54 L80,54"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeWidth="5" />
+
+    <path
+        android:pathData="M54,46 A8,8 0 1 1 53.99,46"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeWidth="5" />
+</vector>

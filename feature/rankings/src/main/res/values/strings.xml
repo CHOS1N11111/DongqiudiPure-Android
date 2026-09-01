@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 「数据」根 tab（DECISIONS.md D-016）。承载榜单，
+         球员/球队/赛事资料通过榜单行与搜索进入。 -->
+    <string name="data_title">数据</string>
+
+    <string name="rankings_tab_standings">积分榜</string>
+    <string name="rankings_tab_scorers">射手榜</string>
+    <string name="rankings_tab_assists">助攻榜</string>
+    <string name="rankings_tab_fixtures">赛程</string>
+
+    <!-- 积分榜表头 -->
+    <string name="standings_column_team">球队</string>
+    <string name="standings_column_played">场</string>
+    <string name="standings_column_won">胜</string>
+    <string name="standings_column_drawn">平</string>
+    <string name="standings_column_lost">负</string>
+    <string name="standings_column_goal_diff">净</string>
+    <string name="standings_column_points">积分</string>
+
+    <!-- 分区。色条之外必须有文字，颜色不是唯一提示（PRODUCT.md §8）。 -->
+    <string name="standings_zone_ucl">欧冠资格</string>
+    <string name="standings_zone_uel">欧联资格</string>
+    <string name="standings_zone_uecl">欧协联资格</string>
+    <string name="standings_zone_promotion">升级</string>
+    <string name="standings_zone_relegation">降级</string>
+    <string name="standings_zone_boundary_ucl">欧冠资格分界</string>
+    <string name="standings_zone_boundary_uel">欧联资格分界</string>
+    <string name="standings_zone_boundary_uecl">欧协联资格分界</string>
+    <string name="standings_zone_boundary_promotion">升级分界</string>
+    <string name="standings_zone_boundary_relegation">降级分界</string>
+
+    <!-- 名次不连续时如实说明，不假装榜单完整 -->
+    <string name="standings_rank_gap">第 %1$d – %2$d 名未在当前范围内</string>
+
+    <string name="standings_empty_title">该赛事没有积分榜</string>
+    <string name="standings_empty_description">杯赛等赛制可能不提供积分榜，属于正常情况。</string>
+    <string name="scorers_empty_title">暂无射手榜</string>
+    <string name="scorers_empty_description">该赛事本赛季还没有可用的射手数据。</string>
+    <string name="assists_empty_title">暂无助攻榜</string>
+    <string name="assists_empty_description">该赛事未提供助攻统计，属于正常情况。</string>
+    <string name="fixtures_empty_title">暂无赛程</string>
+    <string name="fixtures_empty_description">该赛事当前没有已收录的赛程。</string>
+
+    <!-- 球员榜表头 -->
+    <string name="player_ranking_column_player">球员</string>
+    <string name="player_ranking_column_appearances">出场</string>
+</resources>

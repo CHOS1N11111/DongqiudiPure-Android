@@ -14,6 +14,7 @@
 | 计划 | [PLAN.md](planning/PLAN.md)                    | 先做什么、依赖什么、每阶段如何退出             | 每个 milestone 开始和结束时     |
 | 计划 | [DECISIONS.md](planning/DECISIONS.md)          | 已确定、待确认和待验证的关键决策               | 作出或推翻技术决策时            |
 | 工程 | [ARCHITECTURE.md](engineering/ARCHITECTURE.md) | 代码如何分层、模块如何依赖、状态如何流转       | 架构边界变化时                  |
+| 工程 | [BACKEND-CONTRACT-TODO.md](engineering/BACKEND-CONTRACT-TODO.md) | UI 层已完成但数据层尚未接入的位置（**临时文档，接入完成后删除**） | 接入某项数据源时 |
 | 协议 | [API.md](protocol/API.md)                      | 哪些 API 已验证、哪些仍未知、如何记录 contract | 每次 API 调研或 contract 变化时 |
 
 ## 推荐阅读顺序

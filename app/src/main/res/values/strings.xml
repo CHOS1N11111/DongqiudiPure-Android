@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">DongqiudiPure</string>
-    <string name="news_title">资讯</string>
-    <string name="news_empty">暂无资讯</string>
-    <string name="matches_title">比赛</string>
-    <string name="matches_empty">暂无比赛</string>
-    <string name="data_title">数据</string>
-    <string name="data_empty">暂无数据</string>
+
+    <!-- 根导航（DECISIONS.md D-016） -->
+    <string name="nav_news">资讯</string>
+    <string name="nav_matches">比赛</string>
+    <string name="nav_data">数据</string>
+    <string name="nav_account">我的</string>
 </resources>

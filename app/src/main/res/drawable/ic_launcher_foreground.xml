@@ -1,14 +1,39 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?><!--
+  应用图标前景：球场示意图。
+
+  原创且中性，不复制懂球帝官方图标，也不以视觉方式暗示官方授权
+  （DECISIONS.md D-011）。球场的中线与中圈是通用示意图形，
+  不属于任何一方的标识。
+
+  几何约束：自适应图标 108×108 中，圆形遮罩的安全区是以 (54,54)
+  为心、半径 33 的圆。矩形四角是最容易被裁掉的位置 ——
+  这里 26×20 的半宽高对应半对角线 32.8，刚好落在安全区内。
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- 边线 -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M22,30 L86,30 L86,78 L22,78 Z M54,30 L54,78 M54,47 A7,7 0,1 0,54,61 A7,7 0,1 0,54,47"
-        android:strokeColor="#FFFFFFFF"
+        android:pathData="M30,34 L78,34 A2,2 0 0 1 80,36 L80,72 A2,2 0 0 1 78,74 L30,74 A2,2 0 0 1 28,72 L28,36 A2,2 0 0 1 30,34 Z"
+        android:strokeColor="#FF45DCC6"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:strokeWidth="4" />
+        android:strokeWidth="5" />
+
+    <!-- 中线 -->
+    <path
+        android:pathData="M28,54 L80,54"
+        android:strokeColor="#FF45DCC6"
+        android:strokeLineCap="round"
+        android:strokeWidth="5" />
+
+    <!-- 中圈 -->
+    <path
+        android:pathData="M54,46 A8,8 0 1 1 53.99,46"
+        android:strokeColor="#FF45DCC6"
+        android:strokeLineCap="round"
+        android:strokeWidth="5" />
 </vector>
