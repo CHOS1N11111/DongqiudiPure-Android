@@ -1,6 +1,7 @@
 package io.github.chos1n11111.dongqiudipure.feature.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,8 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 fun SettingsScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onMatchSettingsClick: () -> Unit,
+    onRankingSettingsClick: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -110,7 +113,60 @@ fun SettingsScreen(
                     vertical = DqdSpacing.md,
                 ),
             )
+
+            SectionHeader(title = stringResource(R.string.settings_football))
+            SettingsNavigationRow(
+                title = stringResource(R.string.settings_matches_title),
+                description = stringResource(R.string.settings_matches_description),
+                onClick = onMatchSettingsClick,
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            SettingsNavigationRow(
+                title = stringResource(R.string.settings_rankings_title),
+                description = stringResource(R.string.settings_rankings_description),
+                onClick = onRankingSettingsClick,
+            )
         }
+    }
+}
+
+@Composable
+private fun SettingsNavigationRow(
+    title: String,
+    description: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(onClick = onClick)
+            .defaultMinSize(minHeight = DqdSize.touchTarget)
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Icon(
+            painter = painterResource(DqdIcons.ChevronRight),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(DqdSize.iconSmall),
+        )
     }
 }
 
@@ -334,6 +390,8 @@ private fun SettingsDarkPreview() {
         SettingsScreen(
             themeMode = ThemeMode.System,
             onThemeModeChange = {},
+            onMatchSettingsClick = {},
+            onRankingSettingsClick = {},
             onBack = {},
         )
     }

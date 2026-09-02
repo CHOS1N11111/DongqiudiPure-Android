@@ -12,6 +12,7 @@ data class CompetitionRef(
     val name: String,
     /** 如「第 4 轮」。服务端未提供时为 null。 */
     val roundLabel: String?,
+    val logoUrl: String? = null,
 )
 
 data class MatchSummary(
@@ -23,6 +24,22 @@ data class MatchSummary(
     val homeScore: Int?,
     val awayScore: Int?,
     val status: MatchStatus,
+    val homeHalfScore: Int? = null,
+    val awayHalfScore: Int? = null,
+    val homePenaltyScore: Int? = null,
+    val awayPenaltyScore: Int? = null,
+    val homeAggregateScore: Int? = null,
+    val awayAggregateScore: Int? = null,
+    val homeRank: String? = null,
+    val awayRank: String? = null,
+    val homeRedCards: Int? = null,
+    val awayRedCards: Int? = null,
+    val homeYellowCards: Int? = null,
+    val awayYellowCards: Int? = null,
+    val homeCorners: Int? = null,
+    val awayCorners: Int? = null,
+    val liveLabel: String? = null,
+    val tipsCount: Int? = null,
 )
 
 /**
@@ -81,8 +98,17 @@ data class TeamProfile(
     val id: TeamId,
     val name: String,
     val crestUrl: String?,
+    val englishName: String? = null,
+    val country: String? = null,
+    val city: String? = null,
     val competitionName: String?,
     val venue: String?,
+    val venueCapacity: String? = null,
     val foundedLabel: String?,
+    val rankLabel: String? = null,
+    val marketValueLabel: String? = null,
+    val type: TeamType = TeamType.Unknown,
     val recentForm: List<FormResult>,
 )
+
+enum class TeamType { Club, National, Unknown }

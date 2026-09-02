@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -28,13 +30,14 @@ kotlin {
 
 dependencies {
     implementation(project(":core:designsystem"))
-
-    // TODO(data): 接入 :core:data 后移除。见 docs/engineering/BACKEND-CONTRACT-TODO.md
-    implementation(project(":core:sampledata"))
+    implementation(project(":core:data"))
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

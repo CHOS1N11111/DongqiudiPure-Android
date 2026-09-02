@@ -5,6 +5,11 @@
     <string name="data_title">数据</string>
 
     <string name="rankings_tab_standings">积分榜</string>
+    <string name="rankings_tab_players">球员榜</string>
+    <string name="rankings_tab_teams">球队榜</string>
+    <string name="statistic_ranking_column_name">球员 / 球队</string>
+    <string name="statistic_ranking_empty_title">暂无榜单数据</string>
+    <string name="statistic_ranking_empty_description">懂球帝当前没有返回这项赛事指标的排名。</string>
     <string name="rankings_tab_scorers">射手榜</string>
     <string name="rankings_tab_assists">助攻榜</string>
     <string name="rankings_tab_fixtures">赛程</string>

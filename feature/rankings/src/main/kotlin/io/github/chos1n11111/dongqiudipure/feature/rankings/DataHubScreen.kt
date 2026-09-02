@@ -26,33 +26,25 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
+import io.github.chos1n11111.dongqiudipure.core.model.RankingMetric
+import io.github.chos1n11111.dongqiudipure.core.model.RankingSection
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 
-/**
- * 「数据」根 tab。
- *
- * 不做成「赛事目录 → 点进去看榜单」：那样打开时几乎是空的，
- * 一个根 tab 承载一份可点列表太薄。改为**赛事切换器 + 榜单直接铺在页面上**，
- * 打开即有内容。
- *
- * 与 [StandingsRoute] 共用 [RankingsContent]，分栏与表格不分叉。
- *
- * 球员、球队没有合法的目录页 —— 没有服务端目录接口，按热门写死又违反
- * FEATURES.md 的「不写死永久名单」。它们的入口是榜单行点击，
- * 本页不假装拥有一个球员目录。
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DataHubRoute(
+    selectedCompetitionIds: Set<String>,
     onTeamClick: (TeamId) -> Unit,
+    onPlayerClick: (PlayerId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StandingsViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(Unit) { viewModel.loadHub() }
+    LaunchedEffect(selectedCompetitionIds) { viewModel.loadHub(selectedCompetitionIds) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
@@ -70,28 +62,46 @@ fun DataHubRoute(
                     selected = uiState.selectedCompetition,
                     onSelect = viewModel::selectCompetition,
                 )
+                RankingSectionSwitcher(
+                    selected = uiState.selectedSection,
+                    onSelect = viewModel::selectSection,
+                )
+                if (uiState.selectedSection != RankingSection.Standings &&
+                    uiState.metrics.isNotEmpty()
+                ) {
+                    MetricSwitcher(
+                        metrics = uiState.metrics,
+                        selected = uiState.selectedMetric,
+                        onSelect = viewModel::selectMetric,
+                    )
+                }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         },
         containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
-        RankingsContent(
-            uiState = uiState,
-            onTeamClick = onTeamClick,
-            onRetry = viewModel::retry,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        )
+        when (uiState.selectedSection) {
+            RankingSection.Standings -> RankingsContent(
+                uiState = uiState,
+                onTeamClick = onTeamClick,
+                onRetry = viewModel::retry,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            )
+            RankingSection.Players, RankingSection.Teams -> StatisticRankingContent(
+                state = uiState.statisticTable,
+                onTeamClick = onTeamClick,
+                onPlayerClick = onPlayerClick,
+                onRetry = viewModel::retry,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            )
+        }
     }
 }
 
-/**
- * 赛事切换器。
- *
- * 选中态同时用底色与文字颜色表达，并通过 `selected` 语义暴露给读屏 ——
- * 颜色不是唯一提示。
- */
 @Composable
 private fun CompetitionSwitcher(
     competitions: List<CompetitionRef>,
@@ -99,7 +109,6 @@ private fun CompetitionSwitcher(
     onSelect: (CompetitionRef) -> Unit,
 ) {
     if (competitions.isEmpty()) return
-
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -108,28 +117,95 @@ private fun CompetitionSwitcher(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         items(competitions, key = { it.id.raw }) { competition ->
-            val isSelected = competition.id == selected?.id
+            SwitchChip(
+                name = competition.name,
+                selected = competition.id == selected?.id,
+                onClick = { onSelect(competition) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun RankingSectionSwitcher(
+    selected: RankingSection,
+    onSelect: (RankingSection) -> Unit,
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = DqdSpacing.sm, vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        items(RankingSection.entries, key = { it.name }) { section ->
+            val label = when (section) {
+                RankingSection.Standings -> stringResource(R.string.rankings_tab_standings)
+                RankingSection.Players -> stringResource(R.string.rankings_tab_players)
+                RankingSection.Teams -> stringResource(R.string.rankings_tab_teams)
+            }
+            SwitchChip(
+                name = label,
+                selected = section == selected,
+                onClick = { onSelect(section) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun MetricSwitcher(
+    metrics: List<RankingMetric>,
+    selected: RankingMetric?,
+    onSelect: (RankingMetric) -> Unit,
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = DqdSpacing.sm, vertical = DqdSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.lg),
+    ) {
+        items(metrics, key = { it.id }) { metric ->
+            val isSelected = metric == selected
             Text(
-                text = competition.name,
+                text = metric.name,
                 style = MaterialTheme.typography.labelMedium,
                 color = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
+                    MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 modifier = Modifier
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        if (isSelected) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainerHigh
-                        },
-                    )
-                    .clickable { onSelect(competition) }
-                    .padding(horizontal = DqdSpacing.md, vertical = 7.dp)
+                    .clickable { onSelect(metric) }
+                    .padding(horizontal = 4.dp, vertical = 5.dp)
                     .semantics { this.selected = isSelected },
             )
         }
     }
+}
+
+@Composable
+private fun SwitchChip(name: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text = name,
+        style = MaterialTheme.typography.labelMedium,
+        color = if (selected) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = DqdSpacing.md, vertical = 7.dp)
+            .semantics { this.selected = selected },
+    )
 }

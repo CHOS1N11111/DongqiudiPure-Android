@@ -29,13 +29,18 @@ data class PlayerProfile(
     val id: PlayerId,
     val name: String,
     val avatarUrl: String?,
+    val englishName: String? = null,
     val team: TeamRef?,
     val position: PlayerPosition,
     val shirtNumber: Int?,
     val nationality: String?,
     val ageLabel: String?,
+    val birthdayLabel: String? = null,
     val heightLabel: String?,
+    val weightLabel: String? = null,
     val footLabel: String?,
+    val marketValueLabel: String? = null,
+    val contractUntil: String? = null,
 )
 
 /** 一项赛季数据。服务端驱动的开放模型，不写死指标集合。 */
@@ -53,6 +58,10 @@ data class CareerEntry(
     val competitionName: String?,
     val appearances: Int?,
     val goals: Int?,
+    val starts: Int? = null,
+    val assists: Int? = null,
+    val yellowCards: Int? = null,
+    val redCards: Int? = null,
 )
 
 /** 阵容名单中的一名成员。按位置分组展示。 */
@@ -63,4 +72,43 @@ data class SquadMember(
     val position: PlayerPosition,
     val nationality: String?,
     val ageLabel: String?,
+    val avatarUrl: String? = null,
+    val roleLabel: String? = null,
+    val stats: List<PlayerSeasonStat> = emptyList(),
+)
+
+data class PlayerHonor(
+    val name: String,
+    val logoUrl: String?,
+    val times: String?,
+    val seasons: List<String>,
+)
+
+data class PlayerTransfer(
+    val date: String?,
+    val type: String?,
+    val fee: String?,
+    val fromTeam: TeamRef?,
+    val toTeam: TeamRef?,
+)
+
+data class PlayerInjury(
+    val type: String,
+    val teamName: String?,
+    val startDate: String?,
+    val endDate: String?,
+    val gamesMissed: Int?,
+)
+
+data class PlayerAbility(
+    val overall: Int?,
+    val version: String?,
+    val attributes: List<PlayerSeasonStat>,
+)
+
+data class PlayerOverview(
+    val profile: PlayerProfile,
+    val honors: List<PlayerHonor>,
+    val transfers: List<PlayerTransfer>,
+    val injuries: List<PlayerInjury>,
 )

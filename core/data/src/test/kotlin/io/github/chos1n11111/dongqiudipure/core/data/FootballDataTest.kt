@@ -5,12 +5,12 @@ import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.DataResult
 import io.github.chos1n11111.dongqiudipure.core.model.MatchStatus
 import io.github.chos1n11111.dongqiudipure.core.model.SeasonId
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
+import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.model.StandingZone
 import io.github.chos1n11111.dongqiudipure.core.network.ApiResult
 import io.github.chos1n11111.dongqiudipure.core.network.FootballRemoteDataSource
-import io.github.chos1n11111.dongqiudipure.core.network.dto.MatchListEnvelopeDto
-import io.github.chos1n11111.dongqiudipure.core.network.dto.SeasonDto
-import io.github.chos1n11111.dongqiudipure.core.network.dto.StandingEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.*
 import io.github.chos1n11111.dongqiudipure.core.testing.FixtureLoader
 import java.time.LocalDate
 import java.time.ZoneId
@@ -24,6 +24,25 @@ import org.junit.Test
 class FootballDataTest {
 
     private val json = Json { ignoreUnknownKeys = true }
+
+    @Test
+    fun `repository exposes the requested important and default ranking competitions`() {
+        val repository = DefaultFootballRepository(FakeFootballRemoteDataSource())
+
+        assertEquals(
+            setOf(
+                "4", "3", "9", "5", "12", "43",
+                "82", "83", "119", "116", "92", "158",
+                "6", "14", "61", "225", "18", "262",
+                "251", "226", "228",
+            ),
+            repository.importantCompetitions.mapTo(mutableSetOf()) { it.id.raw },
+        )
+        assertEquals(
+            listOf("4", "3", "9", "5", "12", "43"),
+            repository.defaultRankingCompetitions.map { it.id.raw },
+        )
+    }
 
     @Test
     fun `match mapper converts UTC kickoff without inventing scores`() {
@@ -53,17 +72,41 @@ class FootballDataTest {
     }
 
     @Test
-    fun `repository filters matches to requested six competitions`() = runBlocking {
+    fun `repository filters matches to requested competition`() = runBlocking {
         val remote = FakeFootballRemoteDataSource().apply {
-            matchResult = ApiResult.Success(matchesFixture())
+            seasonResult = ApiResult.Success(seasonsFixture())
+            competitionScheduleResult = ApiResult.Success(
+                CompetitionScheduleEnvelopeDto(
+                    template = "schedule_round",
+                    content = CompetitionScheduleContentDto(
+                        matches = listOf(
+                            CompetitionScheduleGroupDto(
+                                name = "第3轮",
+                                data = matchesFixture().list?.map {
+                                    it.copy(
+                                        competitionName = null,
+                                        roundName = null,
+                                        gameweek = null,
+                                    )
+                                },
+                            ),
+                        ),
+                    ),
+                ),
+            )
         }
         val repository = DefaultFootballRepository(remote)
 
-        val result = repository.loadMatches(LocalDate.of(2026, 9, 2))
+        val result = repository.loadMatches(
+            LocalDate.of(2026, 9, 2),
+            CompetitionRef(CompetitionId("4"), "Contract League", null),
+        )
 
         val matches = (result as DataResult.Success).value
         assertEquals(listOf("7001"), matches.map { it.id.raw })
-        assertTrue(matches.all { it.competition.id.raw in setOf("4", "3", "9", "5", "12", "43") })
+        assertTrue(matches.all { it.competition.id.raw == "4" })
+        assertEquals("Contract League", matches.single().competition.name)
+        assertEquals("第3轮", matches.single().competition.roundLabel)
     }
 
     @Test
@@ -74,7 +117,7 @@ class FootballDataTest {
         }
         val repository = DefaultFootballRepository(remote)
 
-        val result = repository.loadStandings(CompetitionId("4"))
+        val result = repository.loadStandings(CompetitionRef(CompetitionId("4"), "Contract League", null))
 
         val table = (result as DataResult.Success).value!!
         assertEquals("26/27", table.seasonLabel)
@@ -104,9 +147,15 @@ class FootballDataTest {
         lateinit var matchResult: ApiResult<MatchListEnvelopeDto>
         lateinit var seasonResult: ApiResult<List<SeasonDto>>
         lateinit var standingResult: ApiResult<StandingEnvelopeDto>
+        lateinit var competitionScheduleResult: ApiResult<CompetitionScheduleEnvelopeDto>
         var requestedSeason: SeasonId? = null
 
-        override suspend fun loadImportantMatches(): ApiResult<MatchListEnvelopeDto> = matchResult
+        override suspend fun loadImportantMatches(
+            startDate: LocalDate,
+        ): ApiResult<MatchListEnvelopeDto> = matchResult
+
+        override suspend fun loadCompetitionCatalog(): ApiResult<DataMenuEnvelopeDto> =
+            error("Not used")
 
         override suspend fun loadSeasons(
             competitionId: CompetitionId,
@@ -118,6 +167,42 @@ class FootballDataTest {
             requestedSeason = seasonId
             return standingResult
         }
+
+        override suspend fun loadCompetitionSchedule(
+            seasonId: SeasonId,
+        ): ApiResult<CompetitionScheduleEnvelopeDto> = competitionScheduleResult
+
+        override suspend fun loadRankingTypes(
+            seasonId: SeasonId,
+            entity: String,
+        ): ApiResult<RankingTypesEnvelopeDto> = error("Not used")
+
+        override suspend fun loadRanking(
+            seasonId: SeasonId,
+            entity: String,
+            metric: String,
+        ): ApiResult<RankingDetailEnvelopeDto> = error("Not used")
+
+        override suspend fun loadTeamSample(teamId: TeamId): ApiResult<TeamSampleDto> =
+            error("Not used")
+
+        override suspend fun loadTeamStatistics(teamId: TeamId): ApiResult<TeamStatisticDto> =
+            error("Not used")
+
+        override suspend fun loadTeamMembers(teamId: TeamId): ApiResult<TeamMembersEnvelopeDto> =
+            error("Not used")
+
+        override suspend fun loadTeamSchedule(teamId: TeamId): ApiResult<TeamScheduleEnvelopeDto> =
+            error("Not used")
+
+        override suspend fun loadPlayerDetail(playerId: PlayerId): ApiResult<PlayerDetailDto> =
+            error("Not used")
+
+        override suspend fun loadPlayerStatistics(playerId: PlayerId): ApiResult<PlayerStatisticsDto> =
+            error("Not used")
+
+        override suspend fun loadPlayerAbility(playerId: PlayerId): ApiResult<PlayerAbilityEnvelopeDto> =
+            error("Not used")
     }
 
     private companion object {

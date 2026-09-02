@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchRow
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ValueText
@@ -57,7 +58,6 @@ fun SquadList(
         PlayerPosition.Defender,
         PlayerPosition.Midfielder,
         PlayerPosition.Forward,
-        PlayerPosition.Unknown,
     )
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -82,6 +82,26 @@ fun SquadList(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
+        grouped[PlayerPosition.Unknown].orEmpty()
+            .groupBy { it.roleLabel }
+            .forEach { (role, members) ->
+                Text(
+                    text = role ?: stringResource(PlayerPosition.Unknown.labelRes()),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(
+                            horizontal = DqdSpacing.listHorizontal,
+                            vertical = DqdSpacing.sm,
+                        ),
+                )
+                members.forEach { member ->
+                    SquadRow(member = member, onClick = { onPlayerClick(member.id) })
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+            }
     }
 }
 
@@ -107,11 +127,11 @@ private fun SquadRow(member: SquadMember, onClick: () -> Unit) {
             )
         }
 
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        PlayerAvatar(
+            playerId = member.id,
+            playerName = member.name,
+            avatarUrl = member.avatarUrl,
+            size = 32.dp,
         )
 
         Text(

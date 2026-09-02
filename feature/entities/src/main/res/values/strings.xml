@@ -29,20 +29,39 @@
     <!-- 球员资料 -->
     <string name="player_profile_section">资料</string>
     <string name="player_season_stats">本赛季数据</string>
+    <string name="player_ability">能力值</string>
+    <string name="player_ability_overall">综合能力</string>
+    <string name="player_honors">荣誉</string>
+    <string name="player_transfers">转会记录</string>
+    <string name="player_injuries">伤病记录</string>
     <string name="player_career">履历</string>
     <string name="player_attr_nationality">国籍</string>
     <string name="player_attr_age">年龄</string>
+    <string name="player_attr_birthday">出生日期</string>
     <string name="player_attr_height">身高</string>
+    <string name="player_attr_weight">体重</string>
     <string name="player_attr_foot">惯用脚</string>
+    <string name="player_attr_value">身价</string>
+    <string name="player_attr_contract">合同到期</string>
     <string name="player_shirt_number">#%1$d</string>
 
     <string name="player_career_column_season">赛季</string>
     <string name="player_career_column_team">球队</string>
     <string name="player_career_column_appearances">出场</string>
+    <string name="player_career_column_starts">首发</string>
     <string name="player_career_column_goals">进球</string>
+    <string name="player_career_column_assists">助攻</string>
+    <string name="player_honor_times">%1$s 次</string>
+    <string name="player_games_missed">缺席 %1$d 场</string>
 
     <string name="player_season_stats_empty_title">暂无赛季数据</string>
     <string name="player_season_stats_empty_description">该赛事未提供这名球员的本赛季统计。</string>
     <string name="player_career_empty_title">暂无履历</string>
     <string name="player_career_empty_description">没有已收录的历史赛季记录。</string>
+    <string name="player_honors_empty">暂无荣誉</string>
+    <string name="player_honors_empty_description">懂球帝当前没有返回这名球员的荣誉记录。</string>
+    <string name="player_transfers_empty">暂无转会记录</string>
+    <string name="player_transfers_empty_description">懂球帝当前没有返回这名球员的转会记录。</string>
+    <string name="player_injuries_empty">暂无伤病记录</string>
+    <string name="player_injuries_empty_description">懂球帝当前没有返回这名球员的伤病记录。</string>
 </resources>
