@@ -9,6 +9,7 @@ data class FeedRequest(
     val tabId: String,
     val after: String? = null,
     val page: Int? = null,
+    val fresh: Boolean = false,
 )
 
 data class CommentRequest(

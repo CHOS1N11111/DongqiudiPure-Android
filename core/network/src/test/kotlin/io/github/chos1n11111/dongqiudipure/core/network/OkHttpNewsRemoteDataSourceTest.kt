@@ -66,6 +66,15 @@ class OkHttpNewsRemoteDataSourceTest {
     }
 
     @Test
+    fun `feed refresh uses the upstream fresh contract`() = runBlocking {
+        server.enqueue(jsonResponse(fixture("feed-success.json")))
+
+        remote.loadFeed(FeedRequest(tabId = "1", fresh = true))
+
+        assertEquals("/app/tabs/web/1.json?action=fresh", server.takeRequest().target)
+    }
+
+    @Test
     fun `article detail decodes success envelope`() = runBlocking {
         server.enqueue(jsonResponse(fixture("article-success.json")))
 

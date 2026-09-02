@@ -30,15 +30,19 @@ import io.github.chos1n11111.dongqiudipure.feature.settings.ThemeMode
 import io.github.chos1n11111.dongqiudipure.feature.settings.CompetitionSettingsMode
 import io.github.chos1n11111.dongqiudipure.feature.settings.FootballCompetitionSettingsRoute
 import io.github.chos1n11111.dongqiudipure.feature.settings.FootballPreferences
+import io.github.chos1n11111.dongqiudipure.feature.settings.NewsCategorySettingsRoute
+import io.github.chos1n11111.dongqiudipure.feature.settings.NewsPreferences
 
 @Composable
 fun DqdNavHost(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     footballPreferences: FootballPreferences,
+    newsPreferences: NewsPreferences,
     onDefaultMatchCompetitionChange: (String?) -> Unit,
     onMatchCompetitionToggle: (String, Boolean) -> Unit,
     onRankingCompetitionToggle: (String, Boolean) -> Unit,
+    onNewsCategoryToggle: (String, Boolean) -> Unit,
     appVersion: String,
     navController: NavHostController,
     modifier: Modifier = Modifier,
@@ -52,6 +56,7 @@ fun DqdNavHost(
         composable(DqdDestination.Home.route) {
             HomeRoute(
                 onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
+                enabledCategoryIds = newsPreferences.categoryIds,
             )
         }
 
@@ -181,8 +186,17 @@ fun DqdNavHost(
             SettingsScreen(
                 themeMode = themeMode,
                 onThemeModeChange = onThemeModeChange,
+                onNewsSettingsClick = { navController.navigate(DqdRoutes.SETTINGS_NEWS) },
                 onMatchSettingsClick = { navController.navigate(DqdRoutes.SETTINGS_MATCHES) },
                 onRankingSettingsClick = { navController.navigate(DqdRoutes.SETTINGS_RANKINGS) },
+                onBack = navController::popBackStack,
+            )
+        }
+
+        composable(DqdRoutes.SETTINGS_NEWS) {
+            NewsCategorySettingsRoute(
+                preferences = newsPreferences,
+                onCategoryToggle = onNewsCategoryToggle,
                 onBack = navController::popBackStack,
             )
         }

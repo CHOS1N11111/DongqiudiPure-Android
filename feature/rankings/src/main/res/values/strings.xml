@@ -29,11 +29,11 @@
     <string name="standings_zone_uecl">欧协联资格</string>
     <string name="standings_zone_promotion">升级</string>
     <string name="standings_zone_relegation">降级</string>
-    <string name="standings_zone_boundary_ucl">欧冠资格分界</string>
-    <string name="standings_zone_boundary_uel">欧联资格分界</string>
-    <string name="standings_zone_boundary_uecl">欧协联资格分界</string>
-    <string name="standings_zone_boundary_promotion">升级分界</string>
-    <string name="standings_zone_boundary_relegation">降级分界</string>
+    <string name="standings_zone_boundary_ucl">欧冠资格</string>
+    <string name="standings_zone_boundary_uel">欧联资格</string>
+    <string name="standings_zone_boundary_uecl">欧协联资格</string>
+    <string name="standings_zone_boundary_promotion">升级</string>
+    <string name="standings_zone_boundary_relegation">降级</string>
 
     <!-- 名次不连续时如实说明，不假装榜单完整 -->
     <string name="standings_rank_gap">第 %1$d – %2$d 名未在当前范围内</string>

@@ -36,6 +36,7 @@ class OkHttpNewsRemoteDataSource @Inject constructor(
         require(request.tabId.isNotEmpty() && request.tabId.all(Char::isDigit))
         require((request.after == null) == (request.page == null))
         require(request.page == null || request.page > 0)
+        require(!request.fresh || request.after == null)
         val url = baseUrl.newBuilder()
             .addPathSegments("app/tabs/web")
             .addPathSegment("${request.tabId}.json")
@@ -45,6 +46,8 @@ class OkHttpNewsRemoteDataSource @Inject constructor(
                     addQueryParameter("page", request.page.toString())
                     addQueryParameter("child_tab_id", "0")
                     addQueryParameter("user_pay_type", "")
+                } else if (request.fresh) {
+                    addQueryParameter("action", "fresh")
                 }
             }
             .build()

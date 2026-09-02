@@ -29,6 +29,10 @@ data class FootballPreferences(
     val rankingCompetitionIds: Set<String> = DEFAULT_RANKING_COMPETITION_IDS,
 )
 
+data class NewsPreferences(
+    val categoryIds: Set<String> = DEFAULT_NEWS_CATEGORY_IDS,
+)
+
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "dqd_settings",
 )
@@ -54,6 +58,14 @@ class SettingsStore(private val context: Context) {
             defaultMatchCompetitionId = preferences[DEFAULT_MATCH_COMPETITION_ID_KEY],
             rankingCompetitionIds = preferences[RANKING_COMPETITION_IDS_KEY]
                 ?: DEFAULT_RANKING_COMPETITION_IDS,
+        )
+    }
+
+    val newsPreferences: Flow<NewsPreferences> = context.settingsDataStore.data.map { preferences ->
+        NewsPreferences(
+            categoryIds = preferences[NEWS_CATEGORY_IDS_KEY]
+                ?.takeIf { it.isNotEmpty() }
+                ?: DEFAULT_NEWS_CATEGORY_IDS,
         )
     }
 
@@ -96,6 +108,16 @@ class SettingsStore(private val context: Context) {
         }
     }
 
+    suspend fun setNewsCategoryEnabled(categoryId: String, enabled: Boolean) {
+        requireCompetitionId(categoryId)
+        context.settingsDataStore.edit { preferences ->
+            val selected = (preferences[NEWS_CATEGORY_IDS_KEY]
+                ?: DEFAULT_NEWS_CATEGORY_IDS).toMutableSet()
+            if (enabled) selected += categoryId else selected -= categoryId
+            if (selected.isNotEmpty()) preferences[NEWS_CATEGORY_IDS_KEY] = selected
+        }
+    }
+
     private fun requireCompetitionId(value: String) {
         require(value.isNotEmpty() && value.all(Char::isDigit))
     }
@@ -105,7 +127,9 @@ class SettingsStore(private val context: Context) {
         val MATCH_COMPETITION_IDS_KEY = stringSetPreferencesKey("match_competition_ids")
         val DEFAULT_MATCH_COMPETITION_ID_KEY = stringPreferencesKey("default_match_competition_id")
         val RANKING_COMPETITION_IDS_KEY = stringSetPreferencesKey("ranking_competition_ids")
+        val NEWS_CATEGORY_IDS_KEY = stringSetPreferencesKey("news_category_ids")
     }
 }
 
 val DEFAULT_RANKING_COMPETITION_IDS: Set<String> = setOf("4", "3", "9", "5", "12", "43")
+val DEFAULT_NEWS_CATEGORY_IDS: Set<String> = setOf("1")

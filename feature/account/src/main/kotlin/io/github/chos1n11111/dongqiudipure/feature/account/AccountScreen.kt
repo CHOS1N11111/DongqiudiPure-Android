@@ -30,9 +30,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
@@ -61,6 +63,7 @@ fun AccountRoute(
     modifier: Modifier = Modifier,
     appVersion: String = "0.1.0",
 ) {
+    val uriHandler = LocalUriHandler.current
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -107,6 +110,13 @@ fun AccountRoute(
                     label = stringResource(R.string.account_row_about),
                     value = appVersion,
                     onClick = onAboutClick,
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SettingsRow(
+                    icon = DqdIcons.Link,
+                    label = stringResource(R.string.account_row_source),
+                    subtitle = stringResource(R.string.account_repository_url),
+                    onClick = { runCatching { uriHandler.openUri(PROJECT_URL) } },
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 SettingsRow(
@@ -204,6 +214,7 @@ private fun SettingsRow(
     label: String,
     onClick: () -> Unit,
     value: String? = null,
+    subtitle: String? = null,
 ) {
     Row(
         modifier = Modifier
@@ -220,12 +231,22 @@ private fun SettingsRow(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(DqdSize.iconSmall),
         )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         if (value != null) {
             Text(
                 text = value,
@@ -241,6 +262,8 @@ private fun SettingsRow(
         )
     }
 }
+
+private const val PROJECT_URL = "https://github.com/CHOS1N11111/DongqiudiPure-Android"
 
 @Preview(name = "我的 · 深色", showBackground = true)
 @Composable

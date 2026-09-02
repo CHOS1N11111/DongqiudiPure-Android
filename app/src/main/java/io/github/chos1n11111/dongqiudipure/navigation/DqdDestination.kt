@@ -49,6 +49,7 @@ object DqdRoutes {
     const val STANDINGS = "standings/{$ARG_COMPETITION_ID}"
     const val PLAYER = "player/{$ARG_PLAYER_ID}"
     const val SETTINGS = "settings"
+    const val SETTINGS_NEWS = "settings/news"
     const val SETTINGS_MATCHES = "settings/matches"
     const val SETTINGS_RANKINGS = "settings/rankings"
     const val ABOUT = "about"

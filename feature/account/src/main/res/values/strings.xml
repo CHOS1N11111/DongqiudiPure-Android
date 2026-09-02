@@ -8,6 +8,8 @@
 
     <string name="account_row_settings">设置</string>
     <string name="account_row_about">关于 DongqiudiPure</string>
+    <string name="account_row_source">查看源代码</string>
+    <string name="account_repository_url">github.com/CHOS1N11111/DongqiudiPure-Android</string>
     <string name="account_row_license">开源许可</string>
 
     <!-- 常驻页尾。发布边界要求保留非官方声明（PRODUCT.md §9）。 -->

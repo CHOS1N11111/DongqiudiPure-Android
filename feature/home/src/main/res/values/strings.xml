@@ -5,4 +5,7 @@
     <string name="home_feed_empty_title">该分类暂无资讯</string>
     <string name="home_feed_empty_description">「%1$s」下目前没有已收录的内容，可以切换其他分类。</string>
     <string name="home_feed_load_more_retry">重新加载更多</string>
+    <string name="home_feed_refreshed">已更新资讯</string>
+    <string name="home_feed_already_latest">已是最新资讯</string>
+    <string name="home_feed_refresh_failed">刷新失败，请稍后重试</string>
 </resources>
