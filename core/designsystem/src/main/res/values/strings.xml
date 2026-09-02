@@ -28,6 +28,12 @@
     <string name="ds_match_postponed_secondary">待定</string>
     <string name="ds_match_cancelled">取消</string>
     <string name="ds_match_unknown">未知状态</string>
+    <string name="ds_match_yellow_cards">黄%1$d</string>
+    <string name="ds_match_red_cards">红%1$d</string>
+    <string name="ds_match_half_score">半场 %1$s</string>
+    <string name="ds_match_aggregate_score">总比分 %1$s</string>
+    <string name="ds_match_penalty_score">点球 %1$s</string>
+    <string name="ds_match_corners">角球 %1$s</string>
 
     <!-- 状态的无障碍描述。颜色不是唯一提示，读屏也必须能听懂状态。 -->
     <string name="ds_match_a11y_live">进行中，%1$s</string>

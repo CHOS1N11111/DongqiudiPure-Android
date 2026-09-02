@@ -7,6 +7,8 @@ import dagger.hilt.components.SingletonComponent
 import io.github.chos1n11111.dongqiudipure.core.data.ArticleRepository
 import io.github.chos1n11111.dongqiudipure.core.data.DefaultNewsRepository
 import io.github.chos1n11111.dongqiudipure.core.data.DefaultFootballRepository
+import io.github.chos1n11111.dongqiudipure.core.data.FootballCatalogRepository
+import io.github.chos1n11111.dongqiudipure.core.data.FootballEntityRepository
 import io.github.chos1n11111.dongqiudipure.core.data.MatchRepository
 import io.github.chos1n11111.dongqiudipure.core.data.NewsRepository
 import io.github.chos1n11111.dongqiudipure.core.data.StandingsRepository
@@ -39,4 +41,16 @@ abstract class NewsDataModule {
     abstract fun bindStandingsRepository(
         implementation: DefaultFootballRepository,
     ): StandingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFootballCatalogRepository(
+        implementation: DefaultFootballRepository,
+    ): FootballCatalogRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFootballEntityRepository(
+        implementation: DefaultFootballRepository,
+    ): FootballEntityRepository
 }

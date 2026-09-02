@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="matches_title">比赛</string>
+    <string name="matches_important">重要</string>
     <string name="matches_empty_title">当天没有比赛</string>
     <string name="matches_empty_description">该日期没有已收录的赛事。可以切换日期查看其他比赛。</string>
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.data.MatchRepository
+import io.github.chos1n11111.dongqiudipure.core.data.FootballCatalogRepository
 import io.github.chos1n11111.dongqiudipure.core.model.DataResult
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
@@ -40,14 +41,16 @@ data class CompetitionGroup(
 data class MatchesUiState(
     val days: List<MatchDay> = emptyList(),
     val selectedDate: LocalDate = LocalDate.now(),
+    val extraCompetitions: List<CompetitionRef> = emptyList(),
+    val selectedCompetition: CompetitionRef? = null,
     val groups: SectionState<List<CompetitionGroup>> = SectionState.Loading,
 )
 
 /**
  * 比赛列表状态编排。
  *
- * 使用匿名比赛接口读取真实数据，并在 Repository 层限制为五大联赛和中超。
- * 接口没有支持赛事时返回空状态，不补造比赛。
+ * “重要”聚合预设赛事，自选赛事通过赛季赛程接口读取。
+ * 接口没有支持赛事或当天没有比赛时返回空状态，不补造比赛。
  *
  * 实时刷新策略（可取消、感知前后台、终场停止）属于 M4/M5，
  * 当前仅根据已加载比赛维护 [hasLiveMatch]；自动轮询仍属于后续实时能力。
@@ -57,11 +60,16 @@ data class MatchesUiState(
 @HiltViewModel
 class MatchesViewModel @Inject constructor(
     private val repository: MatchRepository,
+    private val catalogRepository: FootballCatalogRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MatchesUiState())
     val uiState: StateFlow<MatchesUiState> = _uiState.asStateFlow()
     private var loadJob: Job? = null
+    private var catalogJob: Job? = null
+    private var configuredCompetitionIds: Set<String>? = null
+    private var configuredDefaultCompetitionId: String? = null
+    private var initialDefaultApplied = false
 
     init {
         val today = LocalDate.now()
@@ -77,6 +85,57 @@ class MatchesViewModel @Inject constructor(
         loadMatches()
     }
 
+    fun configureCompetitions(ids: Set<String>, defaultCompetitionId: String?) {
+        if (configuredCompetitionIds == ids &&
+            configuredDefaultCompetitionId == defaultCompetitionId &&
+            initialDefaultApplied
+        ) return
+        val shouldApplyDefault = !initialDefaultApplied ||
+            configuredDefaultCompetitionId != defaultCompetitionId
+        configuredCompetitionIds = ids
+        configuredDefaultCompetitionId = defaultCompetitionId
+        catalogJob?.cancel()
+        if (ids.isEmpty()) {
+            val changedSelection = _uiState.value.selectedCompetition != null
+            _uiState.update {
+                it.copy(extraCompetitions = emptyList(), selectedCompetition = null)
+            }
+            initialDefaultApplied = true
+            if (changedSelection) loadMatches()
+            return
+        }
+        catalogJob = viewModelScope.launch {
+            val result = catalogRepository.loadCompetitionCatalog()
+            if (configuredCompetitionIds != ids ||
+                configuredDefaultCompetitionId != defaultCompetitionId ||
+                result !is DataResult.Success
+            ) return@launch
+            val competitions = result.value
+                .flatMap { it.competitions }
+                .filter { it.id.raw in ids }
+            val current = _uiState.value.selectedCompetition
+            val selected = when {
+                shouldApplyDefault -> competitions.firstOrNull {
+                    it.id.raw == defaultCompetitionId
+                }
+                current != null -> competitions.firstOrNull { it.id == current.id }
+                else -> null
+            }
+            initialDefaultApplied = true
+            val selectionChanged = selected?.id != current?.id
+            _uiState.update {
+                it.copy(extraCompetitions = competitions, selectedCompetition = selected)
+            }
+            if (selectionChanged) loadMatches()
+        }
+    }
+
+    fun selectCompetition(competition: CompetitionRef?) {
+        if (competition?.id == _uiState.value.selectedCompetition?.id) return
+        _uiState.update { it.copy(selectedCompetition = competition, groups = SectionState.Loading) }
+        loadMatches()
+    }
+
     fun retry() {
         _uiState.update { it.copy(groups = SectionState.Loading) }
         loadMatches()
@@ -85,10 +144,13 @@ class MatchesViewModel @Inject constructor(
     private fun loadMatches() {
         loadJob?.cancel()
         val selectedDate = _uiState.value.selectedDate
+        val selectedCompetition = _uiState.value.selectedCompetition
         loadJob = viewModelScope.launch {
-            when (val result = repository.loadMatches(selectedDate)) {
+            when (val result = repository.loadMatches(selectedDate, selectedCompetition)) {
                 is DataResult.Failure -> _uiState.update {
-                    if (it.selectedDate == selectedDate) {
+                    if (it.selectedDate == selectedDate &&
+                        it.selectedCompetition?.id == selectedCompetition?.id
+                    ) {
                         it.copy(groups = SectionState.Failed(result.error))
                     } else {
                         it
@@ -96,11 +158,13 @@ class MatchesViewModel @Inject constructor(
                 }
                 is DataResult.Success -> {
                     val grouped = result.value
-                        .groupBy { it.competition }
-                        .map { (competition, matches) -> CompetitionGroup(competition, matches) }
+                        .groupBy { it.competition.id }
+                        .map { (_, matches) -> CompetitionGroup(matches.first().competition, matches) }
                     val hasLive = result.value.any { it.status.needsLiveRefresh }
                     _uiState.update {
-                        if (it.selectedDate != selectedDate) return@update it
+                        if (it.selectedDate != selectedDate ||
+                            it.selectedCompetition?.id != selectedCompetition?.id
+                        ) return@update it
                         it.copy(
                             days = it.days.map { day ->
                                 if (day.date == selectedDate) day.copy(hasLiveMatch = hasLive) else day

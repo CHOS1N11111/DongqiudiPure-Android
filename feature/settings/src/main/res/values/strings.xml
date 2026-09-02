@@ -2,6 +2,16 @@
 <resources>
     <string name="settings_title">设置</string>
     <string name="settings_appearance">外观</string>
+    <string name="settings_football">足球数据</string>
+    <string name="settings_matches_title">比赛列表</string>
+    <string name="settings_matches_description">选择顶部赛事与默认打开的列表</string>
+    <string name="settings_rankings_title">数据赛事</string>
+    <string name="settings_rankings_description">选择积分榜、球员榜与球队榜中的赛事</string>
+    <string name="settings_matches_default">默认展示</string>
+    <string name="settings_matches_selection">顶部赛事</string>
+    <string name="settings_matches_important">重要</string>
+    <string name="settings_competitions_empty">暂无赛事目录</string>
+    <string name="settings_competitions_empty_description">懂球帝当前没有返回可选择的足球赛事。</string>
 
     <!-- 主题三档。「跟随系统」是默认值：用户在系统层面已经表达过一次偏好。 -->
     <string name="settings_theme_system">跟随系统</string>

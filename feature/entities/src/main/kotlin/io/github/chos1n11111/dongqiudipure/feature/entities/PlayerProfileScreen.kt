@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.TeamCrest
@@ -48,9 +49,13 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.CareerEntry
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerAbility
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerHonor
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerInjury
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerProfile
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerSeasonStat
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerTransfer
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 
@@ -138,14 +143,14 @@ fun PlayerProfileScreen(
             }
 
             SectionContainer(
-                state = uiState.seasonStats,
+                state = uiState.ability,
                 onRetry = onRetry,
                 modifier = Modifier.padding(top = DqdSpacing.sm),
-                title = stringResource(R.string.player_season_stats),
+                title = stringResource(R.string.player_ability),
                 emptyTitle = stringResource(R.string.player_season_stats_empty_title),
                 emptyDescription = stringResource(R.string.player_season_stats_empty_description),
-            ) { stats ->
-                TeamStatsGrid(stats = stats)
+            ) { ability ->
+                AbilityContent(ability)
             }
 
             SectionContainer(
@@ -158,6 +163,33 @@ fun PlayerProfileScreen(
             ) { career ->
                 CareerTable(career)
             }
+
+            SectionContainer(
+                state = uiState.honors,
+                onRetry = onRetry,
+                modifier = Modifier.padding(top = DqdSpacing.sm),
+                title = stringResource(R.string.player_honors),
+                emptyTitle = stringResource(R.string.player_honors_empty),
+                emptyDescription = stringResource(R.string.player_honors_empty_description),
+            ) { honors -> HonorList(honors) }
+
+            SectionContainer(
+                state = uiState.transfers,
+                onRetry = onRetry,
+                modifier = Modifier.padding(top = DqdSpacing.sm),
+                title = stringResource(R.string.player_transfers),
+                emptyTitle = stringResource(R.string.player_transfers_empty),
+                emptyDescription = stringResource(R.string.player_transfers_empty_description),
+            ) { transfers -> TransferList(transfers, onTeamClick) }
+
+            SectionContainer(
+                state = uiState.injuries,
+                onRetry = onRetry,
+                modifier = Modifier.padding(top = DqdSpacing.sm),
+                title = stringResource(R.string.player_injuries),
+                emptyTitle = stringResource(R.string.player_injuries_empty),
+                emptyDescription = stringResource(R.string.player_injuries_empty_description),
+            ) { injuries -> InjuryList(injuries) }
 
             Box(modifier = Modifier.height(DqdSpacing.xl))
         }
@@ -173,11 +205,11 @@ private fun PlayerHeader(profile: PlayerProfile, onTeamClick: (TeamId) -> Unit) 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DqdSpacing.lg),
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        PlayerAvatar(
+            playerId = profile.id,
+            playerName = profile.name,
+            avatarUrl = profile.avatarUrl,
+            size = 64.dp,
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -236,8 +268,12 @@ private fun AttributeGrid(profile: PlayerProfile) {
     val attributes = listOf(
         stringResource(R.string.player_attr_nationality) to profile.nationality,
         stringResource(R.string.player_attr_age) to profile.ageLabel,
+        stringResource(R.string.player_attr_birthday) to profile.birthdayLabel,
         stringResource(R.string.player_attr_height) to profile.heightLabel,
+        stringResource(R.string.player_attr_weight) to profile.weightLabel,
         stringResource(R.string.player_attr_foot) to profile.footLabel,
+        stringResource(R.string.player_attr_value) to profile.marketValueLabel,
+        stringResource(R.string.player_attr_contract) to profile.contractUntil,
     )
 
     Column(
@@ -271,6 +307,228 @@ private fun AttributeGrid(profile: PlayerProfile) {
                     }
                 }
                 if (pair.size == 1) Box(modifier = Modifier.weight(1f))
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+    }
+}
+
+@Composable
+private fun AbilityContent(ability: PlayerAbility) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+        ) {
+            ValueText(
+                value = ability.overall,
+                style = DqdTheme.dataText.scoreLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                ),
+            )
+            Column {
+                Text(
+                    text = stringResource(R.string.player_ability_overall),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                ability.version?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        TeamStatsGrid(stats = ability.attributes)
+    }
+}
+
+@Composable
+private fun HonorList(honors: List<PlayerHonor>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        honors.forEach { honor ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = honor.name,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (honor.seasons.isNotEmpty()) {
+                        Text(
+                            text = honor.seasons.joinToString(" / "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                honor.times?.let {
+                    Text(
+                        text = stringResource(R.string.player_honor_times, it),
+                        style = DqdTheme.dataText.tableCellStrong,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+    }
+}
+
+@Composable
+private fun TransferList(transfers: List<PlayerTransfer>, onTeamClick: (TeamId) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        transfers.forEach { transfer ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+                ) {
+                    Text(
+                        text = transfer.date.orEmpty(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = listOfNotNull(transfer.type, transfer.fee)
+                            .joinToString(" · "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+                ) {
+                    TransferTeam(
+                        team = transfer.fromTeam,
+                        onClick = onTeamClick,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = "→",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TransferTeam(
+                        team = transfer.toTeam,
+                        onClick = onTeamClick,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+    }
+}
+
+@Composable
+private fun TransferTeam(
+    team: io.github.chos1n11111.dongqiudipure.core.model.TeamRef?,
+    onClick: (TeamId) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (team == null) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            ValueText(value = null as String?, style = MaterialTheme.typography.bodySmall)
+        }
+        return
+    }
+    Row(
+        modifier = modifier.clickable { onClick(team.id) },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        TeamCrest(
+            teamId = team.id,
+            teamName = team.name,
+            crestUrl = team.crestUrl,
+            size = 22.dp,
+        )
+        Text(
+            text = team.name,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun InjuryList(injuries: List<PlayerInjury>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        injuries.forEach { injury ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = injury.type,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = listOfNotNull(
+                            injury.teamName,
+                            listOfNotNull(injury.startDate, injury.endDate)
+                                .joinToString(" - ").takeIf(String::isNotEmpty),
+                        ).joinToString(" · "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                injury.gamesMissed?.let {
+                    Text(
+                        text = stringResource(R.string.player_games_missed, it),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
@@ -319,11 +577,25 @@ private fun CareerTable(career: List<CareerEntry>) {
                 modifier = Modifier.width(44.dp),
             )
             Text(
+                text = stringResource(R.string.player_career_column_starts),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.width(36.dp),
+            )
+            Text(
                 text = stringResource(R.string.player_career_column_goals),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.width(44.dp),
+            )
+            Text(
+                text = stringResource(R.string.player_career_column_assists),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.width(36.dp),
             )
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -367,11 +639,27 @@ private fun CareerTable(career: List<CareerEntry>) {
                         ),
                     )
                 }
+                Box(modifier = Modifier.width(36.dp), contentAlignment = Alignment.Center) {
+                    ValueText(
+                        value = entry.starts,
+                        style = DqdTheme.dataText.tableCell.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    )
+                }
                 Box(modifier = Modifier.width(44.dp), contentAlignment = Alignment.Center) {
                     ValueText(
                         value = entry.goals,
                         style = DqdTheme.dataText.tableCellStrong.copy(
                             color = MaterialTheme.colorScheme.onSurface,
+                        ),
+                    )
+                }
+                Box(modifier = Modifier.width(36.dp), contentAlignment = Alignment.Center) {
+                    ValueText(
+                        value = entry.assists,
+                        style = DqdTheme.dataText.tableCell.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
                     )
                 }
@@ -403,8 +691,11 @@ private fun PlayerProfileDarkPreview() {
         PlayerProfileScreen(
             uiState = PlayerProfileUiState(
                 profile = SectionState.Empty,
-                seasonStats = SectionState.Empty,
+                ability = SectionState.Empty,
                 career = SectionState.Empty,
+                honors = SectionState.Empty,
+                transfers = SectionState.Empty,
+                injuries = SectionState.Empty,
             ),
             onBack = {},
             onTeamClick = {},

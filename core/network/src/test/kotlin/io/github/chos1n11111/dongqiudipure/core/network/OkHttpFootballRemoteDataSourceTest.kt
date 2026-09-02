@@ -7,6 +7,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.SeasonId
 import io.github.chos1n11111.dongqiudipure.core.network.di.NewsNetworkModule
 import io.github.chos1n11111.dongqiudipure.core.testing.FixtureLoader
 import kotlinx.coroutines.runBlocking
+import java.time.LocalDate
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import org.junit.After
@@ -41,21 +42,31 @@ class OkHttpFootballRemoteDataSourceTest {
         server.enqueue(jsonResponse(fixture("matches-success.json")))
         server.enqueue(jsonResponse(fixture("seasons-success.json")))
         server.enqueue(jsonResponse(fixture("standings-success.json")))
+        server.enqueue(jsonResponse("""{"template":"schedule_round","content":{"matches":[]}}"""))
 
-        val matches = remote.loadImportantMatches()
+        val matches = remote.loadImportantMatches(LocalDate.of(2026, 9, 2))
         val seasons = remote.loadSeasons(CompetitionId("4"))
         val standings = remote.loadStandings(SeasonId("8001"))
+        val schedule = remote.loadCompetitionSchedule(SeasonId("8001"))
 
         assertEquals(2, (matches as ApiResult.Success).value.list?.size)
         assertEquals("8001", (seasons as ApiResult.Success).value.first().seasonId.scalarString())
         assertEquals("team_point_ranking", (standings as ApiResult.Success).value.template)
-        assertEquals("/data/tab/new/important?init=1", server.takeRequest().target)
+        assertEquals("schedule_round", (schedule as ApiResult.Success).value.template)
+        assertEquals(
+            "/data/tab/new/important?start=2026-09-02%2016%3A00%3A00&init=1&platform=www&version=576",
+            server.takeRequest().target,
+        )
         assertEquals(
             "/soccer/biz/data/seasons?competition_id=4&app=dqd&platform=miniprogram&version=830&lang=zh-cn",
             server.takeRequest().target,
         )
         assertEquals(
             "/soccer/biz/data/standing?season_id=8001&app=dqd&platform=miniprogram&version=830&lang=zh-cn",
+            server.takeRequest().target,
+        )
+        assertEquals(
+            "/soccer/biz/data/schedule?season_id=8001&round_all=1&app=dqd&platform=miniprogram&version=830&lang=zh-cn",
             server.takeRequest().target,
         )
     }

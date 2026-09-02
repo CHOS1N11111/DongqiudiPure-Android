@@ -14,6 +14,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.chos1n11111.dongqiudipure.feature.settings.ThemeMode
+import io.github.chos1n11111.dongqiudipure.feature.settings.FootballPreferences
 import io.github.chos1n11111.dongqiudipure.navigation.DqdDestination
 import io.github.chos1n11111.dongqiudipure.navigation.DqdNavHost
 
@@ -28,6 +29,10 @@ import io.github.chos1n11111.dongqiudipure.navigation.DqdNavHost
 fun DqdApp(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    footballPreferences: FootballPreferences,
+    onDefaultMatchCompetitionChange: (String?) -> Unit,
+    onMatchCompetitionToggle: (String, Boolean) -> Unit,
+    onRankingCompetitionToggle: (String, Boolean) -> Unit,
     appVersion: String,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
@@ -69,6 +74,10 @@ fun DqdApp(
         DqdNavHost(
             themeMode = themeMode,
             onThemeModeChange = onThemeModeChange,
+            footballPreferences = footballPreferences,
+            onDefaultMatchCompetitionChange = onDefaultMatchCompetitionChange,
+            onMatchCompetitionToggle = onMatchCompetitionToggle,
+            onRankingCompetitionToggle = onRankingCompetitionToggle,
             appVersion = appVersion,
             navController = navController,
         )

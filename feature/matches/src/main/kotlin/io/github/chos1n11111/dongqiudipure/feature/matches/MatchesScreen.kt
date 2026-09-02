@@ -27,6 +27,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,20 +47,27 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
+import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import java.time.LocalDate
 
 @Composable
 fun MatchesRoute(
+    selectedCompetitionIds: Set<String>,
+    defaultCompetitionId: String?,
     onMatchClick: (MatchId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MatchesViewModel = hiltViewModel(),
 ) {
+    LaunchedEffect(selectedCompetitionIds, defaultCompetitionId) {
+        viewModel.configureCompetitions(selectedCompetitionIds, defaultCompetitionId)
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     MatchesScreen(
         uiState = uiState,
         onMatchClick = onMatchClick,
         onDateSelect = viewModel::selectDate,
+        onCompetitionSelect = viewModel::selectCompetition,
         onRetry = viewModel::retry,
         modifier = modifier,
     )
@@ -71,6 +79,7 @@ fun MatchesScreen(
     uiState: MatchesUiState,
     onMatchClick: (MatchId) -> Unit,
     onDateSelect: (LocalDate) -> Unit,
+    onCompetitionSelect: (CompetitionRef?) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -83,6 +92,11 @@ fun MatchesScreen(
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                     ),
+                )
+                MatchCompetitionStrip(
+                    competitions = uiState.extraCompetitions,
+                    selected = uiState.selectedCompetition,
+                    onSelect = onCompetitionSelect,
                 )
                 DateStrip(
                     days = uiState.days,
@@ -129,6 +143,61 @@ fun MatchesScreen(
             }
         }
     }
+}
+
+@Composable
+private fun MatchCompetitionStrip(
+    competitions: List<CompetitionRef>,
+    selected: CompetitionRef?,
+    onSelect: (CompetitionRef?) -> Unit,
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = DqdSpacing.sm, vertical = DqdSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        item(key = "important") {
+            CompetitionTab(
+                name = stringResource(R.string.matches_important),
+                selected = selected == null,
+                onClick = { onSelect(null) },
+            )
+        }
+        items(competitions, key = { it.id.raw }) { competition ->
+            CompetitionTab(
+                name = competition.name,
+                selected = competition.id == selected?.id,
+                onClick = { onSelect(competition) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompetitionTab(name: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text = name,
+        style = MaterialTheme.typography.labelMedium,
+        color = if (selected) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = DqdSpacing.md, vertical = 7.dp)
+            .semantics { this.selected = selected },
+    )
 }
 
 @Composable
@@ -272,6 +341,7 @@ private fun MatchesDarkPreview() {
             uiState = previewState(),
             onMatchClick = {},
             onDateSelect = {},
+            onCompetitionSelect = {},
             onRetry = {},
         )
     }
@@ -285,6 +355,7 @@ private fun MatchesLightPreview() {
             uiState = previewState(),
             onMatchClick = {},
             onDateSelect = {},
+            onCompetitionSelect = {},
             onRetry = {},
         )
     }

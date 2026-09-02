@@ -27,11 +27,18 @@ import io.github.chos1n11111.dongqiudipure.feature.settings.AboutScreen
 import io.github.chos1n11111.dongqiudipure.feature.settings.LicenseScreen
 import io.github.chos1n11111.dongqiudipure.feature.settings.SettingsScreen
 import io.github.chos1n11111.dongqiudipure.feature.settings.ThemeMode
+import io.github.chos1n11111.dongqiudipure.feature.settings.CompetitionSettingsMode
+import io.github.chos1n11111.dongqiudipure.feature.settings.FootballCompetitionSettingsRoute
+import io.github.chos1n11111.dongqiudipure.feature.settings.FootballPreferences
 
 @Composable
 fun DqdNavHost(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    footballPreferences: FootballPreferences,
+    onDefaultMatchCompetitionChange: (String?) -> Unit,
+    onMatchCompetitionToggle: (String, Boolean) -> Unit,
+    onRankingCompetitionToggle: (String, Boolean) -> Unit,
     appVersion: String,
     navController: NavHostController,
     modifier: Modifier = Modifier,
@@ -50,13 +57,17 @@ fun DqdNavHost(
 
         composable(DqdDestination.Matches.route) {
             MatchesRoute(
+                selectedCompetitionIds = footballPreferences.matchCompetitionIds,
+                defaultCompetitionId = footballPreferences.defaultMatchCompetitionId,
                 onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
             )
         }
 
         composable(DqdDestination.Data.route) {
             DataHubRoute(
+                selectedCompetitionIds = footballPreferences.rankingCompetitionIds,
                 onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
+                onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
             )
         }
 
@@ -138,7 +149,6 @@ fun DqdNavHost(
                 onBack = navController::popBackStack,
                 onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
                 onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
-                onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
             )
         }
 
@@ -171,6 +181,30 @@ fun DqdNavHost(
             SettingsScreen(
                 themeMode = themeMode,
                 onThemeModeChange = onThemeModeChange,
+                onMatchSettingsClick = { navController.navigate(DqdRoutes.SETTINGS_MATCHES) },
+                onRankingSettingsClick = { navController.navigate(DqdRoutes.SETTINGS_RANKINGS) },
+                onBack = navController::popBackStack,
+            )
+        }
+
+        composable(DqdRoutes.SETTINGS_MATCHES) {
+            FootballCompetitionSettingsRoute(
+                mode = CompetitionSettingsMode.Matches,
+                preferences = footballPreferences,
+                onDefaultMatchCompetitionChange = onDefaultMatchCompetitionChange,
+                onMatchCompetitionToggle = onMatchCompetitionToggle,
+                onRankingCompetitionToggle = onRankingCompetitionToggle,
+                onBack = navController::popBackStack,
+            )
+        }
+
+        composable(DqdRoutes.SETTINGS_RANKINGS) {
+            FootballCompetitionSettingsRoute(
+                mode = CompetitionSettingsMode.Rankings,
+                preferences = footballPreferences,
+                onDefaultMatchCompetitionChange = onDefaultMatchCompetitionChange,
+                onMatchCompetitionToggle = onMatchCompetitionToggle,
+                onRankingCompetitionToggle = onRankingCompetitionToggle,
                 onBack = navController::popBackStack,
             )
         }

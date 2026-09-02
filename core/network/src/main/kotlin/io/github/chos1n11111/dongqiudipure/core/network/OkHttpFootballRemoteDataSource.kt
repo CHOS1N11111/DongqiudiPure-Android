@@ -4,16 +4,31 @@ import io.github.chos1n11111.dongqiudipure.core.model.AppError
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.EndpointId
 import io.github.chos1n11111.dongqiudipure.core.model.NetworkKind
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.SeasonId
+import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.network.di.ApiBaseUrl
 import io.github.chos1n11111.dongqiudipure.core.network.di.SportDataBaseUrl
 import io.github.chos1n11111.dongqiudipure.core.network.dto.MatchListEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.DataMenuEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.CompetitionScheduleEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerAbilityEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerDetailDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerStatisticsDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.RankingDetailEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.RankingTypesEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.SeasonDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.StandingEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamMembersEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamSampleDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamScheduleEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamStatisticDto
 import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.net.ssl.SSLException
 import kotlinx.coroutines.Dispatchers
@@ -34,12 +49,26 @@ class OkHttpFootballRemoteDataSource @Inject constructor(
     @param:SportDataBaseUrl private val sportDataBaseUrl: HttpUrl,
 ) : FootballRemoteDataSource {
 
-    override suspend fun loadImportantMatches(): ApiResult<MatchListEnvelopeDto> {
+    override suspend fun loadImportantMatches(startDate: LocalDate): ApiResult<MatchListEnvelopeDto> {
         val url = apiBaseUrl.newBuilder()
             .addPathSegments("data/tab/new/important")
+            .addQueryParameter("start", "${startDate.format(DATE)} 16:00:00")
             .addQueryParameter("init", "1")
+            .addQueryParameter("platform", "www")
+            .addQueryParameter("version", "576")
             .build()
         return get(url, MATCHES_ENDPOINT, MatchListEnvelopeDto.serializer())
+    }
+
+    override suspend fun loadCompetitionCatalog(): ApiResult<DataMenuEnvelopeDto> {
+        val url = sportDataBaseUrl.newBuilder()
+            .addPathSegments("soccer/biz/tab/data_menu")
+            .addQueryParameter("app", "dqd")
+            .addQueryParameter("platform", "ios")
+            .addQueryParameter("version", "853")
+            .addQueryParameter("lang", "zh-cn")
+            .build()
+        return get(url, CATALOG_ENDPOINT, DataMenuEnvelopeDto.serializer())
     }
 
     override suspend fun loadSeasons(
@@ -64,6 +93,122 @@ class OkHttpFootballRemoteDataSource @Inject constructor(
             .addCommonSportDataParameters()
             .build()
         return get(url, STANDINGS_ENDPOINT, StandingEnvelopeDto.serializer())
+    }
+
+    override suspend fun loadCompetitionSchedule(
+        seasonId: SeasonId,
+    ): ApiResult<CompetitionScheduleEnvelopeDto> {
+        requireId(seasonId.raw)
+        val url = sportDataBaseUrl.newBuilder()
+            .addPathSegments("soccer/biz/data/schedule")
+            .addQueryParameter("season_id", seasonId.raw)
+            .addQueryParameter("round_all", "1")
+            .addCommonSportDataParameters()
+            .build()
+        return get(url, COMPETITION_SCHEDULE_ENDPOINT, CompetitionScheduleEnvelopeDto.serializer())
+    }
+
+    override suspend fun loadRankingTypes(
+        seasonId: SeasonId,
+        entity: String,
+    ): ApiResult<RankingTypesEnvelopeDto> {
+        requireId(seasonId.raw)
+        require(entity == "person" || entity == "team")
+        val url = sportDataBaseUrl.newBuilder()
+            .addPathSegments("soccer/biz/data/ranking/$entity")
+            .addQueryParameter("season_id", seasonId.raw)
+            .addQueryParameter("type", entity)
+            .addCommonSportDataParameters()
+            .build()
+        return get(url, RANKING_TYPES_ENDPOINT, RankingTypesEnvelopeDto.serializer())
+    }
+
+    override suspend fun loadRanking(
+        seasonId: SeasonId,
+        entity: String,
+        metric: String,
+    ): ApiResult<RankingDetailEnvelopeDto> {
+        requireId(seasonId.raw)
+        require(entity == "person" || entity == "team")
+        require(metric.isNotEmpty() && metric.all { it.isLetterOrDigit() || it == '_' })
+        val path = if (entity == "person") "person_ranking" else "team_ranking"
+        val url = sportDataBaseUrl.newBuilder()
+            .addPathSegments("soccer/biz/data/$path")
+            .addQueryParameter("season_id", seasonId.raw)
+            .addQueryParameter("type", metric)
+            .addCommonSportDataParameters()
+            .build()
+        return get(url, RANKING_ENDPOINT, RankingDetailEnvelopeDto.serializer())
+    }
+
+    override suspend fun loadTeamSample(teamId: TeamId): ApiResult<TeamSampleDto> {
+        requireEntityId(teamId.raw)
+        val url = sportDataBaseUrl.newBuilder()
+            .addPathSegments("soccer/biz/dqd/team/sample/${teamId.raw.normalizedDqdId()}")
+            .addQueryParameter("app", "dqd")
+            .addQueryParameter("lang", "zh-cn")
+            .build()
+        return get(url, TEAM_SAMPLE_ENDPOINT, TeamSampleDto.serializer())
+    }
+
+    override suspend fun loadTeamStatistics(teamId: TeamId): ApiResult<TeamStatisticDto> {
+        requireEntityId(teamId.raw)
+        val url = sportDataBaseUrl.newBuilder()
+            .addPathSegments("soccer/biz/dqd/team/statistic/${teamId.raw.fullDqdId()}")
+            .addQueryParameter("app", "dqd")
+            .addQueryParameter("lang", "zh-cn")
+            .build()
+        return get(url, TEAM_STATISTICS_ENDPOINT, TeamStatisticDto.serializer())
+    }
+
+    override suspend fun loadTeamMembers(teamId: TeamId): ApiResult<TeamMembersEnvelopeDto> {
+        requireEntityId(teamId.raw)
+        val url = sportDataBaseUrl.newBuilder()
+            .addPathSegments("soccer/biz/dqd/v1/team/member_v2/${teamId.raw.fullDqdId()}")
+            .addQueryParameter("app", "dqd")
+            .build()
+        return get(url, TEAM_MEMBERS_ENDPOINT, TeamMembersEnvelopeDto.serializer())
+    }
+
+    override suspend fun loadTeamSchedule(teamId: TeamId): ApiResult<TeamScheduleEnvelopeDto> {
+        requireEntityId(teamId.raw)
+        val url = sportDataBaseUrl.newBuilder()
+            .addPathSegments("soccer/biz/dqd/team/schedule/${teamId.raw.normalizedDqdId()}")
+            .addQueryParameter("app", "dqd")
+            .addQueryParameter("lang", "zh-cn")
+            .build()
+        return get(url, TEAM_SCHEDULE_ENDPOINT, TeamScheduleEnvelopeDto.serializer())
+    }
+
+    override suspend fun loadPlayerDetail(playerId: PlayerId): ApiResult<PlayerDetailDto> {
+        requireEntityId(playerId.raw)
+        val url = apiBaseUrl.newBuilder()
+            .addPathSegments("data/v1/detail/person/${playerId.raw.fullDqdId()}")
+            .addQueryParameter("app", "dqd")
+            .addQueryParameter("lang", "zh-cn")
+            .build()
+        return get(url, PLAYER_DETAIL_ENDPOINT, PlayerDetailDto.serializer())
+    }
+
+    override suspend fun loadPlayerStatistics(playerId: PlayerId): ApiResult<PlayerStatisticsDto> {
+        requireEntityId(playerId.raw)
+        val url = sportDataBaseUrl.newBuilder()
+            .addPathSegments("soccer/biz/dqd/person/statistic_new/${playerId.raw.fullDqdId()}")
+            .addQueryParameter("app", "dqd")
+            .addQueryParameter("lang", "zh-cn")
+            .build()
+        return get(url, PLAYER_STATISTICS_ENDPOINT, PlayerStatisticsDto.serializer())
+    }
+
+    override suspend fun loadPlayerAbility(playerId: PlayerId): ApiResult<PlayerAbilityEnvelopeDto> {
+        requireEntityId(playerId.raw)
+        val url = sportDataBaseUrl.newBuilder()
+            .addPathSegments("soccer/data/sofifa/v1/player_ability/${playerId.raw.normalizedDqdId()}")
+            .addQueryParameter("player_type", "")
+            .addQueryParameter("app", "dqd")
+            .addQueryParameter("lang", "zh-cn")
+            .build()
+        return get(url, PLAYER_ABILITY_ENDPOINT, PlayerAbilityEnvelopeDto.serializer())
     }
 
     private fun HttpUrl.Builder.addCommonSportDataParameters(): HttpUrl.Builder =
@@ -121,9 +266,34 @@ class OkHttpFootballRemoteDataSource @Inject constructor(
         require(value.isNotEmpty() && value.all(Char::isDigit))
     }
 
+    private fun requireEntityId(value: String) = requireId(value)
+
+    private fun String.normalizedDqdId(): String {
+        val normalized = if (length >= 8 && startsWith("50")) drop(2).trimStart('0') else this
+        return normalized.ifEmpty { "0" }
+    }
+
+    private fun String.fullDqdId(): String = if (length >= 8 && startsWith("50")) {
+        this
+    } else {
+        "50${padStart(6, '0')}"
+    }
+
     private companion object {
         val MATCHES_ENDPOINT = EndpointId("football.matches")
+        val CATALOG_ENDPOINT = EndpointId("football.catalog")
         val SEASONS_ENDPOINT = EndpointId("football.seasons")
         val STANDINGS_ENDPOINT = EndpointId("football.standings")
+        val COMPETITION_SCHEDULE_ENDPOINT = EndpointId("football.competition-schedule")
+        val RANKING_TYPES_ENDPOINT = EndpointId("football.ranking-types")
+        val RANKING_ENDPOINT = EndpointId("football.ranking")
+        val TEAM_SAMPLE_ENDPOINT = EndpointId("football.team-sample")
+        val TEAM_STATISTICS_ENDPOINT = EndpointId("football.team-statistics")
+        val TEAM_MEMBERS_ENDPOINT = EndpointId("football.team-members")
+        val TEAM_SCHEDULE_ENDPOINT = EndpointId("football.team-schedule")
+        val PLAYER_DETAIL_ENDPOINT = EndpointId("football.player-detail")
+        val PLAYER_STATISTICS_ENDPOINT = EndpointId("football.player-statistics")
+        val PLAYER_ABILITY_ENDPOINT = EndpointId("football.player-ability")
+        val DATE: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
     }
 }

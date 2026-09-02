@@ -18,7 +18,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
@@ -49,7 +48,6 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
-import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
@@ -62,7 +60,6 @@ fun TeamProfileRoute(
     onBack: () -> Unit,
     onMatchClick: (MatchId) -> Unit,
     onPlayerClick: (PlayerId) -> Unit,
-    onArticleClick: (ArticleId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TeamProfileViewModel = hiltViewModel(),
 ) {
@@ -74,7 +71,6 @@ fun TeamProfileRoute(
         onBack = onBack,
         onMatchClick = onMatchClick,
         onPlayerClick = onPlayerClick,
-        onArticleClick = onArticleClick,
         onTabSelect = viewModel::selectTab,
         onRetry = viewModel::retryAll,
         modifier = modifier,
@@ -88,7 +84,6 @@ fun TeamProfileScreen(
     onBack: () -> Unit,
     onMatchClick: (MatchId) -> Unit,
     onPlayerClick: (PlayerId) -> Unit,
-    onArticleClick: (ArticleId) -> Unit,
     onTabSelect: (TeamTab) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
@@ -190,18 +185,6 @@ fun TeamProfileScreen(
                         emptyTitle = stringResource(R.string.team_stats_empty_title),
                         emptyDescription = stringResource(R.string.team_stats_empty_description),
                     ) { stats -> TeamStatsGrid(stats = stats) }
-                    return@Column
-                }
-
-                TeamTab.News -> {
-                    SectionContainer(
-                        state = uiState.news,
-                        onRetry = onRetry,
-                        emptyTitle = stringResource(R.string.team_news_empty_title),
-                        emptyDescription = stringResource(R.string.team_news_empty_description),
-                    ) { news ->
-                        TeamNewsList(news = news, onArticleClick = onArticleClick)
-                    }
                     return@Column
                 }
 
@@ -443,12 +426,10 @@ private fun TeamProfileDarkPreview() {
                 squad = SectionState.Empty,
                 fixtures = SectionState.Empty,
                 detailedStats = SectionState.Empty,
-                news = SectionState.Empty,
             ),
             onBack = {},
             onMatchClick = {},
             onPlayerClick = {},
-            onArticleClick = {},
             onTabSelect = {},
             onRetry = {},
         )
