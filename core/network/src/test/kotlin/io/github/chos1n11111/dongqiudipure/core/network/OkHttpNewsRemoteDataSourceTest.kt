@@ -127,6 +127,32 @@ class OkHttpNewsRemoteDataSourceTest {
     }
 
     @Test
+    fun `comment thread uses anonymous reply paging contract`() = runBlocking {
+        server.enqueue(jsonResponse(fixture("comment-thread-success.json")))
+        server.enqueue(jsonResponse(fixture("comment-thread-empty.json")))
+
+        val first = remote.loadCommentThread(CommentThreadRequest(commentId = "501"))
+        val next = remote.loadCommentThread(
+            CommentThreadRequest(
+                commentId = "501",
+                next = "fixture-reply-cursor",
+                page = 1,
+            ),
+        )
+
+        assertEquals(1, (first as ApiResult.Success).value.data?.replyList?.size)
+        assertEquals(0, (next as ApiResult.Success).value.data?.replyList?.size)
+        assertEquals(
+            "/v2/comment/501?size=20&sort=up&platform=web",
+            server.takeRequest().target,
+        )
+        assertEquals(
+            "/v2/comment/501?size=20&sort=up&next=fixture-reply-cursor&pn=1",
+            server.takeRequest().target,
+        )
+    }
+
+    @Test
     fun `malformed success body maps to endpoint parse error`() = runBlocking {
         server.enqueue(jsonResponse(fixture("malformed.json")))
 

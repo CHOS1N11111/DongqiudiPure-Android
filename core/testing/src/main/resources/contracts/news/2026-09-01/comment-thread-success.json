@@ -1,0 +1,32 @@
+{
+  "errCode": 0,
+  "errMsg": "",
+  "data": {
+    "article": {"id": 1001, "title": "Contract article"},
+    "comment_info": {
+      "id": 501,
+      "article_id": 1001,
+      "user_id": 901,
+      "content": "Contract parent comment.",
+      "created_at": "2026-09-01 10:10:00",
+      "reply_total": 0,
+      "up": 12
+    },
+    "comment_total": 2,
+    "reply_list": [
+      {
+        "id": 601,
+        "article_id": 1001,
+        "user_id": 902,
+        "content": "Contract reply.",
+        "created_at": "2026-09-01 10:20:00",
+        "up": 4
+      }
+    ],
+    "user_list": [
+      {"id": 901, "username": "Contract Parent"},
+      {"id": 902, "username": "Contract Reply"}
+    ],
+    "next": "https://api.dongqiudi.com/v2/comment/501?size=20&sort=up&next=fixture-reply-cursor&pn=1"
+  }
+}

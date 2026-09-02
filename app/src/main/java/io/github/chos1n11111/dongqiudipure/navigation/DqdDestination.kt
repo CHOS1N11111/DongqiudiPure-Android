@@ -14,7 +14,7 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
  *  - [Matches] 是**日期视角** —— 今天有哪些比赛
  *  - [Data] 是**赛事视角** —— 某个联赛的榜单与赛程
  *
- * 搜索与实体详情是内容目的地，从页面入口或 deep link 进入，不占用根 tab ——
+ * 实体详情是内容目的地，从页面入口或 deep link 进入，不占用根 tab ——
  * 底栏项超过五个就会失去「一眼可辨」的价值。
  */
 enum class DqdDestination(
@@ -29,6 +29,7 @@ enum class DqdDestination(
 }
 
 internal const val ARG_ARTICLE_ID = "articleId"
+internal const val ARG_COMMENT_ID = "commentId"
 internal const val ARG_MATCH_ID = "matchId"
 internal const val ARG_TEAM_ID = "teamId"
 internal const val ARG_COMPETITION_ID = "competitionId"
@@ -42,16 +43,17 @@ internal const val ARG_PLAYER_ID = "playerId"
  */
 object DqdRoutes {
     const val ARTICLE = "article/{$ARG_ARTICLE_ID}"
+    const val COMMENT = "article/{$ARG_ARTICLE_ID}/comment/{$ARG_COMMENT_ID}"
     const val MATCH = "match/{$ARG_MATCH_ID}"
     const val TEAM = "team/{$ARG_TEAM_ID}"
     const val STANDINGS = "standings/{$ARG_COMPETITION_ID}"
     const val PLAYER = "player/{$ARG_PLAYER_ID}"
-    const val SEARCH = "search"
     const val SETTINGS = "settings"
     const val ABOUT = "about"
     const val LICENSE = "license"
 
     fun article(articleId: String) = "article/$articleId"
+    fun comment(articleId: String, commentId: String) = "article/$articleId/comment/$commentId"
     fun match(matchId: String) = "match/$matchId"
     fun team(teamId: String) = "team/$teamId"
     fun standings(competitionId: String) = "standings/$competitionId"

@@ -1,0 +1,11 @@
+{
+  "template": "team_point_ranking",
+  "content": {
+    "rounds": [
+      {
+        "template": "team_point_ranking_regular",
+        "content": {"data": [], "desc": []}
+      }
+    ]
+  }
+}

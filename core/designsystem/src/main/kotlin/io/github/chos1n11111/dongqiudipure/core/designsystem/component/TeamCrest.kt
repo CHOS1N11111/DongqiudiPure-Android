@@ -2,28 +2,38 @@ package io.github.chos1n11111.dongqiudipure.core.designsystem.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
+import coil3.compose.AsyncImage
 import kotlin.math.abs
+import kotlinx.coroutines.delay
 
 /**
  * 队徽。
  *
- * 当前始终渲染占位色块：队徽图片需要网络加载，属于 data 层能力。
- * 接入图片加载库后，[crestUrl] 非空时改为加载远端图片，占位逻辑作为
+ * [crestUrl] 可用时加载真实队徽；短暂失败会有限重试，占位逻辑作为
  * loading / error 的回退保留。
  *
  * 占位色由 [teamId] 稳定派生 —— 同一支球队在任何页面都是同一个颜色，
@@ -39,26 +49,60 @@ fun TeamCrest(
     crestUrl: String? = null,
     size: Dp = DqdSize.crestSmall,
 ) {
-    // TODO(data): crestUrl 非空时加载远端图片。见 docs/engineering/BACKEND-CONTRACT-TODO.md
     val color = rememberCrestColor(teamId)
     val corner = if (size >= DqdSize.crestLarge) 10.dp else 4.dp
+    var imageLoaded by remember(crestUrl) { mutableStateOf(false) }
+    var retryAttempt by remember(crestUrl) { mutableIntStateOf(0) }
+    var retryPending by remember(crestUrl) { mutableStateOf(false) }
+
+    LaunchedEffect(retryPending) {
+        if (retryPending) {
+            delay(750)
+            retryAttempt += 1
+            retryPending = false
+        }
+    }
 
     Box(
         modifier = modifier
             .size(size)
             .clip(RoundedCornerShape(corner))
-            .background(color)
+            .background(
+                if (crestUrl == null) color else MaterialTheme.colorScheme.surfaceContainerHigh,
+            )
             .clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
     ) {
-        if (size >= DqdSize.crestMedium) {
+        if (!imageLoaded) {
             Text(
                 text = teamName.take(1),
-                color = Color.White,
+                color = if (crestUrl == null) {
+                    Color.White
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = (size.value * 0.4f).sp,
+                    fontSize = maxOf(8f, size.value * 0.4f).sp,
                 ),
             )
+        }
+        if (crestUrl != null) {
+            key(retryAttempt) {
+                AsyncImage(
+                    model = crestUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    onLoading = { imageLoaded = false },
+                    onSuccess = { imageLoaded = true },
+                    onError = {
+                        imageLoaded = false
+                        if (retryAttempt < MAX_RETRY_ATTEMPTS) retryPending = true
+                    },
+                    modifier = Modifier
+                        .size(size)
+                        .padding(1.dp),
+                )
+            }
         }
     }
 }
@@ -74,3 +118,5 @@ private fun rememberCrestColor(teamId: TeamId): Color {
     val hue = (hash % 360).toFloat()
     return Color.hsl(hue = hue, saturation = 0.42f, lightness = 0.44f)
 }
+
+private const val MAX_RETRY_ATTEMPTS = 2

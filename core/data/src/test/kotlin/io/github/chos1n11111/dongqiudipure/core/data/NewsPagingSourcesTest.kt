@@ -5,6 +5,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.CommentOrder
 import io.github.chos1n11111.dongqiudipure.core.network.ApiResult
 import io.github.chos1n11111.dongqiudipure.core.network.CommentRequest
+import io.github.chos1n11111.dongqiudipure.core.network.CommentThreadRequest
 import io.github.chos1n11111.dongqiudipure.core.network.FeedRequest
 import io.github.chos1n11111.dongqiudipure.core.network.NewsRemoteDataSource
 import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleDetailEnvelopeDto
@@ -169,6 +170,24 @@ class NewsPagingSourcesTest {
         assertEquals(1122f / 1400f, comment.attachments.single().aspectRatio!!, 0.001f)
     }
 
+    @Test
+    fun `reply page maps likes and validates comment cursor`() = runBlocking {
+        val remote = FakeNewsRemoteDataSource().apply {
+            commentThreadResult = ApiResult.Success(commentsFixture("comment-thread-success.json"))
+        }
+
+        val result = ReplyPagingSource(
+            remote = remote,
+            articleId = ArticleId("1001"),
+            commentId = "501",
+        ).load(replyRefresh())
+
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals(listOf("601"), page.data.map { it.id })
+        assertEquals(4, page.data.single().likeCount)
+        assertEquals(ReplyPageKey("fixture-reply-cursor", 1), page.nextKey)
+    }
+
     private fun feedFixture(name: String): FeedResponseDto = json.decodeFromString(
         FeedResponseDto.serializer(),
         fixture(name),
@@ -198,9 +217,17 @@ class NewsPagingSourcesTest {
             placeholdersEnabled = false,
         )
 
+    private fun replyRefresh(): PagingSource.LoadParams.Refresh<ReplyPageKey> =
+        PagingSource.LoadParams.Refresh(
+            key = null,
+            loadSize = 20,
+            placeholdersEnabled = false,
+        )
+
     private class FakeNewsRemoteDataSource : NewsRemoteDataSource {
         lateinit var feedResult: ApiResult<FeedResponseDto>
         lateinit var commentsResult: ApiResult<CommentsEnvelopeDto>
+        lateinit var commentThreadResult: ApiResult<CommentsEnvelopeDto>
 
         override suspend fun loadFeed(request: FeedRequest): ApiResult<FeedResponseDto> = feedResult
 
@@ -209,6 +236,10 @@ class NewsPagingSourcesTest {
 
         override suspend fun loadComments(request: CommentRequest): ApiResult<CommentsEnvelopeDto> =
             commentsResult
+
+        override suspend fun loadCommentThread(
+            request: CommentThreadRequest,
+        ): ApiResult<CommentsEnvelopeDto> = commentThreadResult
     }
 
     private companion object {

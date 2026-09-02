@@ -13,6 +13,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.DataResult
 import io.github.chos1n11111.dongqiudipure.core.model.EndpointId
 import io.github.chos1n11111.dongqiudipure.core.model.NewsCategory
 import io.github.chos1n11111.dongqiudipure.core.network.ApiResult
+import io.github.chos1n11111.dongqiudipure.core.network.CommentThreadRequest
 import io.github.chos1n11111.dongqiudipure.core.network.NewsRemoteDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -53,6 +54,27 @@ class DefaultNewsRepository @Inject constructor(
         CommentPagingSource(remote, articleId, order)
     }.flow
 
+    override suspend fun loadCommentThread(
+        articleId: ArticleId,
+        commentId: String,
+    ): DataResult<Comment> = when (
+        val result = remote.loadCommentThread(CommentThreadRequest(commentId = commentId))
+    ) {
+        is ApiResult.Failure -> DataResult.Failure(result.error)
+        is ApiResult.Success -> try {
+            DataResult.Success(requireNotNull(result.value.data).toThreadParent(articleId))
+        } catch (_: ContractViolation) {
+            DataResult.Failure(AppError.UnsupportedContract(COMMENT_THREAD_ENDPOINT))
+        }
+    }
+
+    override fun pagedReplies(
+        articleId: ArticleId,
+        commentId: String,
+    ): Flow<PagingData<Comment>> = Pager(PAGING_CONFIG) {
+        ReplyPagingSource(remote, articleId, commentId)
+    }.flow
+
     private companion object {
         val PAGING_CONFIG = PagingConfig(
             pageSize = 20,
@@ -61,5 +83,6 @@ class DefaultNewsRepository @Inject constructor(
             enablePlaceholders = false,
         )
         val ARTICLE_ENDPOINT = EndpointId("news.article")
+        val COMMENT_THREAD_ENDPOINT = EndpointId("news.comment-thread")
     }
 }

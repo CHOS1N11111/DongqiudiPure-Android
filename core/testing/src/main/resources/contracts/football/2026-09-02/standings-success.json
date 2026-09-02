@@ -1,0 +1,56 @@
+{
+  "template": "team_point_ranking",
+  "content": {
+    "rounds": [
+      {
+        "template": "team_point_ranking_regular",
+        "content": {
+          "data": [
+            {
+              "rank": "1",
+              "team_id": "7101",
+              "team_name": "Contract Home",
+              "team_logo": "https://fixture.qunliao.info/teams/7101.png",
+              "matches_total": "2",
+              "matches_won": "2",
+              "matches_draw": "0",
+              "matches_lost": "0",
+              "goals_pro": "6",
+              "goals_against": "2",
+              "points": "6"
+            },
+            {
+              "rank": "2",
+              "team_id": "7102",
+              "team_name": "Contract Away",
+              "team_logo": "https://fixture.qunliao.info/teams/7102.png",
+              "matches_total": "2",
+              "matches_won": "1",
+              "matches_draw": "1",
+              "matches_lost": "0",
+              "goals_pro": "3",
+              "goals_against": "2",
+              "points": "4"
+            },
+            {
+              "rank": "3",
+              "team_id": "7103",
+              "team_name": "Contract Third",
+              "matches_total": "2",
+              "matches_won": "0",
+              "matches_draw": "0",
+              "matches_lost": "2",
+              "goals_pro": "1",
+              "goals_against": "5",
+              "points": "0"
+            }
+          ],
+          "desc": [
+            {"from": "0", "to": "0", "text": "欧冠区"},
+            {"from": "2", "to": "2", "text": "降级区"}
+          ]
+        }
+      }
+    ]
+  }
+}

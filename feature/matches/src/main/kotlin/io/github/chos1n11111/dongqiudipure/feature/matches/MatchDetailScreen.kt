@@ -79,6 +79,7 @@ fun MatchDetailRoute(
         uiState = uiState,
         onBack = onBack,
         onTeamClick = onTeamClick,
+        onRetryHeader = viewModel::retryHeader,
         onTabSelect = viewModel::selectTab,
         onRetryEvents = viewModel::retryEvents,
         onRetryStats = viewModel::retryStats,
@@ -95,6 +96,7 @@ fun MatchDetailScreen(
     uiState: MatchDetailUiState,
     onBack: () -> Unit,
     onTeamClick: (TeamId) -> Unit,
+    onRetryHeader: () -> Unit,
     onTabSelect: (MatchTab) -> Unit,
     onRetryEvents: () -> Unit,
     onRetryStats: () -> Unit,
@@ -141,7 +143,7 @@ fun MatchDetailScreen(
         ) {
             SectionContainer(
                 state = uiState.header,
-                onRetry = {},
+                onRetry = onRetryHeader,
                 modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                 loading = { ScoreHeaderSkeleton() },
             ) { match ->
@@ -655,18 +657,14 @@ private fun MatchDetailDarkPreview() {
     DqdTheme(darkTheme = true) {
         MatchDetailScreen(
             uiState = MatchDetailUiState(
-                header = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches.liveMatch,
-                ),
-                events = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches.events,
-                ),
-                stats = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches.stats,
-                ),
+                header = SectionState.Empty,
+                events = SectionState.Empty,
+                stats = SectionState.Empty,
+                lineup = SectionState.Empty,
             ),
             onBack = {},
             onTeamClick = {},
+            onRetryHeader = {},
             onTabSelect = {},
             onRetryEvents = {},
             onRetryStats = {},

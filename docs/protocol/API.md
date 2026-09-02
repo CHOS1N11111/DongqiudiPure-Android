@@ -125,15 +125,16 @@ login Response
 | --- | --- | --- | --- |
 | 首页/分类资讯流 | A，2026-09-01 匿名实测 | Contract 已归档并接入 | M3 |
 | 文章详情 | A，2026-09-01 匿名实测 | Contract 已归档并接入 | M3 |
-| 文章评论只读 | A，2026-09-01 匿名实测 | 一级评论已接入；回复线程待验证 | M3 |
+| 文章评论只读 | A，2026-09-02 匿名实测 | 一级评论与回复线程 Contract 已归档并接入 | M3 |
 | 专题、话题、图集和公开视频 | U | 待验证 | M3 |
-| 日期比赛列表 | 前期已观察可匿名读取 | 待归档 | M4 |
+| 日期比赛列表 | A，2026-09-02 匿名实测 | 五大联赛和中超 Contract 已归档并接入 | M4 |
 | 比赛基础详情/赛前信息 | 前期已观察可匿名读取 | 待归档 | M4 |
 | 完整事件时间线 | U | 待验证 | M5 |
 | 首发、替补、教练和阵型 | U | 待验证 | M5 |
 | 技术统计 | U | 待验证 | M5 |
 | 赛后信息、交锋和实时更新数据 | U | 待验证 | M5 |
-| 主要/热门积分榜、赛程赛果、射手榜 | 前期已观察可匿名读取 | 待归档 | M6 |
+| 五大联赛和中超积分榜 | A，2026-09-02 匿名实测 | 当前赛季 Contract 已归档并接入 | M6 |
+| 主要/热门赛程赛果、射手榜 | U | 待验证 | M6 |
 | 主要/热门助攻榜、球队和球员统计榜 | U | 待验证 | M6 |
 | 热门球队相关资讯流 | 前期已观察可匿名读取 | 待归档 | M7 |
 | 主要/热门球队、球员和赛事当前资料 | U | 待验证 | M7 |
@@ -175,16 +176,47 @@ GET /v2/article/detail/{articleId}
 - 只加载 HTTPS 且 Host 为 `qunliao.info` 或其子域的媒体 URL。
 - `infos.channels` 中已验证的 `dongqiudi:///team/{id}`、`player/{id}` 和 `competition/{id}` 转为应用内关联实体。
 
-文章评论：
+文章评论与回复：
 
 ```http
 GET /v2/article/{articleId}/comment?size=20&platform=web
 GET /v2/article/{articleId}/comment?sort=down&next={cursor}&pn={page}&platform=h5&version=0
+GET /v2/comment/{commentId}?size=20&sort=up&platform=web
+GET /v2/comment/{commentId}?size=20&sort=up&next={cursor}&pn={page}&platform=web
 ```
 
 - 成功 envelope 为 `errCode=0` 且 `data` 非空；空评论由三个空列表和空 `next` 表示。
 - “最热”在第一页先合并 `recommend_list`，再合并 `comment_list`；“最新”只使用 `comment_list`。后续页均使用普通评论列表，并按稳定 comment ID 去重。
-- `user_list` 用于解析评论作者；评论 HTML 只保留纯文本，内联表情图片转为可见占位文本。允许正文为空但带有 `attachments` 的图片评论，附件仍只加载 `qunliao.info` HTTPS 媒体。当前只展示 `reply_total`，回复线程的读取 contract 尚未验证，因此不伪造回复内容。
+- `user_list` 用于解析评论作者；评论 HTML 只保留纯文本，内联表情图片转为可见占位文本。允许正文为空但带有 `attachments` 的图片评论，附件仍只加载 `qunliao.info` HTTPS 媒体。
+- `up` 是只读点赞数，缺失时保持 `null`；客户端不提供点赞写操作。
+- 回复详情使用 `comment_info` 作为父评论、`reply_list` 作为分页回复列表，并校验返回的 `article_id` 与当前文章一致。没有回复时展示真实空状态，不构造内容。
+
+### 6.2 已归档的比赛与积分榜 Contract
+
+共同约束：匿名 `GET`，不发送 Authorization、Cookie 或设备标识。固定脱敏样本位于
+`core/testing/src/main/resources/contracts/football/2026-09-02/`。
+
+比赛列表：
+
+```http
+GET https://api.dongqiudi.com/data/tab/new/important?init=1
+```
+
+- 响应是服务端当前七日窗口；客户端按设备时区把 UTC 开球时间归入本地日期。
+- 当前只保留赛事 ID `4` 英超、`3` 西甲、`9` 意甲、`5` 德甲、`12` 法甲、`43` 中超，其余赛事不会进入 UI。
+- 比分或状态字段缺失时保持 `null` / `Unknown`；接口没有目标赛事时显示空状态，不补造比赛。
+- 主客队 `logo` 只接受 `qunliao.info` 及其子域的 HTTPS URL。
+
+赛季与积分榜：
+
+```http
+GET https://sport-data.dongqiudi.com/soccer/biz/data/seasons?competition_id={competitionId}&app=dqd&platform=miniprogram&version=830&lang=zh-cn
+GET https://sport-data.dongqiudi.com/soccer/biz/data/standing?season_id={seasonId}&app=dqd&platform=miniprogram&version=830&lang=zh-cn
+```
+
+- 客户端先从赛季列表解析当前赛季 ID，再请求积分榜，不硬编码会过期的赛季 ID。
+- 只向 UI 暴露上述六项赛事；名次、场次、胜平负、进失球和积分保留服务端的可空语义。
+- 分区范围与名称来自响应的 `desc.from`、`desc.to` 和 `desc.text`，不按联赛猜测欧战或降级区。
 
 M11/M12 只扩大覆盖范围，不改变鉴权方式；对应 Request 必须先按匿名 contract 验证，不能因为实现时已经有登录模块就默认携带 Authorization。
 

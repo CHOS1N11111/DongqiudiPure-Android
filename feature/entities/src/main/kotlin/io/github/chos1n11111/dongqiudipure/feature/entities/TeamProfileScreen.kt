@@ -437,16 +437,13 @@ private fun TeamProfileDarkPreview() {
     DqdTheme(darkTheme = true) {
         TeamProfileScreen(
             uiState = TeamProfileUiState(
-                profile = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches.teamProfile,
-                ),
-                seasonStats = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SampleTeamStats
-                        .overview.map { (label, value) -> SeasonStat(label, value) },
-                ),
-                nextMatch = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches.matches[1],
-                ),
+                profile = SectionState.Empty,
+                seasonStats = SectionState.Empty,
+                nextMatch = SectionState.Empty,
+                squad = SectionState.Empty,
+                fixtures = SectionState.Empty,
+                detailedStats = SectionState.Empty,
+                news = SectionState.Empty,
             ),
             onBack = {},
             onMatchClick = {},

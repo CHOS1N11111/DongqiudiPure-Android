@@ -3,12 +3,13 @@ package io.github.chos1n11111.dongqiudipure.feature.matches
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.chos1n11111.dongqiudipure.core.data.MatchRepository
+import io.github.chos1n11111.dongqiudipure.core.model.DataResult
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.needsLiveRefresh
-import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,19 +46,22 @@ data class MatchesUiState(
 /**
  * 比赛列表状态编排。
  *
- * ⚠️ 当前从 :core:sampledata 读取假数据。
- * 接入时替换为 `matchRepository.observeMatchesByDate(date)`。
+ * 使用匿名比赛接口读取真实数据，并在 Repository 层限制为五大联赛和中超。
+ * 接口没有支持赛事时返回空状态，不补造比赛。
  *
  * 实时刷新策略（可取消、感知前后台、终场停止）属于 M4/M5，
- * 需要真实数据源才有意义，此处只保留 [hasLiveMatch] 的判定逻辑。
+ * 当前仅根据已加载比赛维护 [hasLiveMatch]；自动轮询仍属于后续实时能力。
  *
  * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.3
  */
 @HiltViewModel
-class MatchesViewModel @Inject constructor() : ViewModel() {
+class MatchesViewModel @Inject constructor(
+    private val repository: MatchRepository,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MatchesUiState())
     val uiState: StateFlow<MatchesUiState> = _uiState.asStateFlow()
+    private var loadJob: Job? = null
 
     init {
         val today = LocalDate.now()
@@ -79,21 +83,36 @@ class MatchesViewModel @Inject constructor() : ViewModel() {
     }
 
     private fun loadMatches() {
-        viewModelScope.launch {
-            // TODO(data): 替换为 Repository 调用。
-            delay(SAMPLE_LOAD_DELAY_MS)
-            val grouped = SampleMatches.matches
-                .groupBy { it.competition }
-                .map { (competition, matches) -> CompetitionGroup(competition, matches) }
-
-            _uiState.update {
-                it.copy(
-                    groups = if (grouped.isEmpty()) {
-                        SectionState.Empty
+        loadJob?.cancel()
+        val selectedDate = _uiState.value.selectedDate
+        loadJob = viewModelScope.launch {
+            when (val result = repository.loadMatches(selectedDate)) {
+                is DataResult.Failure -> _uiState.update {
+                    if (it.selectedDate == selectedDate) {
+                        it.copy(groups = SectionState.Failed(result.error))
                     } else {
-                        SectionState.Content(grouped)
-                    },
-                )
+                        it
+                    }
+                }
+                is DataResult.Success -> {
+                    val grouped = result.value
+                        .groupBy { it.competition }
+                        .map { (competition, matches) -> CompetitionGroup(competition, matches) }
+                    val hasLive = result.value.any { it.status.needsLiveRefresh }
+                    _uiState.update {
+                        if (it.selectedDate != selectedDate) return@update it
+                        it.copy(
+                            days = it.days.map { day ->
+                                if (day.date == selectedDate) day.copy(hasLiveMatch = hasLive) else day
+                            },
+                            groups = if (grouped.isEmpty()) {
+                                SectionState.Empty
+                            } else {
+                                SectionState.Content(grouped)
+                            },
+                        )
+                    }
+                }
             }
         }
     }
@@ -104,13 +123,7 @@ class MatchesViewModel @Inject constructor() : ViewModel() {
             MatchDay(
                 date = date,
                 isToday = offset == 0,
-                // TODO(data): 真实实现应由服务端的当日比赛状态决定，而不是示例数据。
-                hasLiveMatch = offset == -1 ||
-                    (offset == 0 && SampleMatches.matches.any { it.status.needsLiveRefresh }),
+                hasLiveMatch = false,
             )
         }
-
-    private companion object {
-        const val SAMPLE_LOAD_DELAY_MS = 600L
-    }
 }

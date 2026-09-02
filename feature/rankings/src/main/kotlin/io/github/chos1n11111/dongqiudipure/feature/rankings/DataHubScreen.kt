@@ -7,14 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -25,20 +22,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
-import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
-import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
-import io.github.chos1n11111.dongqiudipure.core.model.MatchId
-import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 
 /**
@@ -51,16 +42,13 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamId
  * 与 [StandingsRoute] 共用 [RankingsContent]，分栏与表格不分叉。
  *
  * 球员、球队没有合法的目录页 —— 没有服务端目录接口，按热门写死又违反
- * FEATURES.md 的「不写死永久名单」。它们的入口是搜索与榜单行点击，
+ * FEATURES.md 的「不写死永久名单」。它们的入口是榜单行点击，
  * 本页不假装拥有一个球员目录。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DataHubRoute(
-    onSearchClick: () -> Unit,
     onTeamClick: (TeamId) -> Unit,
-    onPlayerClick: (PlayerId) -> Unit,
-    onMatchClick: (MatchId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StandingsViewModel = hiltViewModel(),
 ) {
@@ -73,15 +61,6 @@ fun DataHubRoute(
             Column {
                 TopAppBar(
                     title = { Text(stringResource(R.string.data_title)) },
-                    actions = {
-                        IconButton(onClick = onSearchClick) {
-                            Icon(
-                                painter = painterResource(DqdIcons.Search),
-                                contentDescription = stringResource(DesignR.string.ds_action_search),
-                                modifier = Modifier.size(DqdSize.iconMedium),
-                            )
-                        }
-                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                     ),
@@ -99,9 +78,6 @@ fun DataHubRoute(
         RankingsContent(
             uiState = uiState,
             onTeamClick = onTeamClick,
-            onPlayerClick = onPlayerClick,
-            onMatchClick = onMatchClick,
-            onTabSelect = viewModel::selectTab,
             onRetry = viewModel::retry,
             modifier = Modifier
                 .fillMaxSize()

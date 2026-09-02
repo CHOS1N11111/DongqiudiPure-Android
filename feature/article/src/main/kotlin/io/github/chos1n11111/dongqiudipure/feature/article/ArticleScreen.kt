@@ -76,6 +76,7 @@ fun ArticleRoute(
     articleId: ArticleId,
     onBack: () -> Unit,
     onEntityClick: (EntityRef) -> Unit,
+    onCommentClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ArticleViewModel = hiltViewModel(),
 ) {
@@ -101,6 +102,7 @@ fun ArticleRoute(
             )
         },
         onEntityClick = onEntityClick,
+        onCommentClick = onCommentClick,
         onRetryDetail = viewModel::retryDetail,
         onRetryComments = comments::retry,
         onSortToggle = {
@@ -124,6 +126,7 @@ fun ArticleScreen(
     onBack: () -> Unit,
     onShare: () -> Unit,
     onEntityClick: (EntityRef) -> Unit,
+    onCommentClick: (String) -> Unit,
     onRetryDetail: () -> Unit,
     onRetryComments: () -> Unit,
     onSortToggle: () -> Unit,
@@ -211,7 +214,7 @@ fun ArticleScreen(
                     key = comments.itemKey { it.id },
                 ) { index ->
                     val comment = comments[index] ?: return@items
-                    CommentRow(comment)
+                    CommentRow(comment = comment, onClick = { onCommentClick(comment.id) })
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
 
@@ -409,11 +412,16 @@ private fun EntityChip(entity: EntityRef, onClick: () -> Unit) {
 }
 
 @Composable
-private fun CommentRow(comment: Comment) {
+internal fun CommentRow(
+    comment: Comment,
+    onClick: (() -> Unit)? = null,
+    showReplyCount: Boolean = true,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainer)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
         horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
     ) {
@@ -458,14 +466,29 @@ private fun CommentRow(comment: Comment) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (comment.replyCount != null) {
+                if (comment.likeCount != null) {
+                    Text(
+                        text = stringResource(R.string.article_like_count, comment.likeCount!!),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (showReplyCount && comment.replyCount != null) {
                     Text(
                         text = stringResource(R.string.article_reply_count, comment.replyCount!!),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                } else {
+                } else if (showReplyCount) {
                     MissingValue(style = MaterialTheme.typography.labelSmall)
+                }
+                if (onClick != null) {
+                    Icon(
+                        painter = painterResource(DqdIcons.ChevronRight),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(DqdSize.iconSmall),
+                    )
                 }
             }
         }
@@ -486,7 +509,7 @@ private fun ArticleSkeleton() {
 }
 
 @Composable
-private fun CommentSkeleton() {
+internal fun CommentSkeleton() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -512,7 +535,7 @@ private fun ArticleDarkPreview() {
         flowOf(
             PagingData.from(
                 listOf(
-                    Comment("preview", "看球用户", "这场比赛值得期待。", "今天 12:30", 3),
+                    Comment("preview", "看球用户", "这场比赛值得期待。", "今天 12:30", 3, 12),
                 ),
             ),
         )
@@ -538,6 +561,7 @@ private fun ArticleDarkPreview() {
             onBack = {},
             onShare = {},
             onEntityClick = {},
+            onCommentClick = {},
             onRetryDetail = {},
             onRetryComments = {},
             onSortToggle = {},

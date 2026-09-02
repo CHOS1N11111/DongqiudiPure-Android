@@ -93,13 +93,48 @@ class OkHttpNewsRemoteDataSource @Inject constructor(
                 }
             }
             .build()
-        return when (val result = get(url, COMMENTS_ENDPOINT, CommentsEnvelopeDto.serializer())) {
+        return validateCommentsEnvelope(
+            get(url, COMMENTS_ENDPOINT, CommentsEnvelopeDto.serializer()),
+            COMMENTS_ENDPOINT,
+        )
+    }
+
+    override suspend fun loadCommentThread(
+        request: CommentThreadRequest,
+    ): ApiResult<CommentsEnvelopeDto> {
+        require(request.commentId.isNotEmpty() && request.commentId.all(Char::isDigit))
+        require((request.next == null) == (request.page == null))
+        require(request.page == null || request.page > 0)
+        val url = baseUrl.newBuilder()
+            .addPathSegments("v2/comment")
+            .addPathSegment(request.commentId)
+            .addQueryParameter("size", "20")
+            .addQueryParameter("sort", "up")
+            .apply {
+                if (request.next == null || request.page == null) {
+                    addQueryParameter("platform", "web")
+                } else {
+                    addQueryParameter("next", request.next)
+                    addQueryParameter("pn", request.page.toString())
+                }
+            }
+            .build()
+        return validateCommentsEnvelope(
+            get(url, COMMENT_THREAD_ENDPOINT, CommentsEnvelopeDto.serializer()),
+            COMMENT_THREAD_ENDPOINT,
+        )
+    }
+
+    private fun validateCommentsEnvelope(
+        result: ApiResult<CommentsEnvelopeDto>,
+        endpoint: EndpointId,
+    ): ApiResult<CommentsEnvelopeDto> = when (result) {
             is ApiResult.Failure -> result
             is ApiResult.Success -> {
                 val envelope = result.value
                 val code = envelope.errCode.scalarString()
                 when {
-                    code == null -> ApiResult.Failure(AppError.Parse(COMMENTS_ENDPOINT))
+                    code == null -> ApiResult.Failure(AppError.Parse(endpoint))
                     code != "0" || envelope.data == null -> ApiResult.Failure(
                         AppError.Server(
                             code = code,
@@ -111,7 +146,6 @@ class OkHttpNewsRemoteDataSource @Inject constructor(
                 }
             }
         }
-    }
 
     private suspend fun <T> get(
         url: HttpUrl,
@@ -162,6 +196,7 @@ class OkHttpNewsRemoteDataSource @Inject constructor(
         val FEED_ENDPOINT = EndpointId("news.feed")
         val ARTICLE_ENDPOINT = EndpointId("news.article")
         val COMMENTS_ENDPOINT = EndpointId("news.comments")
+        val COMMENT_THREAD_ENDPOINT = EndpointId("news.comment-thread")
     }
 }
 

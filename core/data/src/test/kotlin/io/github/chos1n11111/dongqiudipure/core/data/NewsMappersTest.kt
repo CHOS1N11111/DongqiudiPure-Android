@@ -9,6 +9,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleDetailEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentUserDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentsEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedArticleDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedImageDto
 import io.github.chos1n11111.dongqiudipure.core.testing.FixtureLoader
@@ -81,12 +82,28 @@ class NewsMappersTest {
             content = "<p>Readable <strong>fixture</strong> comment.</p>",
             createdAt = "2026-09-01 10:10:00",
             replyTotal = JsonPrimitive("2"),
+            up = JsonPrimitive("9"),
         ).toDomain(users)
 
         assertEquals("501", comment.id)
         assertEquals("Fixture Reader", comment.authorName)
         assertEquals("Readable fixture comment.", comment.body)
         assertEquals(2, comment.replyCount)
+        assertEquals(9, comment.likeCount)
+    }
+
+    @Test
+    fun `thread mapper uses comment total as reply count and validates article`() {
+        val envelope = json.decodeFromString(
+            CommentsEnvelopeDto.serializer(),
+            fixture("comment-thread-success.json"),
+        )
+
+        val parent = requireNotNull(envelope.data).toThreadParent(ArticleId("1001"))
+
+        assertEquals("501", parent.id)
+        assertEquals(2, parent.replyCount)
+        assertEquals(12, parent.likeCount)
     }
 
     @Test

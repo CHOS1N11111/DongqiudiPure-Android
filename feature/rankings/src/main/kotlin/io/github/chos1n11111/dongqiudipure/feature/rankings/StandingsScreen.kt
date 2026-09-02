@@ -23,14 +23,12 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
-import io.github.chos1n11111.dongqiudipure.core.model.MatchId
-import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 
 /**
  * 单个赛事的榜单详情页。
  *
- * 从搜索结果或文章的赛事 chip 进入，赛事固定，没有切换器 ——
+ * 从文章等赛事入口进入，赛事固定，没有切换器 ——
  * 用户是带着「我要看这个赛事」的意图来的。
  * 「数据」根 tab 的入口见 [DataHubRoute]，两者共用 [RankingsContent]。
  */
@@ -40,8 +38,6 @@ fun StandingsRoute(
     competitionId: CompetitionId,
     onBack: () -> Unit,
     onTeamClick: (TeamId) -> Unit,
-    onPlayerClick: (PlayerId) -> Unit,
-    onMatchClick: (MatchId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StandingsViewModel = hiltViewModel(),
 ) {
@@ -78,9 +74,6 @@ fun StandingsRoute(
         RankingsContent(
             uiState = uiState,
             onTeamClick = onTeamClick,
-            onPlayerClick = onPlayerClick,
-            onMatchClick = onMatchClick,
-            onTabSelect = viewModel::selectTab,
             onRetry = viewModel::retry,
             modifier = Modifier
                 .fillMaxSize()

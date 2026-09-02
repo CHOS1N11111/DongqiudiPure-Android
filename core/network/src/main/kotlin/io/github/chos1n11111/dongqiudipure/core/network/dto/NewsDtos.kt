@@ -80,20 +80,30 @@ data class CommentsDataDto(
     val next: String? = null,
     @SerialName("comment_list") val commentList: List<CommentDto>? = null,
     @SerialName("recommend_list") val recommendList: List<CommentDto>? = null,
+    @SerialName("comment_info") val commentInfo: CommentDto? = null,
+    @SerialName("reply_list") val replyList: List<CommentDto>? = null,
     @SerialName("user_list") val userList: List<CommentUserDto>? = null,
     @SerialName("comment_total") val commentTotal: JsonElement? = null,
     @SerialName("article_id") val articleId: JsonElement? = null,
+    val article: CommentArticleDto? = null,
 )
 
 @Serializable
 data class CommentDto(
     val id: JsonElement? = null,
+    val up: JsonElement? = null,
     @SerialName("user_id") val userId: JsonElement? = null,
+    @SerialName("article_id") val articleId: JsonElement? = null,
     val content: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("show_time") val showTime: JsonElement? = null,
     @SerialName("reply_total") val replyTotal: JsonElement? = null,
     val attachments: List<CommentAttachmentDto>? = null,
+)
+
+@Serializable
+data class CommentArticleDto(
+    val id: JsonElement? = null,
 )
 
 @Serializable

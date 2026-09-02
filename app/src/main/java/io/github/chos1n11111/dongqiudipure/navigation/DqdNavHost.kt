@@ -15,6 +15,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.feature.account.AccountRoute
 import io.github.chos1n11111.dongqiudipure.feature.article.ArticleRoute
+import io.github.chos1n11111.dongqiudipure.feature.article.CommentDetailRoute
 import io.github.chos1n11111.dongqiudipure.feature.entities.PlayerProfileRoute
 import io.github.chos1n11111.dongqiudipure.feature.entities.TeamProfileRoute
 import io.github.chos1n11111.dongqiudipure.feature.home.HomeRoute
@@ -22,7 +23,6 @@ import io.github.chos1n11111.dongqiudipure.feature.matches.MatchDetailRoute
 import io.github.chos1n11111.dongqiudipure.feature.matches.MatchesRoute
 import io.github.chos1n11111.dongqiudipure.feature.rankings.DataHubRoute
 import io.github.chos1n11111.dongqiudipure.feature.rankings.StandingsRoute
-import io.github.chos1n11111.dongqiudipure.feature.search.SearchRoute
 import io.github.chos1n11111.dongqiudipure.feature.settings.AboutScreen
 import io.github.chos1n11111.dongqiudipure.feature.settings.LicenseScreen
 import io.github.chos1n11111.dongqiudipure.feature.settings.SettingsScreen
@@ -45,23 +45,18 @@ fun DqdNavHost(
         composable(DqdDestination.Home.route) {
             HomeRoute(
                 onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
-                onSearchClick = { navController.navigate(DqdRoutes.SEARCH) },
             )
         }
 
         composable(DqdDestination.Matches.route) {
             MatchesRoute(
                 onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
-                onSearchClick = { navController.navigate(DqdRoutes.SEARCH) },
             )
         }
 
         composable(DqdDestination.Data.route) {
             DataHubRoute(
-                onSearchClick = { navController.navigate(DqdRoutes.SEARCH) },
                 onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
-                onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
-                onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
             )
         }
 
@@ -86,6 +81,9 @@ fun DqdNavHost(
             ArticleRoute(
                 articleId = ArticleId(id),
                 onBack = navController::popBackStack,
+                onCommentClick = { commentId ->
+                    navController.navigate(DqdRoutes.comment(id, commentId))
+                },
                 onEntityClick = { entity ->
                     when (entity) {
                         is EntityRef.Team ->
@@ -98,6 +96,22 @@ fun DqdNavHost(
                             navController.navigate(DqdRoutes.player(entity.id.raw))
                     }
                 },
+            )
+        }
+
+        composable(
+            route = DqdRoutes.COMMENT,
+            arguments = listOf(
+                navArgument(ARG_ARTICLE_ID) { type = NavType.StringType },
+                navArgument(ARG_COMMENT_ID) { type = NavType.StringType },
+            ),
+        ) { entry ->
+            val articleId = entry.arguments?.getString(ARG_ARTICLE_ID).orEmpty()
+            val commentId = entry.arguments?.getString(ARG_COMMENT_ID).orEmpty()
+            CommentDetailRoute(
+                articleId = ArticleId(articleId),
+                commentId = commentId,
+                onBack = navController::popBackStack,
             )
         }
 
@@ -149,18 +163,6 @@ fun DqdNavHost(
                 competitionId = CompetitionId(id),
                 onBack = navController::popBackStack,
                 onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
-                onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
-                onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
-            )
-        }
-
-        composable(DqdRoutes.SEARCH) {
-            SearchRoute(
-                onBack = navController::popBackStack,
-                onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
-                onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
-                onCompetitionClick = { navController.navigate(DqdRoutes.standings(it.raw)) },
-                onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
             )
         }
 

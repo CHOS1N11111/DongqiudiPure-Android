@@ -402,15 +402,9 @@ private fun PlayerProfileDarkPreview() {
     DqdTheme(darkTheme = true) {
         PlayerProfileScreen(
             uiState = PlayerProfileUiState(
-                profile = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SamplePlayers.profile,
-                ),
-                seasonStats = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SamplePlayers.profileStats,
-                ),
-                career = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SamplePlayers.career,
-                ),
+                profile = SectionState.Empty,
+                seasonStats = SectionState.Empty,
+                career = SectionState.Empty,
             ),
             onBack = {},
             onTeamClick = {},

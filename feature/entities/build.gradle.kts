@@ -31,9 +31,6 @@ kotlin {
 dependencies {
     implementation(project(":core:designsystem"))
 
-    // TODO(data): 接入 :core:data 后移除。见 docs/engineering/BACKEND-CONTRACT-TODO.md
-    implementation(project(":core:sampledata"))
-
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
