@@ -1,0 +1,23 @@
+{
+  "id": 1,
+  "label": "Fixture headlines",
+  "page": 1,
+  "next": "https://api.dongqiudi.com/app/tabs/web/1.json?after=fixture-feed-cursor&page=2&child_tab_id=0&user_pay_type=",
+  "articles": [
+    {
+      "id": 1001,
+      "title": "Fixture match report",
+      "comments_total": "12",
+      "published_at": "2031-09-01 10:00:00",
+      "created_at": "2026-09-01 10:00:00",
+      "author_name": "Fixture Sports Desk",
+      "match_image_list": [
+        {
+          "api_url": "https://fixture.qunliao.info/feed/1001.jpg"
+        }
+      ],
+      "channel": "article",
+      "showcontent": "Fixture pinned"
+    }
+  ]
+}

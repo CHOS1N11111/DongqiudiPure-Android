@@ -6,6 +6,8 @@
     <string name="article_comment_sort_hottest">最热</string>
     <string name="article_comment_sort_newest">最新</string>
     <string name="article_reply_count">%1$d 条回复</string>
+    <string name="article_comments_load_more_retry">重新加载更多评论</string>
+    <string name="article_share_title">分享资讯</string>
 
     <!-- 关联实体 chip 的类型标签。让 chip 自解释，不必靠图标猜是球队还是球员。 -->
     <string name="article_entity_type_team">球队</string>

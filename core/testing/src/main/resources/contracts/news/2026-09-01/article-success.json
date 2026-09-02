@@ -1,0 +1,27 @@
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "article_id": 1001,
+    "title": "Fixture match report",
+    "time": "2026-09-01 10:00:00",
+    "writer": "Fixture Writer",
+    "source": "Fixture Sports Desk",
+    "body": "<p>Fixture opening paragraph.</p><h2>Fixture section</h2><p><img data-src=\"https://fixture.qunliao.info/article/1001.jpg\" alt=\"Fixture image\"></p>",
+    "thumb": "https://fixture.qunliao.info/feed/1001.jpg",
+    "infos": {
+      "channels": [
+        {
+          "id": 42,
+          "href": "dongqiudi:///team/42",
+          "tag": "Fixture FC"
+        },
+        {
+          "id": 7,
+          "href": "dongqiudi:///player/7",
+          "tag": "Fixture Player"
+        }
+      ]
+    }
+  }
+}

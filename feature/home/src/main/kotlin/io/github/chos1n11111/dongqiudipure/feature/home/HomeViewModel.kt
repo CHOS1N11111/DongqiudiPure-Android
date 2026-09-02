@@ -2,68 +2,48 @@ package io.github.chos1n11111.dongqiudipure.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.chos1n11111.dongqiudipure.core.data.NewsRepository
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
-import io.github.chos1n11111.dongqiudipure.core.model.SectionState
-import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleFeed
-import kotlinx.coroutines.delay
+import io.github.chos1n11111.dongqiudipure.core.model.NewsCategory
+import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.flatMapLatest
 
 data class HomeUiState(
-    val categories: List<String> = emptyList(),
-    val selectedCategory: String = "",
-    val feed: SectionState<List<ArticleSummary>> = SectionState.Loading,
-    val isRefreshing: Boolean = false,
+    val categories: List<NewsCategory>,
+    val selectedCategory: NewsCategory,
 )
 
-/**
- * 资讯流状态编排。
- *
- * ⚠️ 当前从 :core:sampledata 读取假数据。
- * 接入真实数据时，把 [loadFeed] 换成 `articleRepository.observeHomeFeed(category)`，
- * 其余状态编排、分类切换与错误处理逻辑不需要改动 ——
- * 这正是把 UI 状态建模成 [SectionState] 的目的。
- *
- * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.1
- */
-class HomeViewModel : ViewModel() {
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    repository: NewsRepository,
+) : ViewModel() {
 
+    private val categories = repository.categories
+    private val selectedCategory = MutableStateFlow(categories.first())
     private val _uiState = MutableStateFlow(
         HomeUiState(
-            categories = SampleFeed.categories,
-            selectedCategory = SampleFeed.categories.first(),
+            categories = categories,
+            selectedCategory = selectedCategory.value,
         ),
     )
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    init {
-        loadFeed()
-    }
+    val feed: Flow<PagingData<ArticleSummary>> = selectedCategory
+        .flatMapLatest(repository::pagedFeed)
+        .cachedIn(viewModelScope)
 
-    fun selectCategory(category: String) {
-        if (category == _uiState.value.selectedCategory) return
-        _uiState.update { it.copy(selectedCategory = category, feed = SectionState.Loading) }
-        loadFeed()
-    }
-
-    fun retry() {
-        _uiState.update { it.copy(feed = SectionState.Loading) }
-        loadFeed()
-    }
-
-    private fun loadFeed() {
-        viewModelScope.launch {
-            // TODO(data): 替换为 Repository 调用。此处的延迟只是为了让
-            //  Loading 骨架在开发期真实可见，不是产品行为。
-            delay(SAMPLE_LOAD_DELAY_MS)
-            _uiState.update { it.copy(feed = SectionState.Content(SampleFeed.articles)) }
-        }
-    }
-
-    private companion object {
-        const val SAMPLE_LOAD_DELAY_MS = 600L
+    fun selectCategory(category: NewsCategory) {
+        if (category == selectedCategory.value) return
+        selectedCategory.value = category
+        _uiState.value = _uiState.value.copy(selectedCategory = category)
     }
 }

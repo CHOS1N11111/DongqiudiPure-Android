@@ -123,9 +123,9 @@ login Response
 
 | 能力组 | 当前匿名证据 | Contract 状态 | 计划 milestone |
 | --- | --- | --- | --- |
-| 首页/分类资讯流 | 前期已观察可匿名读取 | 待归档 | M3 |
-| 文章详情 | 前期已观察可匿名读取 | 待归档 | M3 |
-| 文章评论只读 | 前期已观察可匿名读取 | 待归档 | M3 |
+| 首页/分类资讯流 | A，2026-09-01 匿名实测 | Contract 已归档并接入 | M3 |
+| 文章详情 | A，2026-09-01 匿名实测 | Contract 已归档并接入 | M3 |
+| 文章评论只读 | A，2026-09-01 匿名实测 | 一级评论已接入；回复线程待验证 | M3 |
 | 专题、话题、图集和公开视频 | U | 待验证 | M3 |
 | 日期比赛列表 | 前期已观察可匿名读取 | 待归档 | M4 |
 | 比赛基础详情/赛前信息 | 前期已观察可匿名读取 | 待归档 | M4 |
@@ -141,6 +141,50 @@ login Response
 | 长尾/历史榜单与统计 | U | 待盘点 | M11 |
 | 完整球队、球员、赛事和赛季资料 | U | 待盘点 | M12 |
 | 完整搜索、公开用户页、帖子和动态 | U | 待盘点 | M12 |
+
+### 6.1 已归档的匿名资讯 Contract
+
+共同约束：
+
+- Host 为 `api.dongqiudi.com`，Method 均为 `GET`。
+- 必须发送 `Accept: application/json`；本项目使用可识别的 `User-Agent: DongqiudiPure-Android/0.1`。
+- 不发送 `Authorization`、Cookie、UUID、账号标识或设备标识。
+- JSON 忽略新增的非关键字段；关键字段缺失、字段类型不兼容或 `next` 跳出 API Host 时返回 `UnsupportedContract`。
+- 固定脱敏样本位于 `core/testing/src/main/resources/contracts/news/2026-09-01/`，其中所有内容、账号、ID、cursor 与媒体路径均为虚构值。
+
+资讯流：
+
+```http
+GET /app/tabs/web/{tabId}.json
+```
+
+- 已验证分类：`1` 头条、`3` 英超、`4` 意甲、`5` 西甲、`6` 德甲、`56` 中超、`114` 世界杯。
+- 首页没有 query；响应的 `articles` 可以为空，`next` 为空表示结束。
+- 下一页从服务端 `next` 提取 `after` 与 `page`，Request 同时携带 `child_tab_id=0` 和空的 `user_pay_type`。
+- 条目展示时间使用 `created_at`；置顶条目的 `published_at` 可能被调整到未来以参与排序。`channel` 是内容类型，只有非空的 `showcontent` 才作为展示标签。
+- 页面内按稳定 article ID 去重；刷新、追加加载和追加失败由 Paging 3 独立处理。
+
+文章详情：
+
+```http
+GET /v2/article/detail/{articleId}
+```
+
+- 成功 envelope 为 `code=0` 且 `data` 非空；非零业务 code 或空 data 作为服务端错误。
+- 正文 `body` 是 HTML。当前只转为段落、标题/引用文本和图片块，不执行脚本、embed 或 WebView 内容。
+- 只加载 HTTPS 且 Host 为 `qunliao.info` 或其子域的媒体 URL。
+- `infos.channels` 中已验证的 `dongqiudi:///team/{id}`、`player/{id}` 和 `competition/{id}` 转为应用内关联实体。
+
+文章评论：
+
+```http
+GET /v2/article/{articleId}/comment?size=20&platform=web
+GET /v2/article/{articleId}/comment?sort=down&next={cursor}&pn={page}&platform=h5&version=0
+```
+
+- 成功 envelope 为 `errCode=0` 且 `data` 非空；空评论由三个空列表和空 `next` 表示。
+- “最热”在第一页先合并 `recommend_list`，再合并 `comment_list`；“最新”只使用 `comment_list`。后续页均使用普通评论列表，并按稳定 comment ID 去重。
+- `user_list` 用于解析评论作者；评论 HTML 只保留纯文本，内联表情图片转为可见占位文本。允许正文为空但带有 `attachments` 的图片评论，附件仍只加载 `qunliao.info` HTTPS 媒体。当前只展示 `reply_total`，回复线程的读取 contract 尚未验证，因此不伪造回复内容。
 
 M11/M12 只扩大覆盖范围，不改变鉴权方式；对应 Request 必须先按匿名 contract 验证，不能因为实现时已经有登录模块就默认携带 Authorization。
 
@@ -213,7 +257,7 @@ M11/M12 只扩大覆盖范围，不改变鉴权方式；对应 Request 必须先
 每个 endpoint 建议使用以下结构：
 
 ```text
-core/network/src/test/resources/contracts/<capability>/<date>/
+core/testing/src/main/resources/contracts/<capability>/<date>/
   request.md
   success.json
   empty.json

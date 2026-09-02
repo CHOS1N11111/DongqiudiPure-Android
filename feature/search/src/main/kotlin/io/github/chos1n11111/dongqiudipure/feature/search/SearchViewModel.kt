@@ -3,6 +3,7 @@ package io.github.chos1n11111.dongqiudipure.feature.search
 import androidx.lifecycle.ViewModel
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.TeamRef
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 enum class SearchFilter(@StringRes val labelRes: Int) {
     All(R.string.search_filter_all),
@@ -58,7 +60,8 @@ data class SearchUiState(
  *
  * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.7
  */
-class SearchViewModel : ViewModel() {
+@HiltViewModel
+class SearchViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(
         SearchUiState(recentQueries = SampleSearch.recentQueries),

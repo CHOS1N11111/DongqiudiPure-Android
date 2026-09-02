@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
@@ -43,7 +43,7 @@ fun StandingsRoute(
     onPlayerClick: (PlayerId) -> Unit,
     onMatchClick: (MatchId) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: StandingsViewModel = viewModel(),
+    viewModel: StandingsViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(competitionId) { viewModel.load(competitionId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

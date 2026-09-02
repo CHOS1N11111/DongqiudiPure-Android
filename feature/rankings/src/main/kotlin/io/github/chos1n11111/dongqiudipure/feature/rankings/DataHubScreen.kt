@@ -31,7 +31,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
@@ -62,7 +62,7 @@ fun DataHubRoute(
     onPlayerClick: (PlayerId) -> Unit,
     onMatchClick: (MatchId) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: StandingsViewModel = viewModel(),
+    viewModel: StandingsViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) { viewModel.loadHub() }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

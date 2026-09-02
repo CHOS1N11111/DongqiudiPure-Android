@@ -10,18 +10,18 @@
 
 ## 0. 当前状态
 
-**前端已完成。** 全部页面、状态、样式与资产均已实现并在模拟器验证；
-缺的只有真实数据源。
+**前端已完成，数据层按 vertical slice 接入中。** 资讯流、文章详情和一级评论
+已经使用真实匿名数据；比赛、榜单、资料与搜索仍由示例数据驱动。
 
 | 层 | 状态 |
 | --- | --- |
 | `:core:model` | 已完成。Domain model、`MatchStatus`、`AppError`、`SectionState` 均已定义，**不需要改动** |
 | `:core:designsystem` | 已完成。深浅两套主题、语义色、组件、状态视图、18 个图标 |
-| `:core:sampledata` | **临时**。接入后整个模块删除 |
-| `:core:network` | 未创建 |
-| `:core:data` | 未创建 |
-| `:feature:home` | 资讯流 UI 已完成 |
-| `:feature:article` | 文章详情 + 评论 UI 已完成 |
+| `:core:sampledata` | **临时**。仍供比赛、榜单、资料和搜索使用，全部接入后删除 |
+| `:core:network` | 已创建。匿名资讯 Request、DTO、错误映射与 MockWebServer contract test 已完成 |
+| `:core:data` | 已创建。资讯 Repository、mapper、HTML 清理与 PagingSource 已完成 |
+| `:feature:home` | 已接入真实分类、资讯流、图片、下拉刷新和分页 |
+| `:feature:article` | 已接入真实正文、图片、关联实体、系统分享和一级评论分页；回复线程待验证 |
 | `:feature:matches` | 比赛列表 + 比赛详情（事件 / 阵容 / 统计）UI 已完成 |
 | `:feature:rankings` | 积分榜 / 射手榜 / 助攻榜 / 赛程四个分栏 UI 均已完成；同时提供「数据」根 tab（`DataHubRoute`，赛事切换器 + 榜单）与赛事详情页（`StandingsRoute`），共用 `RankingsContent` |
 | `:feature:entities` | 球队五个分栏 + 球员资料页 UI 均已完成 |
@@ -30,69 +30,18 @@
 | `:feature:settings` | 已完成，且**不需要网络**（主题偏好走 DataStore，见 D-019） |
 | 界面文案 | 全部走 string 资源，各模块自带 `strings.xml`；服务端驱动的指标名留在 `:core:sampledata`，不抽资源 |
 
-UI 层的状态编排（loading / content / empty / error、分类切换、日期切换、
-分栏切换、重试）已经按真实形态写好，接入时**只需替换数据来源，
-不需要改状态逻辑** —— 这正是把页面状态建模成 `SectionState<T>` 的目的。
+UI 层继续保持 loading / content / empty / error、分类切换、日期切换、分栏切换
+和重试的独立状态。资讯与评论已改为 Paging 3 的 refresh/append 状态；其余
+非分页 section 仍使用 `SectionState<T>`。
 
-**开工前先读下一节。** 有两个决策晚定会返工。
+## 已关闭的数据层前置决策
 
-## 开工前必须先定的决策
+- DI：使用 Hilt，八个现有 ViewModel 已统一由 `hiltViewModel()` 创建，见 D-007。
+- 分页：资讯流和评论使用 Paging 3；搜索接入 cursor contract 时沿用，见 D-020。
+- 主题：深浅色与 DataStore 策略已归档，见 D-019。
 
-「UI 先做、数据后做」这个顺序本身没有损害架构 —— 恰恰相反，有两条边界因此
-变成了编译器保证的：`:core:model` 是纯 Kotlin JVM 模块，领域层夹带
-Android 依赖会直接编译失败；八个 feature 模块互相零依赖，且因为
-`:core:network` 尚不存在，它们**看不到 DTO**，「Repository 不向上层返回 DTO」
-是靠依赖图挡住的，不靠 review 自觉。
-
-下面两条留在了待定状态，**必须在写 `:core:data` 之前定**，否则会产生返工。
-
-（原第三条「主题策略」已归档为 `DECISIONS.md` D-019。）
-
-> 每条定下来后，按 `DECISIONS.md` 的 `D-XXX` 模板归档到那里，
-> 再从本节删除 —— 本文是临时文档，会随 `:core:sampledata` 一起删掉，
-> 决策的理由不能跟着消失。
-
-### 决策 1：DI 方式（阻塞 `:core:data`）
-
-**现状**：八个 ViewModel 全是无参构造 ——
-`HomeViewModel`、`MatchesViewModel`、`MatchDetailViewModel`、`ArticleViewModel`、
-`StandingsViewModel`、`TeamProfileViewModel`、`PlayerProfileViewModel`、
-`SearchViewModel`，均通过 `viewModel()` 直接实例化。
-
-Repository 一落地，这八个都需要注入依赖。
-
-**选项**：
-
-| 方案 | 代价 |
-| --- | --- |
-| 手写 `ViewModelProvider.Factory` | 八处样板，每加一个 feature 再加一处 |
-| 引入 Hilt | 一次性接入成本 + annotation processing 构建时间 |
-
-**建议**：`DECISIONS.md` D-007 写的升级 Hilt 触发条件是
-「跨 feature 注入明显重复」—— 八个 feature 各需一个 factory 就是这个条件。
-倾向直接上 Hilt。
-
-**为什么不能拖**：先手写八个 factory 再拆掉是纯浪费。
-定在写第一个 Repository 之前，成本接近零。
-
-### 决策 2：分页方案（阻塞资讯流 / 评论 / 搜索）
-
-**现状**：列表用 `SectionState<List<T>>` 建模，`LazyColumn` 已用稳定 key，
-但没有分页。涉及三处：资讯流、文章评论、搜索结果。
-
-**冲突点**：如果上 **Paging 3**，`LazyPagingItems` 自带一套
-loading / error / append / prepend 状态，与 `SectionState` 是**两套并存的状态模型**。
-这三个页面的状态建模需要改写，`SectionContainer` 也不再适用于它们。
-
-**选项**：
-
-| 方案 | 影响 |
-| --- | --- |
-| 不用 Paging 3，Repository 自管 cursor | `SectionState` 保持不变，UI 零改动；需要自己处理去重、重复请求、错误重试 |
-| 用 Paging 3 | 三个页面改状态模型；获得成熟的预取、重试、占位与 `RemoteMediator` |
-
-**为什么不能拖**：这是全项目唯一一处「晚决定会明确返工」的地方。
-等三个页面都接完真实数据再换分页方案，等于重写这三个页面的状态层。
+这些决策不再阻塞 `:core:data`。后续 slice 直接沿用，不再建立手写 ViewModel Factory
+或页面内 cursor 状态机。
 
 ### 一个不算债但要知道的事实
 
@@ -103,12 +52,12 @@ loading / error / append / prepend 状态，与 `SectionState` 是**两套并存
 - 字段存在但没建模 → 往 model 加
 - 结构根本不同 → 例如事件按半场嵌套、统计返回 map、阵容主客队分两个 endpoint
 
-这些摩擦会**全部集中在 mapper 层**，而 mapper 目前还不存在，所以现在看不出量。
-好处是 model 只在一个无依赖模块里，改它不会牵动 UI 之外的任何东西。
+这些摩擦集中在 mapper 层。资讯 mapper 已验证该边界；后续比赛和资料 contract
+仍需逐项确认。model 保持在无 Android 依赖的模块中。
 
 ## 1. 接入方式
 
-每个 ViewModel 里都有一个私有的 `loadXxx()`，当前形如：
+除已接入的资讯 ViewModel 外，其余 ViewModel 仍有私有 `loadXxx()`，当前形如：
 
 ```kotlin
 private fun loadFeed() {
@@ -149,34 +98,24 @@ private fun loadFeed() {
 
 ## 2. 逐项清单
 
-### 2.1 资讯流 · `:feature:home`
+### 2.1 资讯流 · `:feature:home`（已接入）
 
-| 项 | 需要的能力 | 当前替身 |
-| --- | --- | --- |
-| 分类列表 | 官方公开分类（M2 归档，不写死名单） | `SampleFeed.categories` |
-| 资讯流 | `loadHomeFeed(category, cursor)`，支持分页与去重 | `SampleFeed.articles` |
-| 缩略图 / 封面图 | 图片加载库（Coil），`ImagePlaceholder` 作为 loading / error 回退 | 占位块 |
+| 项 | 当前实现 |
+| --- | --- |
+| 分类列表 | 使用 2026-09-01 已验证的七个公开 tab ID |
+| 资讯流 | `NewsRepository.pagedFeed(category)` + Paging 3，支持刷新、分页与页内去重 |
+| 缩略图 / 封面图 | Coil；只允许已观察到的 HTTPS 媒体域名，失败时保留稳定占位 |
 
-补充说明：
+`ArticleSummary.commentCount` 在服务端缺失时保持 null。Contract、fixture 与测试见
+`API.md §6.1` 和 `core/testing/src/main/resources/contracts/news/2026-09-01/`。
 
-- `ArticleSummary.commentCount` 为 `Int?`。服务端未提供时**必须保持 null**，
-  UI 会渲染为 `—`。**不要在 mapper 里写 `?: 0`**。
-- 分页与滚动位置恢复尚未实现（`LazyColumn` 已用稳定 key，接入分页后不会跳动）。
-- 下拉刷新尚未实现。
+### 2.2 文章详情 · `:feature:article`（主体已接入）
 
-Milestone M3。
-
-### 2.2 文章详情 · `:feature:article`
-
-UI 已完成：标题、来源、正文块、图片位、关联实体 chip、评论列表与排序切换。
-正文与评论是**两个独立 section**，评论失败不影响正文。
-
-需要：`loadArticle(id)`、`loadComments(id, sort, cursor)`。
-
-- 正文富文本需按 `ARCHITECTURE.md §7` 先清理危险 scheme 与不可控 embed。
-- `Comment.replyCount` 为 null 时 UI 显示 `—`，不要补 0。
-- 顶栏的「分享」当前是空实现，需接入系统 `ACTION_SEND`（标记为 `TODO(share)`）。
-- 评论分页尚未实现。
+- `ArticleRepository.loadArticle(id)` 独立加载正文；评论 Paging 失败不影响正文。
+- HTML 正文只解析文本、标题/引用和受控 HTTPS 图片，不执行 embed 或脚本。
+- 关联球队、球员和赛事使用稳定 ID 导航；顶栏已接入系统 `ACTION_SEND`。
+- 一级评论支持最热/最新切换、分页、去重、公开作者名和 `replyCount`。
+- 回复线程 contract 尚未验证，因此当前只显示回复数量，不构造或请求虚假回复。
 
 **注意**：本页**刻意没有**点赞 / 收藏 / 发表评论入口 ——
 它们属于 M14 / M15 的远端写操作。接入数据时不要顺手加上。

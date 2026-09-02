@@ -3,6 +3,7 @@ package io.github.chos1n11111.dongqiudipure.feature.matches
 import androidx.lifecycle.ViewModel
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.model.MatchEvent
 import io.github.chos1n11111.dongqiudipure.core.model.MatchLineup
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 enum class MatchTab(@StringRes val labelRes: Int) {
     Events(R.string.match_tab_events),
@@ -45,7 +47,8 @@ data class MatchDetailUiState(
  * 接入时每个 section 分别对应一次 Repository 调用，互不等待。
  * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.4
  */
-class MatchDetailViewModel : ViewModel() {
+@HiltViewModel
+class MatchDetailViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(MatchDetailUiState())
     val uiState: StateFlow<MatchDetailUiState> = _uiState.asStateFlow()

@@ -1,0 +1,39 @@
+{
+  "errCode": 0,
+  "errMesg": "success",
+  "data": {
+    "article_id": 1001,
+    "comment_total": 2,
+    "next": "https://api.dongqiudi.com/v2/article/1001/comment?sort=down&next=fixture-comment-cursor&pn=2&platform=h5&version=0",
+    "comment_list": [
+      {
+        "id": 501,
+        "user_id": 901,
+        "content": "<p>Fixture regular comment.</p>",
+        "created_at": "2026-09-01 10:10:00",
+        "reply_total": 1
+      }
+    ],
+    "recommend_list": [
+      {
+        "id": 502,
+        "user_id": 902,
+        "content": "Fixture recommended comment.",
+        "created_at": "2026-09-01 10:05:00",
+        "reply_total": 0
+      }
+    ],
+    "user_list": [
+      {
+        "id": 901,
+        "username": "Fixture Reader A",
+        "avatar": "https://fixture.qunliao.info/avatar/901.jpg"
+      },
+      {
+        "id": 902,
+        "username": "Fixture Reader B",
+        "avatar": "https://fixture.qunliao.info/avatar/902.jpg"
+      }
+    ]
+  }
+}

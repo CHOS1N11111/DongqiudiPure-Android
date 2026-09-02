@@ -287,6 +287,9 @@ fun LicenseScreen(
             )
             ThirdParty(stringResource(R.string.license_third_party_jetpack), "Apache-2.0")
             ThirdParty(stringResource(R.string.license_third_party_kotlin), "Apache-2.0")
+            ThirdParty(stringResource(R.string.license_third_party_hilt), "Apache-2.0")
+            ThirdParty(stringResource(R.string.license_third_party_network_media), "Apache-2.0")
+            ThirdParty(stringResource(R.string.license_third_party_jsoup), "MIT")
 
             // TODO(release): 发布前用构建期生成的依赖清单替换这份手写列表，
             //  避免与实际依赖脱节（PLAN.md M17）。
