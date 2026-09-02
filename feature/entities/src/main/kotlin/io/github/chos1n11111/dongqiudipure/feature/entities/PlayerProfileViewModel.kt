@@ -2,6 +2,7 @@ package io.github.chos1n11111.dongqiudipure.feature.entities
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.model.CareerEntry
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerProfile
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class PlayerProfileUiState(
     val profile: SectionState<PlayerProfile> = SectionState.Loading,
@@ -29,7 +31,8 @@ data class PlayerProfileUiState(
  *
  * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.6
  */
-class PlayerProfileViewModel : ViewModel() {
+@HiltViewModel
+class PlayerProfileViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerProfileUiState())
     val uiState: StateFlow<PlayerProfileUiState> = _uiState.asStateFlow()

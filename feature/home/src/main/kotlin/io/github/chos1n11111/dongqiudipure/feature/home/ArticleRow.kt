@@ -3,12 +3,15 @@ package io.github.chos1n11111.dongqiudipure.feature.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -139,20 +142,27 @@ private fun ArticleTitle(title: String) {
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun ArticleMeta(article: ArticleSummary) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(
             text = article.source,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = 120.dp),
         )
         Text(
             text = article.publishedLabel,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
 
         // 评论数缺失时显示「—」而不是 0：服务端没提供 ≠ 没有评论。
@@ -165,6 +175,7 @@ private fun ArticleMeta(article: ArticleSummary) {
                     text = stringResource(R.string.home_comment_count, article.commentCount!!),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
                 )
             } else {
                 MissingValue(style = MaterialTheme.typography.labelSmall)
@@ -177,6 +188,8 @@ private fun ArticleMeta(article: ArticleSummary) {
                 text = tag,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
                     .padding(horizontal = 5.dp),

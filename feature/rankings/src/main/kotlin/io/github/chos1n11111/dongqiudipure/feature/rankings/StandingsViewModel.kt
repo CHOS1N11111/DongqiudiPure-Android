@@ -3,6 +3,7 @@ package io.github.chos1n11111.dongqiudipure.feature.rankings
 import androidx.lifecycle.ViewModel
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /** 赛事页的分栏。 */
 enum class RankingTab(@StringRes val labelRes: Int) {
@@ -55,7 +57,8 @@ data class RankingsUiState(
  *
  * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.5
  */
-class StandingsViewModel : ViewModel() {
+@HiltViewModel
+class StandingsViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(RankingsUiState())
     val uiState: StateFlow<RankingsUiState> = _uiState.asStateFlow()

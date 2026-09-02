@@ -1,0 +1,12 @@
+{
+  "errCode": 0,
+  "errMesg": "success",
+  "data": {
+    "article_id": 1001,
+    "comment_total": 0,
+    "next": null,
+    "comment_list": [],
+    "recommend_list": [],
+    "user_list": []
+  }
+}

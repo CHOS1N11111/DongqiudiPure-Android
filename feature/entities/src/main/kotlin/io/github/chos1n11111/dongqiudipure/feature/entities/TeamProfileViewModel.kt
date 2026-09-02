@@ -3,6 +3,7 @@ package io.github.chos1n11111.dongqiudipure.feature.entities
 import androidx.lifecycle.ViewModel
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.MatchStatus
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 enum class TeamTab(@StringRes val labelRes: Int) {
     Overview(R.string.team_tab_overview),
@@ -56,7 +58,8 @@ data class TeamProfileUiState(
  *
  * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.6
  */
-class TeamProfileViewModel : ViewModel() {
+@HiltViewModel
+class TeamProfileViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(TeamProfileUiState())
     val uiState: StateFlow<TeamProfileUiState> = _uiState.asStateFlow()

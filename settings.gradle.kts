@@ -21,6 +21,9 @@ include(":app")
 
 include(":core:model")
 include(":core:designsystem")
+include(":core:network")
+include(":core:data")
+include(":core:testing")
 
 // 临时模块，接入真实数据后删除。见 docs/engineering/BACKEND-CONTRACT-TODO.md
 include(":core:sampledata")

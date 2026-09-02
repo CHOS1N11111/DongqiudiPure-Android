@@ -12,7 +12,7 @@
 | D-004 | 写操作隔离 | 已确定 | 独立 client、独立 feature flag、Release 默认关闭 | M14 前 |
 | D-005 | UI 技术 | 已确定 | Kotlin + Jetpack Compose + Material 3 | 已完成 |
 | D-006 | Network 技术 | 已确定 | OkHttp + kotlinx.serialization，初期不引入 Retrofit | 已完成 |
-| D-007 | DI 方式 | 已确定 | 初期使用手动 composition root，满足触发条件后再评估 Hilt | 已完成 |
+| D-007 | DI 方式 | 已确定 | 使用 Hilt 统一 Application、Repository 与 ViewModel 对象图 | 已完成 |
 | D-008 | `applicationId` | 已确定 | `io.github.chos1n11111.dongqiudipure` | 已完成 |
 | D-009 | `minSdk` | 已确定 | API 26（Android 8.0） | 已完成 |
 | D-010 | License | 已确定 | `GPL-3.0-only` | 已完成 |
@@ -25,6 +25,7 @@
 | D-017 | 公开范围分批 | 已确定 | M6/M7 先做主要/热门范围，M11/M12 再完成全部公开覆盖 | 已完成 |
 | D-018 | 账号能力分级 | 已确定 | 账号只读与远端状态变更分开实施和验收 | 已完成 |
 | D-019 | 主题策略 | 已确定 | 深浅两套独立取值；设置提供跟随系统 / 浅色 / 深色三档，DataStore 持久化 | 已完成 |
+| D-020 | 分页方式 | 已确定 | 资讯流与文章评论使用 Paging 3，搜索接入真实数据时沿用 | 已完成 |
 
 ## 2. 产品决策
 
@@ -84,12 +85,14 @@
 
 复审条件：endpoint 数量显著增加且 contract 稳定，Retrofit 能减少真实重复而不隐藏必要控制。
 
-### D-007：先手动 DI
+### D-007：使用 Hilt 管理对象图
 
-- scaffold 阶段对象图较小，`app` module 可以作为 composition root。
-- 避免在业务边界尚未稳定时增加 annotation processing 和框架约束。
-
-升级到 Hilt 的条件：对象生命周期难以人工管理、跨 feature 注入明显重复，或测试替换成本持续上升。
+- 状态：已确定（替代 scaffold 阶段的手动 composition root）
+- 日期：2026-09-01
+- 背景：真实 Repository 落地后，多个 feature ViewModel 同时需要注入依赖，手写 Factory 会形成重复且分散的 composition root。
+- 结论：由 `@HiltAndroidApp` Application 建立根对象图；Repository、Remote source 和共享 store 通过 module 绑定；导航入口统一使用 `hiltViewModel()`。
+- 影响：所有现有 ViewModel 均由 Hilt 创建。测试继续在 Repository/Remote source 边界直接注入 fake，不要求启动完整 Android 对象图。
+- 复审条件：Hilt 与未来工具链发生不可解决的兼容问题，或对象图需要迁移到跨平台共享层。
 
 ### D-013：按 vertical slice 增加 module
 
@@ -155,6 +158,15 @@ compact width 固定使用 `资讯 / 比赛 / 数据 / 我的` 四个 destinatio
 为什么主色避开红、绿、琥珀：足球界面里这三个色相已被语义占用（红牌与降级、胜场与进球、黄牌与警告）。品牌色若落在其中，会与 LIVE 状态和胜负标记争夺同一套视觉编码。这同时满足 D-011 对「不以视觉方式暗示官方授权」的要求。
 
 复审条件：引入动态取色（Material You）或品牌色变更。
+
+### D-020：资讯列表使用 Paging 3
+
+- 状态：已确定
+- 日期：2026-09-01
+- 背景：资讯流和文章评论都有 cursor 分页、追加错误、去重与重试需求；自行维护这些状态会与 UI 生命周期产生重复逻辑。
+- 结论：Repository 返回 `Flow<PagingData<T>>`，Remote source 只负责单次 Request，`PagingSource` 校验并解释服务端 `next` URL。首页和评论 UI 使用 `LazyPagingItems` 分别处理 refresh 与 append 状态。
+- 影响：分页页面不再用单个 `SectionState<List<T>>` 表示整条列表；文章正文仍保留独立 `SectionState`，评论失败不会清空正文。搜索在接入真实分页 contract 时沿用同一方案。
+- 复审条件：服务端改为稳定的本地同步模型且需要 Room 离线缓存时，评估 `RemoteMediator`，不回退到页面内手写 cursor。
 
 ## 5. 暂缓或待确认事项
 

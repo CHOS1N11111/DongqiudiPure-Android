@@ -19,7 +19,10 @@
     <string name="license_title">开源许可</string>
     <string name="license_project">本项目以 GPL-3.0-only 发布，不提供任何担保。完整条款见源码仓库根目录的 LICENSE 文件。</string>
     <string name="license_third_party_title">第三方依赖</string>
-    <string name="license_third_party_jetpack">Android Jetpack（Compose、Navigation、Lifecycle、DataStore）</string>
-    <string name="license_third_party_kotlin">Kotlin 标准库与 Coroutines</string>
+    <string name="license_third_party_jetpack">Android Jetpack（Compose、Navigation、Lifecycle、DataStore、Paging）</string>
+    <string name="license_third_party_kotlin">Kotlin 标准库、Coroutines 与 kotlinx.serialization</string>
+    <string name="license_third_party_hilt">Hilt</string>
+    <string name="license_third_party_network_media">OkHttp 与 Coil</string>
+    <string name="license_third_party_jsoup">jsoup</string>
     <string name="license_third_party_note">以上为主要依赖。发布前将由构建期生成完整的第三方声明。</string>
 </resources>

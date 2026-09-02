@@ -1,97 +1,93 @@
 package io.github.chos1n11111.dongqiudipure.feature.article
 
-import androidx.lifecycle.ViewModel
 import androidx.annotation.StringRes
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.chos1n11111.dongqiudipure.core.data.ArticleRepository
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleDetail
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.Comment
+import io.github.chos1n11111.dongqiudipure.core.model.CommentOrder
+import io.github.chos1n11111.dongqiudipure.core.model.DataResult
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
-import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleFeed
-import kotlinx.coroutines.delay
+import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * 文章页状态。
- *
- * 正文与评论是**两个独立的 section**：评论接口失效时正文照常阅读
- * （PLAN.md M3：「评论失败不影响正文」）。
- */
 data class ArticleUiState(
     val detail: SectionState<ArticleDetail> = SectionState.Loading,
-    val comments: SectionState<List<Comment>> = SectionState.Loading,
     val commentSort: CommentSort = CommentSort.Hottest,
 )
 
-enum class CommentSort(@StringRes val labelRes: Int) {
-    Hottest(R.string.article_comment_sort_hottest),
-    Newest(R.string.article_comment_sort_newest),
+enum class CommentSort(
+    @param:StringRes val labelRes: Int,
+    val order: CommentOrder,
+) {
+    Hottest(R.string.article_comment_sort_hottest, CommentOrder.Recommended),
+    Newest(R.string.article_comment_sort_newest, CommentOrder.Newest),
 }
 
-/**
- * ⚠️ 当前从 :core:sampledata 读取假数据。
- * 接入时替换为 `articleRepository.loadArticle(id)` 与 `loadComments(id, sort)`。
- * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.2
- */
-class ArticleViewModel : ViewModel() {
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+class ArticleViewModel @Inject constructor(
+    private val repository: ArticleRepository,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ArticleUiState())
     val uiState: StateFlow<ArticleUiState> = _uiState.asStateFlow()
 
-    private var articleId: ArticleId? = null
+    private val articleId = MutableStateFlow<ArticleId?>(null)
+    private val commentOrder = MutableStateFlow(CommentSort.Hottest)
+
+    val comments: Flow<PagingData<Comment>> = combine(
+        articleId.filterNotNull(),
+        commentOrder,
+    ) { id, sort -> id to sort.order }
+        .flatMapLatest { (id, order) -> repository.pagedComments(id, order) }
+        .cachedIn(viewModelScope)
 
     fun load(id: ArticleId) {
-        if (articleId == id) return
-        articleId = id
-        loadDetail()
-        loadComments()
+        if (articleId.value == id) return
+        articleId.value = id
+        _uiState.update { it.copy(detail = SectionState.Loading) }
+        loadDetail(id)
     }
 
     fun retryDetail() {
+        val id = articleId.value ?: return
         _uiState.update { it.copy(detail = SectionState.Loading) }
-        loadDetail()
-    }
-
-    fun retryComments() {
-        _uiState.update { it.copy(comments = SectionState.Loading) }
-        loadComments()
+        loadDetail(id)
     }
 
     fun selectSort(sort: CommentSort) {
-        if (sort == _uiState.value.commentSort) return
-        _uiState.update { it.copy(commentSort = sort, comments = SectionState.Loading) }
-        loadComments()
+        if (sort == commentOrder.value) return
+        commentOrder.value = sort
+        _uiState.update { it.copy(commentSort = sort) }
     }
 
-    private fun loadDetail() {
+    private fun loadDetail(id: ArticleId) {
         viewModelScope.launch {
-            // TODO(data): 替换为 Repository 调用。
-            delay(400)
-            _uiState.update { it.copy(detail = SectionState.Content(SampleFeed.articleDetail)) }
-        }
-    }
+            val result = repository.loadArticle(id)
+            if (articleId.value != id) return@launch
+            _uiState.update { state ->
+                when (result) {
+                    is DataResult.Success -> state.copy(
+                        detail = SectionState.Content(result.value),
+                    )
 
-    private fun loadComments() {
-        viewModelScope.launch {
-            // TODO(data): 替换为 Repository 调用。评论比正文慢是常态，
-            //  所以这里的延迟更长 —— 正文应当先出现，不等评论。
-            delay(900)
-            val list = when (_uiState.value.commentSort) {
-                CommentSort.Hottest -> SampleFeed.comments
-                CommentSort.Newest -> SampleFeed.comments.reversed()
-            }
-            _uiState.update {
-                it.copy(
-                    comments = if (list.isEmpty()) {
-                        SectionState.Empty
-                    } else {
-                        SectionState.Content(list)
-                    },
-                )
+                    is DataResult.Failure -> state.copy(detail = SectionState.Failed(result.error))
+                }
             }
         }
     }

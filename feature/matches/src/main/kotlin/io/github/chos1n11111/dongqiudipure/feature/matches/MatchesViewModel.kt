@@ -2,6 +2,7 @@ package io.github.chos1n11111.dongqiudipure.feature.matches
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import javax.inject.Inject
 
 /**
  * 日期条的一格。
@@ -51,7 +53,8 @@ data class MatchesUiState(
  *
  * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.3
  */
-class MatchesViewModel : ViewModel() {
+@HiltViewModel
+class MatchesViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(MatchesUiState())
     val uiState: StateFlow<MatchesUiState> = _uiState.asStateFlow()

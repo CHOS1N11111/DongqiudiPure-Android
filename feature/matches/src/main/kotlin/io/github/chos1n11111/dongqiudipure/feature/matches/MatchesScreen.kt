@@ -41,7 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchRow
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
@@ -59,7 +59,7 @@ fun MatchesRoute(
     onMatchClick: (MatchId) -> Unit,
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: MatchesViewModel = viewModel(),
+    viewModel: MatchesViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     MatchesScreen(

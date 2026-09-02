@@ -4,10 +4,10 @@
 
 ## 1. 当前状态
 
-- 项目阶段：开发前准备。
-- Android 工程：最小 `app` scaffold 已创建，M1 进行中。
-- 已有资产：`AGENTS.md`、分类 `docs/` 和 `GPL-3.0-only` License。
-- scaffold 所需的产品与技术决策已经确认。
+- 项目阶段：M3 资讯与公开内容进行中。
+- Android 工程：M1 scaffold 已完成；真实匿名资讯流、文章详情和一级评论已接入。
+- 已有资产：四项根导航、Hilt/Paging 数据基础、脱敏 contract fixture、CI 和 `GPL-3.0-only` License。
+- M2 的通用 contract 基础与首组资讯 contract 已完成，其他公开能力盘点继续随对应 milestone 归档。
 - 固定顺序：匿名核心版（M2-M8）-> 登录与主队（M9-M10）-> 完整匿名公开数据（M11-M12）-> 账号能力（M13-M15）-> 本机增强与发布准备（M16-M17）。
 - 登录成功样本和专用测试账号在 M9 前准备，不阻塞第一阶段。
 
@@ -44,9 +44,9 @@ M0 范围与决策
 | ID | Milestone | 状态 | 主要产物 | 退出条件 |
 | --- | --- | --- | --- | --- |
 | M0 | 范围与决策基线 | 已完成 | 文档体系、产品顺序、技术决策、License | scaffold 所需决策全部确认 |
-| M1 | Android scaffold | 进行中 | 可构建应用、最小模块、CI 基线 | Debug 构建和最小测试通过 |
-| M2 | 公开能力盘点与 contract 基线 | 未开始 | 官方入口清单、transport、fixture、parser、错误模型 | 当前公开入口已归类，首个 contract 端到端验证 |
-| M3 | 资讯与公开内容 | 未开始 | 资讯流、文章、评论及可验证的公开内容 | M3 功能项完成或有明确处置 |
+| M1 | Android scaffold | 已完成 | 可构建应用、模块化 UI、四项根导航、CI 基线 | Debug 构建、测试、lint 和模拟器启动通过 |
+| M2 | 公开能力盘点与 contract 基线 | 进行中 | transport、fixture、parser、错误模型和逐能力官方入口清单 | 资讯 contract 已端到端验证；其余能力随 M4-M8/M11-M12 继续盘点 |
+| M3 | 资讯与公开内容 | 进行中 | 真实资讯流、文章、一级评论；专题/话题/媒体及回复线程待验证 | M3 功能项完成或有明确处置 |
 | M4 | 比赛中心基础 | 未开始 | 日期/赛事比赛列表、状态、比分、基础详情 | 基础比赛路径和状态模型稳定 |
 | M5 | 完整比赛数据 | 未开始 | 事件、阵容、技术统计、赛前赛后与实时刷新 | 比赛详情必需 section 独立验收 |
 | M6 | 主要/热门榜单 | 未开始 | 热门赛事积分、射手、赛程赛果和核心统计榜 | 归档热门范围内的榜单可用 |
@@ -71,8 +71,8 @@ M0 范围与决策
 - [x] 记录已验证和未知的登录事实。
 - [x] 确认应用名 `DongqiudiPure` 与 `applicationId` `io.github.chos1n11111.dongqiudipure`。
 - [x] 确认 `minSdk` 为 API 26，License 为 `GPL-3.0-only`。
-- [x] 确认 Kotlin/Compose、OkHttp/kotlinx.serialization、手动 DI 等技术基线。
-- [x] 确认 `资讯 / 比赛 / 数据` 根 Navigation。
+- [x] 确认 Kotlin/Compose、OkHttp/kotlinx.serialization、Hilt 与 Paging 3 等技术基线。
+- [x] 确认 `资讯 / 比赛 / 数据 / 我的` 根 Navigation。
 - [x] 确认“匿名核心 -> 登录与主队 -> 完整匿名公开数据 -> 账号能力”的四阶段顺序。
 
 ### 退出条件
@@ -84,13 +84,13 @@ M0 范围与决策
 
 ### 任务
 
-- 创建 Gradle Kotlin DSL 工程、Version Catalog 和 Gradle Wrapper。
-- 配置 JDK 17、Android SDK、Kotlin、Compose 和基础 lint/test task。
-- 只创建 `app` 与首个 vertical slice 必需的 core module，后续 feature 按 milestone 增加。
-- 建立统一主题、三项根 Navigation、窗口尺寸分类和稳定空状态。
-- 配置 Debug/Release 差异，确保未验证远端写操作在 Release 不可达。
-- 添加 `.gitignore`、根 README 和第三方声明；应用内 License 页面复用根 `LICENSE`。
-- 配置最小 CI：构建、unit test 和 lint。
+- [x] 创建 Gradle Kotlin DSL 工程、Version Catalog 和 Gradle Wrapper。
+- [x] 配置 JDK 17、Android SDK、Kotlin、Compose 和基础 lint/test task。
+- [x] 创建当前 vertical slice 需要的 app、core 与 feature module。
+- [x] 建立统一主题、四项根 Navigation、窗口尺寸分类和稳定空状态。
+- [x] 配置 Debug/Release 差异，确保未验证远端写操作在 Release 不可达。
+- [x] 添加 `.gitignore`、根 README 和第三方声明；应用内 License 页面复用根 `LICENSE`。
+- [x] 配置最小 CI：构建、unit test 和 lint。
 
 ### 退出条件
 

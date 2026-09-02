@@ -70,4 +70,10 @@ data class Comment(
     val body: String,
     val publishedLabel: String,
     val replyCount: Int?,
+    val attachments: List<CommentAttachment> = emptyList(),
+)
+
+data class CommentAttachment(
+    val url: String?,
+    val aspectRatio: Float?,
 )

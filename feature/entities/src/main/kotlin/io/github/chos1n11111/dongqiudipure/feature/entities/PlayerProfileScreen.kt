@@ -36,7 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
@@ -60,7 +60,7 @@ fun PlayerProfileRoute(
     onBack: () -> Unit,
     onTeamClick: (TeamId) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: PlayerProfileViewModel = viewModel(),
+    viewModel: PlayerProfileViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(playerId) { viewModel.load(playerId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

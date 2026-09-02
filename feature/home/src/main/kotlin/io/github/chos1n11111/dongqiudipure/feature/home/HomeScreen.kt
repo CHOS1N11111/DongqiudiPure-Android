@@ -2,6 +2,7 @@ package io.github.chos1n11111.dongqiudipure.feature.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,51 +13,67 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.LoadState
+import androidx.paging.PagingData
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
-import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.DqdEmptyState
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.DqdErrorState
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
-import io.github.chos1n11111.dongqiudipure.core.model.SectionState
+import io.github.chos1n11111.dongqiudipure.core.model.ArticleMedia
+import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
+import io.github.chos1n11111.dongqiudipure.core.model.NewsCategory
+import io.github.chos1n11111.dongqiudipure.core.model.toAppError
+import kotlinx.coroutines.flow.flowOf
 
 @Composable
 fun HomeRoute(
     onArticleClick: (ArticleId) -> Unit,
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = viewModel(),
+    viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val articles = viewModel.feed.collectAsLazyPagingItems()
     HomeScreen(
         uiState = uiState,
+        articles = articles,
         onArticleClick = onArticleClick,
         onSearchClick = onSearchClick,
         onCategorySelect = viewModel::selectCategory,
-        onRetry = viewModel::retry,
         modifier = modifier,
     )
 }
@@ -65,10 +82,10 @@ fun HomeRoute(
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
+    articles: LazyPagingItems<ArticleSummary>,
     onArticleClick: (ArticleId) -> Unit,
     onSearchClick: () -> Unit,
-    onCategorySelect: (String) -> Unit,
-    onRetry: () -> Unit,
+    onCategorySelect: (NewsCategory) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -81,7 +98,6 @@ fun HomeScreen(
                         IconButton(onClick = onSearchClick) {
                             Icon(
                                 painter = painterResource(DqdIcons.Search),
-                                // 图标按钮必须有可访问名称
                                 contentDescription = stringResource(DesignR.string.ds_action_search),
                                 modifier = Modifier.size(DqdSize.iconMedium),
                             )
@@ -100,32 +116,89 @@ fun HomeScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
-        SectionContainer(
-            state = uiState.feed,
-            onRetry = onRetry,
+        val refresh = articles.loadState.refresh
+        PullToRefreshBox(
+            isRefreshing = refresh is LoadState.Loading && articles.itemCount > 0,
+            onRefresh = articles::refresh,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            emptyTitle = stringResource(R.string.home_feed_empty_title),
-            emptyDescription = stringResource(
-                R.string.home_feed_empty_description,
-                uiState.selectedCategory,
-            ),
-            loading = { FeedSkeleton() },
-        ) { articles ->
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(
-                    items = articles,
-                    // 稳定 key：刷新与分页时列表不跳动、不丢失滚动位置。
-                    key = { it.id.raw },
-                ) { article ->
-                    ArticleRow(
-                        article = article,
-                        onClick = { onArticleClick(article.id) },
+        ) {
+            when {
+                refresh is LoadState.Loading && articles.itemCount == 0 -> FeedSkeleton()
+                refresh is LoadState.Error && articles.itemCount == 0 -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    DqdErrorState(
+                        error = refresh.error.toAppError(),
+                        onRetry = articles::retry,
                     )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+
+                refresh is LoadState.NotLoading && articles.itemCount == 0 -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    DqdEmptyState(
+                        title = stringResource(R.string.home_feed_empty_title),
+                        description = stringResource(
+                            R.string.home_feed_empty_description,
+                            uiState.selectedCategory.label,
+                        ),
+                    )
+                }
+
+                else -> FeedList(articles = articles, onArticleClick = onArticleClick)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeedList(
+    articles: LazyPagingItems<ArticleSummary>,
+    onArticleClick: (ArticleId) -> Unit,
+) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(
+            count = articles.itemCount,
+            key = articles.itemKey { it.id.raw },
+        ) { index ->
+            val article = articles[index] ?: return@items
+            ArticleRow(
+                article = article,
+                onClick = { onArticleClick(article.id) },
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+
+        when (articles.loadState.append) {
+            is LoadState.Loading -> item(key = "append-loading") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp))
                 }
             }
+
+            is LoadState.Error -> item(key = "append-error") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(DqdSpacing.md),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    OutlinedButton(onClick = articles::retry) {
+                        Text(stringResource(R.string.home_feed_load_more_retry))
+                    }
+                }
+            }
+
+            is LoadState.NotLoading -> Unit
         }
     }
 }
@@ -133,9 +206,9 @@ fun HomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CategoryTabs(
-    categories: List<String>,
-    selected: String,
-    onSelect: (String) -> Unit,
+    categories: List<NewsCategory>,
+    selected: NewsCategory,
+    onSelect: (NewsCategory) -> Unit,
 ) {
     if (categories.isEmpty()) return
     val selectedIndex = categories.indexOf(selected).coerceAtLeast(0)
@@ -150,13 +223,11 @@ private fun CategoryTabs(
             Tab(
                 selected = isSelected,
                 onClick = { onSelect(category) },
-                // 选中态必须与未选中态在颜色**和**字重上都不同：
-                // 只靠颜色区分不满足「颜色不是唯一状态提示」。
                 selectedContentColor = MaterialTheme.colorScheme.onSurface,
                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 text = {
                     Text(
-                        text = category,
+                        text = category.label,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                     )
                 },
@@ -165,11 +236,6 @@ private fun CategoryTabs(
     }
 }
 
-/**
- * 资讯流骨架。
- *
- * 缩略图占位使用与真实条目相同的 112×74dp —— 内容到达时零位移。
- */
 @Composable
 private fun FeedSkeleton() {
     Column(
@@ -206,39 +272,26 @@ private fun FeedSkeleton() {
 @Preview(name = "资讯 · 深色", showBackground = true)
 @Composable
 private fun HomeScreenDarkPreview() {
+    val category = NewsCategory("1", "头条")
+    val previewFlow = remember { flowOf(PagingData.from(previewArticles())) }
     DqdTheme(darkTheme = true) {
         HomeScreen(
-            uiState = HomeUiState(
-                categories = io.github.chos1n11111.dongqiudipure.core.sampledata.SampleFeed.categories,
-                selectedCategory = "推荐",
-                feed = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SampleFeed.articles,
-                ),
-            ),
+            uiState = HomeUiState(listOf(category), category),
+            articles = previewFlow.collectAsLazyPagingItems(),
             onArticleClick = {},
             onSearchClick = {},
             onCategorySelect = {},
-            onRetry = {},
         )
     }
 }
 
-@Preview(name = "资讯 · 浅色", showBackground = true)
-@Composable
-private fun HomeScreenLightPreview() {
-    DqdTheme(darkTheme = false) {
-        HomeScreen(
-            uiState = HomeUiState(
-                categories = io.github.chos1n11111.dongqiudipure.core.sampledata.SampleFeed.categories,
-                selectedCategory = "推荐",
-                feed = SectionState.Content(
-                    io.github.chos1n11111.dongqiudipure.core.sampledata.SampleFeed.articles,
-                ),
-            ),
-            onArticleClick = {},
-            onSearchClick = {},
-            onCategorySelect = {},
-            onRetry = {},
-        )
-    }
-}
+private fun previewArticles(): List<ArticleSummary> = listOf(
+    ArticleSummary(
+        id = ArticleId("preview-1"),
+        title = "联赛新赛季赛程公布，多支球队迎来关键开局",
+        source = "懂球帝",
+        publishedLabel = "今天 10:30",
+        commentCount = 128,
+        media = ArticleMedia.Thumbnail(url = null),
+    ),
+)

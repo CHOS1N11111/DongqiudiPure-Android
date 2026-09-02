@@ -29,9 +29,9 @@
 | 结构化本地数据 | Room，按需引入 | 只在历史、离线或关系查询出现后使用 |
 | Secret | Android Keystore 支持的加密存储 | 隔离 Authorization，避免明文落盘 |
 | 测试 | JUnit、coroutines-test、MockWebServer、Compose UI test | 覆盖 contract、状态与 UI |
-| DI | 初期手动 composition root | 对象图较小时更透明，避免过早引入框架 |
+| DI | Hilt | 统一跨 feature 的 Repository、Remote source 与 ViewModel 生命周期 |
 
-不在首期引入 Retrofit、Hilt、WorkManager 或复杂 MVI 框架。它们不是永久禁止；只有在出现可量化的重复、生命周期问题或后台任务需求时再通过决策记录引入。
+首期不引入 Retrofit、WorkManager 或复杂 MVI 框架。Hilt 已在真实数据层出现跨 feature 注入需求后按 D-007 引入；其他框架只有在出现可量化的重复、生命周期问题或后台任务需求时再通过决策记录引入。
 
 ## 3. 系统边界
 
@@ -59,7 +59,7 @@ module 按实际 milestone 创建，不在 scaffold 时一次性生成全部空�
 
 | Module | 职责 | 允许依赖 |
 | --- | --- | --- |
-| `:app` | Application、Activity、根 Navigation、composition root、build config | 所有实际启用的 core/feature |
+| `:app` | Hilt Application、Activity、根 Navigation、build config | 所有实际启用的 core/feature |
 | `:core:model` | 稳定 Domain model、ID、枚举和跨 feature contract | Kotlin 标准库 |
 | `:core:network` | OkHttp client、endpoint registry、DTO、parser、Remote source | `:core:model` |
 | `:core:data` | Repository 实现、缓存协调、DataStore/Room、session manager | `:core:model`、`:core:network` |
@@ -103,6 +103,7 @@ UI event
 
 - Composable 接收不可变 UI state 和 callback，不直接调用 network 或 session store。
 - ViewModel 负责事件编排、取消 Request、分页状态和一次性 UI effect。
+- cursor 列表通过 Paging 3 暴露 `Flow<PagingData<T>>`；refresh 与 append 错误分别呈现，不与详情 section 共用一个失败状态。
 - 页面状态使用明确 sealed model，而不是多个可能矛盾的 Boolean。
 - 导航参数只传稳定 ID；大对象通过 Repository 重新加载或使用受控缓存。
 
@@ -138,7 +139,7 @@ M11/M12 的完整榜单和资料库虽然在登录功能之后开发，仍必须
 
 - `EndpointRegistry`：Host、path、method 和能力标识。
 - `ClientProfileProvider`：可更新的客户端版本 User-Agent 与静态 Header。
-- `DeviceIdStore`：生成并保存一个 UUID。
+- `DeviceIdStore`：仅在已验证必须携带设备 UUID 的 authenticated/write profile 引入；匿名资讯不生成或发送 UUID。
 - `SessionProvider`：只向 authenticated/write client 暴露当前 Authorization。
 - `RedactingLogger`：仅 Debug 可用，并按 key、Header 和 query allowlist 输出。
 
