@@ -24,13 +24,19 @@ internal data class ReplyPageKey(val next: String, val page: Int)
 internal class FeedPagingSource(
     private val remote: NewsRemoteDataSource,
     private val tabId: String,
+    private val fresh: Boolean = false,
 ) : PagingSource<FeedPageKey, ArticleSummary>() {
 
     override suspend fun load(params: LoadParams<FeedPageKey>): LoadResult<FeedPageKey, ArticleSummary> {
         val key = params.key
         return when (
             val result = remote.loadFeed(
-                FeedRequest(tabId = tabId, after = key?.after, page = key?.page),
+                FeedRequest(
+                    tabId = tabId,
+                    after = key?.after,
+                    page = key?.page,
+                    fresh = fresh && key == null,
+                ),
             )
         ) {
             is ApiResult.Failure -> LoadResult.Error(AppErrorException(result.error))

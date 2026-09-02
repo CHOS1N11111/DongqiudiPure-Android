@@ -12,7 +12,10 @@ import kotlinx.coroutines.flow.Flow
 
 interface NewsRepository {
     val categories: List<NewsCategory>
-    fun pagedFeed(category: NewsCategory): Flow<PagingData<ArticleSummary>>
+    fun pagedFeed(
+        category: NewsCategory,
+        fresh: Boolean = false,
+    ): Flow<PagingData<ArticleSummary>>
 }
 
 interface ArticleRepository {

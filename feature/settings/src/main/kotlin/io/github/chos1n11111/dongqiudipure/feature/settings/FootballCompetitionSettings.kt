@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -26,6 +25,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -46,7 +48,6 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionCatalogGroup
-import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.DataResult
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import javax.inject.Inject
@@ -130,6 +131,7 @@ private fun FootballCompetitionSettingsScreen(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var query by rememberSaveable { mutableStateOf("") }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -151,23 +153,38 @@ private fun FootballCompetitionSettingsScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
-        SectionContainer(
-            state = catalog,
-            onRetry = onRetry,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            emptyTitle = stringResource(R.string.settings_competitions_empty),
-            emptyDescription = stringResource(R.string.settings_competitions_empty_description),
-        ) { groups ->
-            CompetitionCatalogList(
-                mode = mode,
-                groups = groups,
-                preferences = preferences,
-                onDefaultMatchCompetitionChange = onDefaultMatchCompetitionChange,
-                onMatchCompetitionToggle = onMatchCompetitionToggle,
-                onRankingCompetitionToggle = onRankingCompetitionToggle,
+        ) {
+            SettingsSearchField(
+                query = query,
+                onQueryChange = { query = it },
+                placeholder = stringResource(R.string.settings_competitions_search_hint),
             )
+            SectionContainer(
+                state = catalog,
+                onRetry = onRetry,
+                modifier = Modifier.weight(1f),
+                emptyTitle = stringResource(R.string.settings_competitions_empty),
+                emptyDescription = stringResource(R.string.settings_competitions_empty_description),
+            ) { groups ->
+                val filteredGroups = filterCompetitionGroups(groups, query)
+                if (filteredGroups.isEmpty()) {
+                    SettingsSearchEmptyState(query)
+                } else {
+                    CompetitionCatalogList(
+                        mode = mode,
+                        groups = filteredGroups,
+                        preferences = preferences,
+                        showMatchDefaults = query.isBlank(),
+                        onDefaultMatchCompetitionChange = onDefaultMatchCompetitionChange,
+                        onMatchCompetitionToggle = onMatchCompetitionToggle,
+                        onRankingCompetitionToggle = onRankingCompetitionToggle,
+                    )
+                }
+            }
         }
     }
 }
@@ -177,13 +194,14 @@ private fun CompetitionCatalogList(
     mode: CompetitionSettingsMode,
     groups: List<CompetitionCatalogGroup>,
     preferences: FootballPreferences,
+    showMatchDefaults: Boolean,
     onDefaultMatchCompetitionChange: (String?) -> Unit,
     onMatchCompetitionToggle: (String, Boolean) -> Unit,
     onRankingCompetitionToggle: (String, Boolean) -> Unit,
 ) {
     val allCompetitions = groups.flatMap { it.competitions }
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        if (mode == CompetitionSettingsMode.Matches) {
+        if (mode == CompetitionSettingsMode.Matches && showMatchDefaults) {
             item(key = "default-heading") {
                 CatalogHeading(stringResource(R.string.settings_matches_default))
             }
@@ -220,8 +238,8 @@ private fun CompetitionCatalogList(
                     CompetitionSettingsMode.Rankings ->
                         competition.id.raw in preferences.rankingCompetitionIds
                 }
-                CompetitionToggleRow(
-                    competition = competition,
+                SelectionSettingsRow(
+                    label = competition.name,
                     selected = selected,
                     onClick = {
                         when (mode) {
@@ -292,29 +310,18 @@ private fun DefaultCompetitionRow(name: String, selected: Boolean, onClick: () -
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
-@Composable
-private fun CompetitionToggleRow(
-    competition: CompetitionRef,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable(role = Role.Checkbox, onClick = onClick)
-            .defaultMinSize(minHeight = DqdSize.touchTarget)
-            .padding(horizontal = DqdSpacing.listHorizontal),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
-    ) {
-        Checkbox(checked = selected, onCheckedChange = null)
-        Text(
-            text = competition.name,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
+internal fun filterCompetitionGroups(
+    groups: List<CompetitionCatalogGroup>,
+    query: String,
+): List<CompetitionCatalogGroup> {
+    val term = query.trim()
+    if (term.isEmpty()) return groups
+    return groups.mapNotNull { group ->
+        val competitions = if (group.name.contains(term, ignoreCase = true)) {
+            group.competitions
+        } else {
+            group.competitions.filter { it.name.contains(term, ignoreCase = true) }
+        }
+        group.copy(competitions = competitions).takeIf { competitions.isNotEmpty() }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }

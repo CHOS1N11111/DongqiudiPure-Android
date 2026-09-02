@@ -24,18 +24,30 @@ class DefaultNewsRepository @Inject constructor(
     private val remote: NewsRemoteDataSource,
 ) : NewsRepository, ArticleRepository {
 
+    // Mirrors the football/news entries in DQD's anonymous global menu. Betting,
+    // basketball and esports channels stay outside this football-only client.
     override val categories: List<NewsCategory> = listOf(
+        NewsCategory(id = "104", label = "热门"),
         NewsCategory(id = "1", label = "头条"),
+        NewsCategory(id = "284", label = "快讯"),
+        NewsCategory(id = "253", label = "足球"),
+        NewsCategory(id = "55", label = "深度"),
         NewsCategory(id = "3", label = "英超"),
-        NewsCategory(id = "4", label = "意甲"),
         NewsCategory(id = "5", label = "西甲"),
+        NewsCategory(id = "4", label = "意甲"),
         NewsCategory(id = "6", label = "德甲"),
+        NewsCategory(id = "12", label = "法甲"),
         NewsCategory(id = "56", label = "中超"),
-        NewsCategory(id = "114", label = "世界杯"),
+        NewsCategory(id = "241", label = "中甲"),
+        NewsCategory(id = "248", label = "体坛"),
     )
 
-    override fun pagedFeed(category: NewsCategory): Flow<PagingData<ArticleSummary>> =
-        Pager(PAGING_CONFIG) { FeedPagingSource(remote, category.id) }.flow
+    override fun pagedFeed(
+        category: NewsCategory,
+        fresh: Boolean,
+    ): Flow<PagingData<ArticleSummary>> = Pager(PAGING_CONFIG) {
+        FeedPagingSource(remote, category.id, fresh)
+    }.flow
 
     override suspend fun loadArticle(articleId: ArticleId): DataResult<ArticleDetail> =
         when (val result = remote.loadArticle(articleId)) {

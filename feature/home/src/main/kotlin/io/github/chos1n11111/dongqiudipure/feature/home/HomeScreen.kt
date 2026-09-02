@@ -20,14 +20,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -48,7 +53,6 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
-import io.github.chos1n11111.dongqiudipure.core.model.ArticleMedia
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.NewsCategory
 import io.github.chos1n11111.dongqiudipure.core.model.toAppError
@@ -57,9 +61,13 @@ import kotlinx.coroutines.flow.flowOf
 @Composable
 fun HomeRoute(
     onArticleClick: (ArticleId) -> Unit,
+    enabledCategoryIds: Set<String>,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
+    LaunchedEffect(enabledCategoryIds) {
+        viewModel.setEnabledCategoryIds(enabledCategoryIds)
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val articles = viewModel.feed.collectAsLazyPagingItems()
     HomeScreen(
@@ -67,6 +75,7 @@ fun HomeRoute(
         articles = articles,
         onArticleClick = onArticleClick,
         onCategorySelect = viewModel::selectCategory,
+        onRefresh = viewModel::refresh,
         modifier = modifier,
     )
 }
@@ -78,10 +87,41 @@ fun HomeScreen(
     articles: LazyPagingItems<ArticleSummary>,
     onArticleClick: (ArticleId) -> Unit,
     onCategorySelect: (NewsCategory) -> Unit,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    var refreshSnapshot by remember { mutableStateOf<RefreshSnapshot?>(null) }
+    var refreshLoadingObserved by remember { mutableStateOf(false) }
+    val refreshedMessage = stringResource(R.string.home_feed_refreshed)
+    val latestMessage = stringResource(R.string.home_feed_already_latest)
+    val refreshFailedMessage = stringResource(R.string.home_feed_refresh_failed)
+    val refresh = articles.loadState.refresh
+
+    LaunchedEffect(refresh, refreshSnapshot) {
+        val snapshot = refreshSnapshot ?: return@LaunchedEffect
+        when (refresh) {
+            is LoadState.Loading -> refreshLoadingObserved = true
+            is LoadState.Error -> if (refreshLoadingObserved) {
+                snackbarHostState.showSnackbar(refreshFailedMessage)
+                refreshSnapshot = null
+                refreshLoadingObserved = false
+            }
+
+            is LoadState.NotLoading -> if (refreshLoadingObserved) {
+                val currentFirstId = articles.peek(0)?.id?.raw
+                snackbarHostState.showSnackbar(
+                    if (currentFirstId != snapshot.firstArticleId) refreshedMessage else latestMessage,
+                )
+                refreshSnapshot = null
+                refreshLoadingObserved = false
+            }
+        }
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column {
                 TopAppBar(
@@ -99,10 +139,14 @@ fun HomeScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
-        val refresh = articles.loadState.refresh
         PullToRefreshBox(
             isRefreshing = refresh is LoadState.Loading && articles.itemCount > 0,
-            onRefresh = articles::refresh,
+            onRefresh = {
+                if (refreshSnapshot == null) {
+                    refreshSnapshot = RefreshSnapshot(articles.peek(0)?.id?.raw)
+                    onRefresh()
+                }
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -256,24 +300,16 @@ private fun FeedSkeleton() {
 @Composable
 private fun HomeScreenDarkPreview() {
     val category = NewsCategory("1", "头条")
-    val previewFlow = remember { flowOf(PagingData.from(previewArticles())) }
+    val previewFlow = remember { flowOf(PagingData.empty<ArticleSummary>()) }
     DqdTheme(darkTheme = true) {
         HomeScreen(
             uiState = HomeUiState(listOf(category), category),
             articles = previewFlow.collectAsLazyPagingItems(),
             onArticleClick = {},
             onCategorySelect = {},
+            onRefresh = {},
         )
     }
 }
 
-private fun previewArticles(): List<ArticleSummary> = listOf(
-    ArticleSummary(
-        id = ArticleId("preview-1"),
-        title = "联赛新赛季赛程公布，多支球队迎来关键开局",
-        source = "懂球帝",
-        publishedLabel = "今天 10:30",
-        commentCount = 128,
-        media = ArticleMedia.Thumbnail(url = null),
-    ),
-)
+private data class RefreshSnapshot(val firstArticleId: String?)

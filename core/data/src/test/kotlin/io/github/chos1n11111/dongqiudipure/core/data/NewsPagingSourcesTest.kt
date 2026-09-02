@@ -70,6 +70,17 @@ class NewsPagingSourcesTest {
     }
 
     @Test
+    fun `feed refresh requests fresh only for the first page`() = runBlocking {
+        val remote = FakeNewsRemoteDataSource().apply {
+            feedResult = ApiResult.Success(feedFixture("feed-success.json"))
+        }
+
+        FeedPagingSource(remote, tabId = "1", fresh = true).load(refresh())
+
+        assertEquals(FeedRequest(tabId = "1", fresh = true), remote.lastFeedRequest)
+    }
+
+    @Test
     fun `recommended comments precede regular comments and duplicate IDs collapse`() = runBlocking {
         val fixture = commentsFixture("comments-success.json")
         val data = requireNotNull(fixture.data)
@@ -228,8 +239,12 @@ class NewsPagingSourcesTest {
         lateinit var feedResult: ApiResult<FeedResponseDto>
         lateinit var commentsResult: ApiResult<CommentsEnvelopeDto>
         lateinit var commentThreadResult: ApiResult<CommentsEnvelopeDto>
+        var lastFeedRequest: FeedRequest? = null
 
-        override suspend fun loadFeed(request: FeedRequest): ApiResult<FeedResponseDto> = feedResult
+        override suspend fun loadFeed(request: FeedRequest): ApiResult<FeedResponseDto> {
+            lastFeedRequest = request
+            return feedResult
+        }
 
         override suspend fun loadArticle(articleId: ArticleId): ApiResult<ArticleDetailEnvelopeDto> =
             error("Article detail is not used by this paging test")

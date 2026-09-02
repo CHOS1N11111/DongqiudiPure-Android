@@ -31,4 +31,5 @@ object DqdIcons {
     val Ball = R.drawable.ic_ball
     val Substitution = R.drawable.ic_substitution
     val Close = R.drawable.ic_close
+    val Link = R.drawable.ic_link
 }

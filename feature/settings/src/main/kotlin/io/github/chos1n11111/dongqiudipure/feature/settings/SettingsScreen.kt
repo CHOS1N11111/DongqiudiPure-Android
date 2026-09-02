@@ -51,6 +51,7 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 fun SettingsScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onNewsSettingsClick: () -> Unit,
     onMatchSettingsClick: () -> Unit,
     onRankingSettingsClick: () -> Unit,
     onBack: () -> Unit,
@@ -115,6 +116,12 @@ fun SettingsScreen(
             )
 
             SectionHeader(title = stringResource(R.string.settings_football))
+            SettingsNavigationRow(
+                title = stringResource(R.string.settings_news_title),
+                description = stringResource(R.string.settings_news_description),
+                onClick = onNewsSettingsClick,
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             SettingsNavigationRow(
                 title = stringResource(R.string.settings_matches_title),
                 description = stringResource(R.string.settings_matches_description),
@@ -390,6 +397,7 @@ private fun SettingsDarkPreview() {
         SettingsScreen(
             themeMode = ThemeMode.System,
             onThemeModeChange = {},
+            onNewsSettingsClick = {},
             onMatchSettingsClick = {},
             onRankingSettingsClick = {},
             onBack = {},
