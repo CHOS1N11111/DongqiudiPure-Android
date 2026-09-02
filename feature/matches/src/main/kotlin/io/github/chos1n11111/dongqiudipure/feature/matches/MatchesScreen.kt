@@ -20,8 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,7 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -42,11 +39,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchRow
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
-import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
@@ -57,7 +52,6 @@ import java.time.LocalDate
 @Composable
 fun MatchesRoute(
     onMatchClick: (MatchId) -> Unit,
-    onSearchClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MatchesViewModel = hiltViewModel(),
 ) {
@@ -65,7 +59,6 @@ fun MatchesRoute(
     MatchesScreen(
         uiState = uiState,
         onMatchClick = onMatchClick,
-        onSearchClick = onSearchClick,
         onDateSelect = viewModel::selectDate,
         onRetry = viewModel::retry,
         modifier = modifier,
@@ -77,7 +70,6 @@ fun MatchesRoute(
 fun MatchesScreen(
     uiState: MatchesUiState,
     onMatchClick: (MatchId) -> Unit,
-    onSearchClick: () -> Unit,
     onDateSelect: (LocalDate) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
@@ -88,15 +80,6 @@ fun MatchesScreen(
             Column {
                 TopAppBar(
                     title = { Text(stringResource(R.string.matches_title)) },
-                    actions = {
-                        IconButton(onClick = onSearchClick) {
-                            Icon(
-                                painter = painterResource(DqdIcons.Search),
-                                contentDescription = stringResource(DesignR.string.ds_action_search),
-                                modifier = Modifier.size(DqdSize.iconMedium),
-                            )
-                        }
-                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                     ),
@@ -288,7 +271,6 @@ private fun MatchesDarkPreview() {
         MatchesScreen(
             uiState = previewState(),
             onMatchClick = {},
-            onSearchClick = {},
             onDateSelect = {},
             onRetry = {},
         )
@@ -302,7 +284,6 @@ private fun MatchesLightPreview() {
         MatchesScreen(
             uiState = previewState(),
             onMatchClick = {},
-            onSearchClick = {},
             onDateSelect = {},
             onRetry = {},
         )
@@ -322,7 +303,6 @@ private fun weekdayLabelRes(date: LocalDate): Int = when (date.dayOfWeek.value) 
 
 private fun previewState(): MatchesUiState {
     val today = LocalDate.of(2026, 9, 1)
-    val samples = io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches.matches
     return MatchesUiState(
         days = listOf(
             MatchDay(today.minusDays(2), isToday = false, hasLiveMatch = true),
@@ -331,9 +311,6 @@ private fun previewState(): MatchesUiState {
             MatchDay(today.plusDays(1), isToday = false, hasLiveMatch = false),
         ),
         selectedDate = today,
-        groups = SectionState.Content(
-            samples.groupBy { it.competition }
-                .map { (competition, matches) -> CompetitionGroup(competition, matches) },
-        ),
+        groups = SectionState.Empty,
     )
 }

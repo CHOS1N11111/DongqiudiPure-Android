@@ -4,15 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.chos1n11111.dongqiudipure.core.data.MatchRepository
+import io.github.chos1n11111.dongqiudipure.core.model.DataResult
 import io.github.chos1n11111.dongqiudipure.core.model.MatchEvent
 import io.github.chos1n11111.dongqiudipure.core.model.MatchLineup
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.StatItem
-import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleLineup
-import io.github.chos1n11111.dongqiudipure.core.sampledata.SampleMatches
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class MatchTab(@StringRes val labelRes: Int) {
+enum class MatchTab(@param:StringRes val labelRes: Int) {
     Events(R.string.match_tab_events),
     Lineup(R.string.match_tab_lineup),
     Stats(R.string.match_tab_stats),
@@ -43,12 +42,13 @@ data class MatchDetailUiState(
 )
 
 /**
- * ⚠️ 当前从 :core:sampledata 读取假数据。
- * 接入时每个 section 分别对应一次 Repository 调用，互不等待。
- * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.4
+ * 比分头复用比赛列表的真实数据；尚未验证 contract 的事件、阵容和统计
+ * 明确显示为空，不以样例内容填充。
  */
 @HiltViewModel
-class MatchDetailViewModel @Inject constructor() : ViewModel() {
+class MatchDetailViewModel @Inject constructor(
+    private val repository: MatchRepository,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MatchDetailUiState())
     val uiState: StateFlow<MatchDetailUiState> = _uiState.asStateFlow()
@@ -58,10 +58,12 @@ class MatchDetailViewModel @Inject constructor() : ViewModel() {
     fun load(id: MatchId) {
         if (matchId == id) return
         matchId = id
+        _uiState.value = MatchDetailUiState(
+            events = SectionState.Empty,
+            stats = SectionState.Empty,
+            lineup = SectionState.Empty,
+        )
         loadHeader()
-        loadEvents()
-        loadStats()
-        loadLineup()
     }
 
     fun selectLineupSide(side: LineupSide) {
@@ -69,8 +71,7 @@ class MatchDetailViewModel @Inject constructor() : ViewModel() {
     }
 
     fun retryLineup() {
-        _uiState.update { it.copy(lineup = SectionState.Loading) }
-        loadLineup()
+        _uiState.update { it.copy(lineup = SectionState.Empty) }
     }
 
     fun selectTab(tab: MatchTab) {
@@ -78,62 +79,31 @@ class MatchDetailViewModel @Inject constructor() : ViewModel() {
     }
 
     fun retryEvents() {
-        _uiState.update { it.copy(events = SectionState.Loading) }
-        loadEvents()
+        _uiState.update { it.copy(events = SectionState.Empty) }
     }
 
     fun retryStats() {
-        _uiState.update { it.copy(stats = SectionState.Loading) }
-        loadStats()
+        _uiState.update { it.copy(stats = SectionState.Empty) }
+    }
+
+    fun retryHeader() {
+        _uiState.update { it.copy(header = SectionState.Loading) }
+        loadHeader()
     }
 
     private fun loadHeader() {
+        val id = matchId ?: return
         viewModelScope.launch {
-            // TODO(data): 替换为 Repository 调用。
-            delay(300)
-            val match = SampleMatches.matches.firstOrNull { it.id == matchId }
-                ?: SampleMatches.liveMatch
-            _uiState.update { it.copy(header = SectionState.Content(match)) }
-        }
-    }
-
-    private fun loadEvents() {
-        viewModelScope.launch {
-            delay(600)
-            val events = SampleMatches.events
-            _uiState.update {
-                it.copy(
-                    events = if (events.isEmpty()) {
-                        SectionState.Empty
-                    } else {
-                        SectionState.Content(events)
-                    },
-                )
-            }
-        }
-    }
-
-    private fun loadLineup() {
-        viewModelScope.launch {
-            delay(700)
-            _uiState.update {
-                it.copy(lineup = SectionState.Content(SampleLineup.matchLineup))
-            }
-        }
-    }
-
-    private fun loadStats() {
-        viewModelScope.launch {
-            delay(800)
-            val stats = SampleMatches.stats.sortedBy { it.displayOrder }
-            _uiState.update {
-                it.copy(
-                    stats = if (stats.isEmpty()) {
-                        SectionState.Empty
-                    } else {
-                        SectionState.Content(stats)
-                    },
-                )
+            when (val result = repository.loadMatch(id)) {
+                is DataResult.Failure -> _uiState.update {
+                    if (matchId == id) it.copy(header = SectionState.Failed(result.error)) else it
+                }
+                is DataResult.Success -> _uiState.update {
+                    if (matchId != id) return@update it
+                    it.copy(
+                        header = result.value?.let { SectionState.Content(it) } ?: SectionState.Empty,
+                    )
+                }
             }
         }
     }

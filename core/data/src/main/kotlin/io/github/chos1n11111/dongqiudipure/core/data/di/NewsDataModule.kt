@@ -6,7 +6,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.chos1n11111.dongqiudipure.core.data.ArticleRepository
 import io.github.chos1n11111.dongqiudipure.core.data.DefaultNewsRepository
+import io.github.chos1n11111.dongqiudipure.core.data.DefaultFootballRepository
+import io.github.chos1n11111.dongqiudipure.core.data.MatchRepository
 import io.github.chos1n11111.dongqiudipure.core.data.NewsRepository
+import io.github.chos1n11111.dongqiudipure.core.data.StandingsRepository
 import javax.inject.Singleton
 
 @Module
@@ -24,4 +27,16 @@ abstract class NewsDataModule {
     abstract fun bindArticleRepository(
         implementation: DefaultNewsRepository,
     ): ArticleRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMatchRepository(
+        implementation: DefaultFootballRepository,
+    ): MatchRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStandingsRepository(
+        implementation: DefaultFootballRepository,
+    ): StandingsRepository
 }

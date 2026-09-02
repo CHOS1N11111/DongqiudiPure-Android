@@ -44,7 +44,6 @@ dependencies {
     implementation(project(":feature:matches"))
     implementation(project(":feature:rankings"))
     implementation(project(":feature:entities"))
-    implementation(project(":feature:search"))
     implementation(project(":feature:account"))
     implementation(project(":feature:settings"))
 

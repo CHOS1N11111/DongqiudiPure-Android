@@ -11,12 +11,15 @@ import io.github.chos1n11111.dongqiudipure.core.model.CommentOrder
 import io.github.chos1n11111.dongqiudipure.core.model.EndpointId
 import io.github.chos1n11111.dongqiudipure.core.network.ApiResult
 import io.github.chos1n11111.dongqiudipure.core.network.CommentRequest
+import io.github.chos1n11111.dongqiudipure.core.network.CommentThreadRequest
 import io.github.chos1n11111.dongqiudipure.core.network.FeedRequest
 import io.github.chos1n11111.dongqiudipure.core.network.NewsRemoteDataSource
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import kotlinx.serialization.json.contentOrNull
 
 internal data class FeedPageKey(val after: String, val page: Int)
 internal data class CommentPageKey(val next: String, val page: Int)
+internal data class ReplyPageKey(val next: String, val page: Int)
 
 internal class FeedPagingSource(
     private val remote: NewsRemoteDataSource,
@@ -89,6 +92,44 @@ internal class CommentPagingSource(
     override fun getRefreshKey(state: PagingState<CommentPageKey, Comment>): CommentPageKey? = null
 }
 
+internal class ReplyPagingSource(
+    private val remote: NewsRemoteDataSource,
+    private val articleId: ArticleId,
+    private val commentId: String,
+) : PagingSource<ReplyPageKey, Comment>() {
+
+    override suspend fun load(params: LoadParams<ReplyPageKey>): LoadResult<ReplyPageKey, Comment> {
+        val key = params.key
+        return when (
+            val result = remote.loadCommentThread(
+                CommentThreadRequest(commentId = commentId, next = key?.next, page = key?.page),
+            )
+        ) {
+            is ApiResult.Failure -> LoadResult.Error(AppErrorException(result.error))
+            is ApiResult.Success -> try {
+                val data = result.value.data ?: throw ContractViolation()
+                val actualArticleId = data.commentInfo?.articleId.scalarStringValue()
+                    ?: data.article?.id.scalarStringValue()
+                    ?: throw ContractViolation()
+                if (actualArticleId != articleId.raw) throw ContractViolation()
+                val users = (data.userList ?: throw ContractViolation()).byId()
+                val replies = data.replyList ?: throw ContractViolation()
+                LoadResult.Page(
+                    data = replies.map { it.toDomain(users) }.distinctBy { it.id },
+                    prevKey = null,
+                    nextKey = parseReplyNext(data.next, commentId),
+                )
+            } catch (_: ContractViolation) {
+                LoadResult.Error(
+                    AppErrorException(AppError.UnsupportedContract(COMMENT_THREAD_ENDPOINT)),
+                )
+            }
+        }
+    }
+
+    override fun getRefreshKey(state: PagingState<ReplyPageKey, Comment>): ReplyPageKey? = null
+}
+
 private fun parseFeedNext(raw: String?, tabId: String): FeedPageKey? {
     if (raw.isNullOrBlank()) return null
     val url = raw.toHttpUrlOrNull() ?: throw ContractViolation()
@@ -115,6 +156,23 @@ private fun parseCommentNext(raw: String?, articleId: ArticleId): CommentPageKey
     )
 }
 
+private fun parseReplyNext(raw: String?, commentId: String): ReplyPageKey? {
+    if (raw.isNullOrBlank()) return null
+    val url = raw.toHttpUrlOrNull() ?: throw ContractViolation()
+    if (url.host != API_HOST || url.encodedPath != "/v2/comment/$commentId") {
+        throw ContractViolation()
+    }
+    return ReplyPageKey(
+        next = url.queryParameter("next")?.takeIf(String::isNotBlank) ?: throw ContractViolation(),
+        page = url.queryParameter("pn")?.toIntOrNull()?.takeIf { it > 0 }
+            ?: throw ContractViolation(),
+    )
+}
+
+private fun kotlinx.serialization.json.JsonElement?.scalarStringValue(): String? =
+    (this as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+
 private const val API_HOST = "api.dongqiudi.com"
 private val FEED_ENDPOINT = EndpointId("news.feed")
 private val COMMENTS_ENDPOINT = EndpointId("news.comments")
+private val COMMENT_THREAD_ENDPOINT = EndpointId("news.comment-thread")

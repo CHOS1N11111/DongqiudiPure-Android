@@ -1,0 +1,43 @@
+{
+  "finishFlag": true,
+  "list": [
+    {
+      "relate_type": "match",
+      "cmp_type": "soccer",
+      "match_id": "7001",
+      "competition_id": "4",
+      "competition_name": "Contract League",
+      "round_name": "League",
+      "gameweek": "3",
+      "team_A_id": "7101",
+      "team_A_name": "Contract Home",
+      "team_A_logo": "https://fixture.qunliao.info/teams/7101.png",
+      "team_B_id": "7102",
+      "team_B_name": "Contract Away",
+      "team_B_logo": "https://fixture.qunliao.info/teams/7102.png",
+      "start_play": "2026-09-02 12:00:00",
+      "status": "Fixture",
+      "fs_A": "",
+      "fs_B": "",
+      "minute": "",
+      "minute_extra": ""
+    },
+    {
+      "relate_type": "match",
+      "cmp_type": "soccer",
+      "match_id": "7002",
+      "competition_id": "26",
+      "competition_name": "Outside Scope",
+      "team_A_id": "7201",
+      "team_A_name": "Outside Home",
+      "team_B_id": "7202",
+      "team_B_name": "Outside Away",
+      "start_play": "2026-09-02 13:00:00",
+      "status": "Fixture",
+      "fs_A": "",
+      "fs_B": ""
+    }
+  ],
+  "nextDate": "2026-09-06 00:00:00next",
+  "prevDate": "2026-08-30 00:00:00prev"
+}

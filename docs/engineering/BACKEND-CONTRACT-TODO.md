@@ -10,25 +10,26 @@
 
 ## 0. 当前状态
 
-**前端已完成，数据层按 vertical slice 接入中。** 资讯流、文章详情和一级评论
-已经使用真实匿名数据；比赛、榜单、资料与搜索仍由示例数据驱动。
+**前端已完成，数据层按 vertical slice 接入中。** 资讯流、文章详情、评论回复、
+五大联赛和中超的比赛列表与积分榜已经使用真实匿名数据。未验证的比赛详情、
+球队/球员资料明确显示为空；搜索入口暂时移除，运行时不展示样例数据。
 
 | 层 | 状态 |
 | --- | --- |
 | `:core:model` | 已完成。Domain model、`MatchStatus`、`AppError`、`SectionState` 均已定义，**不需要改动** |
 | `:core:designsystem` | 已完成。深浅两套主题、语义色、组件、状态视图、18 个图标 |
-| `:core:sampledata` | **临时**。仍供比赛、榜单、资料和搜索使用，全部接入后删除 |
-| `:core:network` | 已创建。匿名资讯 Request、DTO、错误映射与 MockWebServer contract test 已完成 |
-| `:core:data` | 已创建。资讯 Repository、mapper、HTML 清理与 PagingSource 已完成 |
+| `:core:sampledata` | **临时**。仅供尚未接入的「我的」等既有页面使用；比赛、榜单和资料运行路径均不再读取 |
+| `:core:network` | 匿名资讯、评论回复、比赛、赛季与积分榜 Request、DTO、错误映射及 contract test 已完成 |
+| `:core:data` | 资讯与评论 Paging、比赛和积分榜 Repository、mapper 已完成 |
 | `:feature:home` | 已接入真实分类、资讯流、图片、下拉刷新和分页 |
-| `:feature:article` | 已接入真实正文、图片、关联实体、系统分享和一级评论分页；回复线程待验证 |
-| `:feature:matches` | 比赛列表 + 比赛详情（事件 / 阵容 / 统计）UI 已完成 |
-| `:feature:rankings` | 积分榜 / 射手榜 / 助攻榜 / 赛程四个分栏 UI 均已完成；同时提供「数据」根 tab（`DataHubRoute`，赛事切换器 + 榜单）与赛事详情页（`StandingsRoute`），共用 `RankingsContent` |
-| `:feature:entities` | 球队五个分栏 + 球员资料页 UI 均已完成 |
-| `:feature:search` | 搜索 UI 已完成 |
+| `:feature:article` | 已接入真实正文、图片、关联实体、系统分享、一级评论、点赞数和回复详情分页 |
+| `:feature:matches` | 五大联赛和中超比赛列表已接入；详情头使用真实列表数据，未验证的事件 / 阵容 / 统计为空 |
+| `:feature:rankings` | 「数据」根 tab 仅展示五大联赛和中超的真实当前赛季积分榜 |
+| `:feature:entities` | 球队/球员资料 contract 未接入，当前 section 为空而非样例数据 |
+| `:feature:search` | 模块保留供后续开发，但应用依赖和导航入口已移除 |
 | `:feature:account` | 「我的」未登录态已完成；登录属于 M9 |
 | `:feature:settings` | 已完成，且**不需要网络**（主题偏好走 DataStore，见 D-019） |
-| 界面文案 | 全部走 string 资源，各模块自带 `strings.xml`；服务端驱动的指标名留在 `:core:sampledata`，不抽资源 |
+| 界面文案 | 全部走 string 资源，各模块自带 `strings.xml`；服务端驱动的赛事、球队与分区名称直接使用 contract 字段 |
 
 UI 层继续保持 loading / content / empty / error、分类切换、日期切换、分栏切换
 和重试的独立状态。资讯与评论已改为 Paging 3 的 refresh/append 状态；其余
@@ -37,7 +38,7 @@ UI 层继续保持 loading / content / empty / error、分类切换、日期切�
 ## 已关闭的数据层前置决策
 
 - DI：使用 Hilt，八个现有 ViewModel 已统一由 `hiltViewModel()` 创建，见 D-007。
-- 分页：资讯流和评论使用 Paging 3；搜索接入 cursor contract 时沿用，见 D-020。
+- 分页：资讯流和评论（含回复）使用 Paging 3；搜索后续接入 cursor contract 时沿用，见 D-020。
 - 主题：深浅色与 DataStore 策略已归档，见 D-019。
 
 这些决策不再阻塞 `:core:data`。后续 slice 直接沿用，不再建立手写 ViewModel Factory
@@ -114,28 +115,28 @@ private fun loadFeed() {
 - `ArticleRepository.loadArticle(id)` 独立加载正文；评论 Paging 失败不影响正文。
 - HTML 正文只解析文本、标题/引用和受控 HTTPS 图片，不执行 embed 或脚本。
 - 关联球队、球员和赛事使用稳定 ID 导航；顶栏已接入系统 `ACTION_SEND`。
-- 一级评论支持最热/最新切换、分页、去重、公开作者名和 `replyCount`。
-- 回复线程 contract 尚未验证，因此当前只显示回复数量，不构造或请求虚假回复。
+- 一级评论支持最热/最新切换、分页、去重、公开作者名、`replyCount` 和只读点赞数。
+- 点击一级评论进入详情，使用真实 `comment_info` 和 `reply_list` 分页展示楼中楼；空回复保持空状态。
 
 **注意**：本页**刻意没有**点赞 / 收藏 / 发表评论入口 ——
 它们属于 M14 / M15 的远端写操作。接入数据时不要顺手加上。
 
 Milestone M3。
 
-### 2.3 比赛列表 · `:feature:matches`
+### 2.3 比赛列表 · `:feature:matches`（已接入限定范围）
 
-| 项 | 需要的能力 | 当前替身 |
-| --- | --- | --- |
-| 按日期取比赛 | `observeMatchesByDate(date)` | `SampleMatches.matches` |
-| 日期条的「当日有进行中比赛」标记 | 服务端当日状态摘要 | `MatchesViewModel.buildDays()` 里写死 |
-| 实时刷新 | 可取消、感知前后台、终场停止 | 未实现 |
-| 队徽 | 图片加载 | `TeamCrest` 由 `TeamId` 派生占位色 |
+| 项 | 当前实现 |
+| --- | --- |
+| 按日期取比赛 | `MatchRepository.loadMatches(date)` 读取真实重要比赛窗口并按本地日期筛选 |
+| 赛事范围 | 仅英超、西甲、意甲、德甲、法甲和中超；其他赛事在 mapper 前过滤 |
+| 日期条的进行中标记 | 根据当日已加载比赛的真实状态计算 |
+| 实时刷新 | 尚未实现自动轮询，用户可手动重试 |
+| 队徽 | Coil 加载受控 HTTPS `logo`，短暂失败有限重试，最终保留可读占位 |
 
 实时刷新的判定逻辑已经有了：`MatchStatus.needsLiveRefresh`
 在 `Live` 与 `HalfTime` 时为 `true`，其余为 `false`。轮询调度器接上即可。
 
-`MatchStatus.Unknown(rawValue)` 分支已在模拟器验证可用
-（示例数据里的 `AWARD` 会显示为「AWARDED / 未知状态」）。
+`MatchStatus.Unknown(rawValue)` 保留接口未知原值，
 **mapper 遇到不认识的状态时必须走这个分支，不能 fallback 到 `Finished`。**
 
 Milestone M4。
@@ -145,11 +146,11 @@ Milestone M4。
 UI 已完成：比分头（含 LIVE 状态）、事件时间线、阵型图 / 阵容名单、技术统计对比条。
 每个 section 一个独立 `SectionState`，互不等待、互不影响。
 
-需要按 section 分别接入：
+比分头已经复用比赛列表中的真实数据。以下 section 尚未完成 contract，当前显示空状态：
 
 | Section | 状态 |
 | --- | --- |
-| 比分头 | UI 完成，需 `loadMatch(id)` |
+| 比分头 | 已接入列表缓存与必要的窗口重取 |
 | 事件 | UI 完成，需 `loadEvents(id)` |
 | 阵容 | UI 完成，需 `loadLineup(id)` |
 | 技术统计 | UI 完成，需 `loadStats(id)` |
@@ -176,19 +177,19 @@ Milestone M5。
 积分榜 UI 已完成：分区色条 + 具名分隔行 + 图例三重编码、
 名次断档提示、缺失值降级。
 
-需要：`loadStandings(competitionId, seasonId, stageId?)`。
+五大联赛和中超的当前赛季积分榜已接入：先请求赛季列表动态解析当前赛季 ID，
+再请求积分表；没有数据时显示空状态，不填充样例行。
 
 - 所有数值字段为 nullable。并列排名、扣分、「不适用」在服务端表示不同，
   不要统一压成 0（`PLAN.md` M6 退出条件）。
 - `StandingZone` 到分区名称的映射需要来自服务端，不同赛事的分区规则不同，
   当前 enum 只覆盖常见五种，长尾赛制（小组赛、附加赛）需扩展。
 
-射手榜 / 助攻榜 UI 已完成，共用 `PlayerRankingTable` 一套版式 ——
-只有 `valueColumnLabel` 不同。需要 `loadScorers(...)` 与 `loadAssists(...)`。
+射手榜、助攻榜和赛程尚未验证，当前不在「数据」页展示。
 `PlayerRankingRow.team` 为 null（转会期未确定）时显示「—」，不要猜一个球队。
 
-赛程分栏 UI 已完成，复用 `:core:designsystem` 的 `MatchRow`。
-需要 `loadFixtures(competitionId, seasonId, round?)`，并支持按轮次分组。
+赛程读取 contract 尚未验证，当前不在「数据」页展示；后续需要
+`loadFixtures(competitionId, seasonId, round?)`，并支持按轮次分组。
 
 Milestone M6。
 
@@ -210,8 +211,8 @@ Milestone M6。
 需要 `loadPlayerProfile(id)`、`loadPlayerSeasonStats(id, seasonId)`、`loadPlayerCareer(id)`。
 履历的历史赛季常缺数据，缺失行显示「—」而不是 0 —— 补 0 会被读成「那个赛季一场没打」。
 
-⚠️ 当前示例数据无论传入哪个 `PlayerId` 都返回同一份资料，
-接入 Repository 后必须按 ID 查询。
+当前球队和球员资料页均显示真实空状态；接入 Repository 后必须按传入 ID 查询，
+不得按热门名单或样例对象分支。
 
 赛事资料本身由榜单页（`StandingsScreen`）承担，四个分栏即赛事主页的内容。
 若后续需要独立的「赛事资料」分栏（参赛队、阶段、历史冠军），再另加。
@@ -220,13 +221,13 @@ Milestone M7。
 
 ### 2.7 搜索 · `:feature:search`
 
-UI 已完成：焦点输入框、清空、类型筛选 chip、按实体类型分组的结果列表、
-搜索历史。上一次搜索可取消，慢响应不会覆盖新查询。
+按当前产品要求，应用已移除搜索依赖、导航与可见入口。模块源码暂时保留，
+后续确认 contract 后再重新接入。
 
 需要：`search(query, filter, cursor)`。
 
 - 输入防抖尚未实现，接入时加在 `SearchViewModel.updateQuery` 里。
-- 搜索历史当前来自示例数据，真实实现需本机持久化（DataStore）。
+- 重新接入时不得展示样例历史；真实历史需本机持久化（DataStore）。
 - 只搜索第一阶段已支持的实体类型；未覆盖类型不应出现空分组。
 - 球队 / 球员 / 赛事 / 资讯四类结果均已接通对应详情页。
 

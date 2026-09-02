@@ -69,7 +69,20 @@ internal fun CommentDto.toDomain(users: Map<String, CommentUserDto>): Comment {
         body = plainContent,
         publishedLabel = createdAt.required(),
         replyCount = replyTotal.scalarIntOrNull(),
+        likeCount = up.scalarIntOrNull(),
         attachments = commentAttachments,
+    )
+}
+
+internal fun io.github.chos1n11111.dongqiudipure.core.network.dto.CommentsDataDto
+    .toThreadParent(expectedArticleId: ArticleId): Comment {
+    val parent = commentInfo ?: throw ContractViolation()
+    val actualArticleId = parent.articleId.scalarString()
+        ?: article?.id.scalarString()
+        ?: throw ContractViolation()
+    if (actualArticleId != expectedArticleId.raw) throw ContractViolation()
+    return parent.toDomain((userList ?: throw ContractViolation()).byId()).copy(
+        replyCount = commentTotal.scalarIntOrNull(),
     )
 }
 

@@ -16,8 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryScrollableTabRow
@@ -32,7 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,11 +41,9 @@ import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
-import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.DqdEmptyState
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.DqdErrorState
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
-import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
@@ -62,7 +57,6 @@ import kotlinx.coroutines.flow.flowOf
 @Composable
 fun HomeRoute(
     onArticleClick: (ArticleId) -> Unit,
-    onSearchClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -72,7 +66,6 @@ fun HomeRoute(
         uiState = uiState,
         articles = articles,
         onArticleClick = onArticleClick,
-        onSearchClick = onSearchClick,
         onCategorySelect = viewModel::selectCategory,
         modifier = modifier,
     )
@@ -84,7 +77,6 @@ fun HomeScreen(
     uiState: HomeUiState,
     articles: LazyPagingItems<ArticleSummary>,
     onArticleClick: (ArticleId) -> Unit,
-    onSearchClick: () -> Unit,
     onCategorySelect: (NewsCategory) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -94,15 +86,6 @@ fun HomeScreen(
             Column {
                 TopAppBar(
                     title = { Text("DongqiudiPure") },
-                    actions = {
-                        IconButton(onClick = onSearchClick) {
-                            Icon(
-                                painter = painterResource(DqdIcons.Search),
-                                contentDescription = stringResource(DesignR.string.ds_action_search),
-                                modifier = Modifier.size(DqdSize.iconMedium),
-                            )
-                        }
-                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                     ),
@@ -279,7 +262,6 @@ private fun HomeScreenDarkPreview() {
             uiState = HomeUiState(listOf(category), category),
             articles = previewFlow.collectAsLazyPagingItems(),
             onArticleClick = {},
-            onSearchClick = {},
             onCategorySelect = {},
         )
     }

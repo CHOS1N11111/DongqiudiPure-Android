@@ -6,6 +6,11 @@
     <string name="article_comment_sort_hottest">最热</string>
     <string name="article_comment_sort_newest">最新</string>
     <string name="article_reply_count">%1$d 条回复</string>
+    <string name="article_like_count">%1$d 赞</string>
+    <string name="comment_detail_title">评论详情</string>
+    <string name="comment_replies_title">回复</string>
+    <string name="comment_replies_empty_title">还没有回复</string>
+    <string name="comment_replies_empty_description">这条评论暂时没有公开回复。</string>
     <string name="article_comments_load_more_retry">重新加载更多评论</string>
     <string name="article_share_title">分享资讯</string>
 

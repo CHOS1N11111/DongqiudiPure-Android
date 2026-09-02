@@ -21,4 +21,12 @@ interface ArticleRepository {
         articleId: ArticleId,
         order: CommentOrder,
     ): Flow<PagingData<Comment>>
+    suspend fun loadCommentThread(
+        articleId: ArticleId,
+        commentId: String,
+    ): DataResult<Comment>
+    fun pagedReplies(
+        articleId: ArticleId,
+        commentId: String,
+    ): Flow<PagingData<Comment>>
 }

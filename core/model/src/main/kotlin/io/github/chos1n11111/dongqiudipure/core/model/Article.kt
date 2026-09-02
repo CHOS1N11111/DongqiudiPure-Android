@@ -70,6 +70,7 @@ data class Comment(
     val body: String,
     val publishedLabel: String,
     val replyCount: Int?,
+    val likeCount: Int? = null,
     val attachments: List<CommentAttachment> = emptyList(),
 )
 

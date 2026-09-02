@@ -36,7 +36,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
@@ -52,11 +51,10 @@ import io.github.chos1n11111.dongqiudipure.core.model.PlayerPosition
 import io.github.chos1n11111.dongqiudipure.core.model.TeamLineup
 
 /** 阵容分栏当前展示哪一侧。 */
-enum class LineupSide(@StringRes val labelRes: Int) {
+enum class LineupSide(@param:StringRes val labelRes: Int) {
     Home(R.string.lineup_side_home),
     Away(R.string.lineup_side_away),
 }
-
 @Composable
 fun LineupContent(
     lineup: MatchLineup,
@@ -373,7 +371,6 @@ private fun PlayerMarker(
         )
     }
 }
-
 @Composable
 private fun NoGridNotice() {
     Row(
@@ -478,20 +475,5 @@ private fun PlayerChip(player: LineupPlayer, onClick: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
-    }
-}
-
-@Preview(name = "阵容 · 阵型图", showBackground = true)
-@Composable
-private fun LineupPitchPreview() {
-    DqdTheme(darkTheme = true) {
-        Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-            LineupContent(
-                lineup = io.github.chos1n11111.dongqiudipure.core.sampledata.SampleLineup.matchLineup,
-                side = LineupSide.Home,
-                onSideChange = {},
-                onPlayerClick = {},
-            )
-        }
     }
 }

@@ -17,8 +17,15 @@ data class CommentRequest(
     val page: Int? = null,
 )
 
+data class CommentThreadRequest(
+    val commentId: String,
+    val next: String? = null,
+    val page: Int? = null,
+)
+
 interface NewsRemoteDataSource {
     suspend fun loadFeed(request: FeedRequest): ApiResult<FeedResponseDto>
     suspend fun loadArticle(articleId: ArticleId): ApiResult<ArticleDetailEnvelopeDto>
     suspend fun loadComments(request: CommentRequest): ApiResult<CommentsEnvelopeDto>
+    suspend fun loadCommentThread(request: CommentThreadRequest): ApiResult<CommentsEnvelopeDto>
 }
