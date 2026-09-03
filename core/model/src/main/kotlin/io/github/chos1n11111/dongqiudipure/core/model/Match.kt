@@ -109,6 +109,7 @@ data class MatchInfo(
     val weather: String?,
     val temperature: String?,
     val attendance: String?,
+    val altitude: String? = null,
 )
 
 data class MatchArticle(
@@ -191,6 +192,9 @@ data class TeamProfile(
     val facts: List<TeamFact> = emptyList(),
     val honors: List<TeamHonor> = emptyList(),
     val historicalCoaches: List<HistoricalCoach> = emptyList(),
+    val rankHistory: List<TeamRankHistoryPoint> = emptyList(),
+    val topScorers: List<TeamRecordEntry> = emptyList(),
+    val appearanceLeaders: List<TeamRecordEntry> = emptyList(),
     val description: String? = null,
 )
 

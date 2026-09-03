@@ -28,7 +28,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.StatisticRankingTable
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamProfile
 import io.github.chos1n11111.dongqiudipure.core.model.TeamScheduleData
-import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadGroup
+import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
 import java.time.LocalDate
@@ -82,7 +82,10 @@ interface FootballEntityRepository {
         teamId: TeamId,
         seasonId: String? = null,
     ): DataResult<TeamStatistics?>
-    suspend fun loadTeamSquad(teamId: TeamId): DataResult<List<TeamSquadGroup>>
+    suspend fun loadTeamSquad(
+        teamId: TeamId,
+        seasonId: String? = null,
+    ): DataResult<TeamSquadData>
     suspend fun loadTeamSchedule(
         teamId: TeamId,
         seasonId: String? = null,

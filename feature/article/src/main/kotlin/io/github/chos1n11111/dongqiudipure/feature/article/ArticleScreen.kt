@@ -1,7 +1,11 @@
 package io.github.chos1n11111.dongqiudipure.feature.article
 
 import android.content.Intent
+import android.net.Uri
+import android.widget.MediaController
+import android.widget.VideoView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +23,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -31,19 +37,30 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
@@ -70,6 +87,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleLinkTarget
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.Comment
+import io.github.chos1n11111.dongqiudipure.core.model.CommentBodyPart
 import io.github.chos1n11111.dongqiudipure.core.model.EntityRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
@@ -364,6 +382,8 @@ private fun ArticleBody(
                     }
                 }
 
+                is ArticleBlock.Video -> ArticleVideo(block)
+
                 is ArticleBlock.Link -> Text(
                     text = block.text,
                     style = MaterialTheme.typography.bodyLarge,
@@ -381,6 +401,72 @@ private fun ArticleBody(
             onEntityClick = onEntityClick,
         )
     }
+}
+
+@Composable
+private fun ArticleVideo(block: ArticleBlock.Video) {
+    val ratio = block.aspectRatio?.takeIf { it.isFinite() && it > 0f } ?: 16f / 9f
+    val url = block.url
+    var playing by remember(url) { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(ratio)
+            .background(Color.Black),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (playing && url != null) {
+            AndroidVideoPlayer(url = url, modifier = Modifier.fillMaxSize())
+        } else {
+            ImagePlaceholder(
+                url = block.posterUrl,
+                contentScale = ContentScale.Fit,
+                cornerRadius = 0.dp,
+                modifier = Modifier.fillMaxSize(),
+            )
+            if (url != null) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.68f))
+                        .clickable { playing = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(DqdIcons.Play),
+                        contentDescription = stringResource(R.string.article_video_play),
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AndroidVideoPlayer(url: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val videoView = remember(url) {
+        VideoView(context).apply {
+            val controls = MediaController(context)
+            setMediaController(controls)
+            controls.setAnchorView(this)
+            setVideoURI(Uri.parse(url))
+            setOnPreparedListener {
+                it.isLooping = false
+                start()
+            }
+        }
+    }
+    DisposableEffect(videoView) {
+        onDispose { videoView.stopPlayback() }
+    }
+    AndroidView(
+        factory = { videoView },
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -460,12 +546,26 @@ internal fun CommentRow(
             .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
         horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
     ) {
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-        )
+        Box(modifier = Modifier.size(38.dp)) {
+            ImagePlaceholder(
+                url = comment.avatarUrl,
+                cornerRadius = 17.dp,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .size(34.dp),
+            )
+            comment.teamCrestUrl?.let { crestUrl ->
+                ImagePlaceholder(
+                    url = crestUrl,
+                    cornerRadius = 8.dp,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(16.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                )
+            }
+        }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -478,11 +578,7 @@ internal fun CommentRow(
                 overflow = TextOverflow.Ellipsis,
             )
             if (comment.body.isNotEmpty()) {
-                Text(
-                    text = comment.body,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                CommentBody(comment)
             }
             comment.attachments.forEach { attachment ->
                 ImagePlaceholder(
@@ -528,6 +624,51 @@ internal fun CommentRow(
             }
         }
     }
+}
+
+@Composable
+private fun CommentBody(comment: Comment) {
+    val inlineImages = comment.bodyParts.filterIsInstance<CommentBodyPart.InlineImage>()
+    if (inlineImages.isEmpty()) {
+        Text(
+            text = comment.body,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        return
+    }
+    val inlineContent = mutableMapOf<String, InlineTextContent>()
+    val annotatedBody: AnnotatedString = buildAnnotatedString {
+        comment.bodyParts.forEachIndexed { index, part ->
+            when (part) {
+                is CommentBodyPart.Text -> append(part.value)
+                is CommentBodyPart.InlineImage -> {
+                    val id = "${comment.id}-inline-$index"
+                    appendInlineContent(id, part.contentDescription)
+                    inlineContent[id] = InlineTextContent(
+                        placeholder = Placeholder(
+                            width = 20.sp,
+                            height = 20.sp,
+                            placeholderVerticalAlign = PlaceholderVerticalAlign.Center,
+                        ),
+                    ) {
+                        ImagePlaceholder(
+                            url = part.url,
+                            cornerRadius = 0.dp,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+    Text(
+        text = annotatedBody,
+        inlineContent = inlineContent,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
 }
 
 @Composable

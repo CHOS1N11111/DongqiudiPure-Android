@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.data.FootballEntityRepository
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
-import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.DataResult
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerAbility
@@ -48,9 +47,7 @@ data class PlayerProfileUiState(
     val shotMap: SectionState<PlayerShotMap> = SectionState.Loading,
     val selectedTab: PlayerTab = PlayerTab.Dynamic,
     val selectedScope: PlayerStatisticScope = PlayerStatisticScope.League,
-    val selectedSeasonId: String? = null,
-    val selectedCompetitionId: CompetitionId? = null,
-    val selectedTeamId: TeamId? = null,
+    val expandedStatisticId: String? = null,
     val selectedShotMatchId: MatchId? = null,
 ) {
     val scopeEntries: List<PlayerStatisticEntry>
@@ -59,18 +56,8 @@ data class PlayerProfileUiState(
             ?.get(selectedScope)
             .orEmpty()
 
-    val seasonEntries: List<PlayerStatisticEntry>
-        get() = scopeEntries.filter { selectedSeasonId == null || it.season.id == selectedSeasonId }
-
-    val competitionEntries: List<PlayerStatisticEntry>
-        get() = seasonEntries.filter {
-            selectedCompetitionId == null || it.competition?.id == selectedCompetitionId
-        }
-
     val selectedEntry: PlayerStatisticEntry?
-        get() = competitionEntries.firstOrNull {
-            selectedTeamId == null || it.team.id == selectedTeamId
-        }
+        get() = scopeEntries.firstOrNull { it.id == expandedStatisticId }
 }
 
 @HiltViewModel
@@ -96,30 +83,19 @@ class PlayerProfileViewModel @Inject constructor(
 
     fun selectScope(scope: PlayerStatisticScope) {
         val data = (_uiState.value.statistics as? SectionState.Content)?.value ?: return
-        applySelection(data, scope, null, null, null)
+        applyScope(data, scope)
     }
 
-    fun selectSeason(seasonId: String) {
-        val data = (_uiState.value.statistics as? SectionState.Content)?.value ?: return
-        applySelection(data, _uiState.value.selectedScope, seasonId, null, null)
-    }
-
-    fun selectCompetition(competitionId: CompetitionId?) {
-        val state = _uiState.value
-        val data = (state.statistics as? SectionState.Content)?.value ?: return
-        applySelection(data, state.selectedScope, state.selectedSeasonId, competitionId, null)
-    }
-
-    fun selectTeam(teamId: TeamId) {
-        val state = _uiState.value
-        val data = (state.statistics as? SectionState.Content)?.value ?: return
-        applySelection(
-            data,
-            state.selectedScope,
-            state.selectedSeasonId,
-            state.selectedCompetitionId,
-            teamId,
-        )
+    fun toggleStatistic(entry: PlayerStatisticEntry) {
+        if (_uiState.value.expandedStatisticId == entry.id) {
+            jobs["heat"]?.cancel()
+            _uiState.update {
+                it.copy(expandedStatisticId = null, heatMap = SectionState.Empty)
+            }
+        } else {
+            _uiState.update { it.copy(expandedStatisticId = entry.id) }
+            loadHeatMap(entry)
+        }
     }
 
     fun selectMatchesPage(page: Int) {
@@ -179,7 +155,7 @@ class PlayerProfileViewModel @Inject constructor(
                 is DataResult.Success -> {
                     updateIfCurrent(id) { it.copy(statistics = SectionState.Content(result.value)) }
                     if (playerId == id) {
-                        applySelection(result.value, result.value.defaultScope, null, null, null)
+                        applyScope(result.value, result.value.defaultScope)
                     }
                 }
             }
@@ -194,36 +170,19 @@ class PlayerProfileViewModel @Inject constructor(
         loadMatches(id, 1)
     }
 
-    private fun applySelection(
+    private fun applyScope(
         data: PlayerStatisticsData,
         scope: PlayerStatisticScope,
-        preferredSeasonId: String?,
-        preferredCompetitionId: CompetitionId?,
-        preferredTeamId: TeamId?,
     ) {
         val entries = data.entries[scope].orEmpty()
-        val seasonId = preferredSeasonId?.takeIf { preferred ->
-            entries.any { it.season.id == preferred }
-        } ?: entries.firstOrNull()?.season?.id
-        val seasonEntries = entries.filter { it.season.id == seasonId }
-        val competitionId = preferredCompetitionId?.takeIf { preferred ->
-            seasonEntries.any { it.competition?.id == preferred }
-        } ?: seasonEntries.firstOrNull()?.competition?.id
-        val competitionEntries = seasonEntries.filter {
-            competitionId == null || it.competition?.id == competitionId
-        }
-        val teamId = preferredTeamId?.takeIf { preferred ->
-            competitionEntries.any { it.team.id == preferred }
-        } ?: competitionEntries.firstOrNull()?.team?.id
+        val entry = entries.firstOrNull()
         _uiState.update {
             it.copy(
                 selectedScope = scope,
-                selectedSeasonId = seasonId,
-                selectedCompetitionId = competitionId,
-                selectedTeamId = teamId,
+                expandedStatisticId = entry?.id,
             )
         }
-        competitionEntries.firstOrNull { it.team.id == teamId }?.let(::loadHeatMap)
+        entry?.let(::loadHeatMap)
             ?: _uiState.update { it.copy(heatMap = SectionState.Empty) }
     }
 
@@ -239,7 +198,7 @@ class PlayerProfileViewModel @Inject constructor(
                 is DataResult.Success -> result.value.toSectionState { it.points.isNotEmpty() }
             }
             updateIfCurrent(id) { current ->
-                if (current.selectedEntry?.id == entry.id) current.copy(heatMap = state) else current
+                if (current.expandedStatisticId == entry.id) current.copy(heatMap = state) else current
             }
         }
     }
@@ -254,13 +213,8 @@ class PlayerProfileViewModel @Inject constructor(
                 }
                 is DataResult.Success -> {
                     val state = result.value.toSectionState { it.matches.isNotEmpty() }
-                    updateIfCurrent(id) { it.copy(matches = state) }
-                    val shotMatch = result.value.matches.firstOrNull { (it.goals ?: 0) > 0 }
-                        ?: result.value.matches.firstOrNull()
-                    if (shotMatch != null && playerId == id) {
-                        loadShotMap(id, shotMatch.match.id)
-                    } else {
-                        updateIfCurrent(id) { it.copy(shotMap = SectionState.Empty) }
+                    updateIfCurrent(id) {
+                        it.copy(matches = state, shotMap = SectionState.Empty)
                     }
                 }
             }

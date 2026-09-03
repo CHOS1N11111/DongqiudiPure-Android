@@ -1,7 +1,9 @@
 package io.github.chos1n11111.dongqiudipure.feature.entities
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,12 +14,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,9 +33,17 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.FormBadge
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ImagePlaceholder
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
@@ -55,7 +66,7 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
-import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
+import io.github.chos1n11111.dongqiudipure.core.model.FootballCharacteristics
 import io.github.chos1n11111.dongqiudipure.core.model.HistoricalCoach
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
@@ -63,6 +74,8 @@ import io.github.chos1n11111.dongqiudipure.core.model.SeasonOption
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamProfile
+import io.github.chos1n11111.dongqiudipure.core.model.TeamRankingTrendPoint
+import io.github.chos1n11111.dongqiudipure.core.model.TeamRecordEntry
 import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferEntry
@@ -89,12 +102,10 @@ fun TeamProfileRoute(
         onTeamClick = onTeamClick,
         onPlayerClick = onPlayerClick,
         onTabSelect = viewModel::selectTab,
-        onScheduleFilterSelect = viewModel::selectScheduleFilter,
-        onCompetitionSelect = viewModel::selectCompetition,
         onScheduleSeasonSelect = viewModel::selectScheduleSeason,
+        onSquadSeasonSelect = viewModel::selectSquadSeason,
         onStatisticsSeasonSelect = viewModel::selectStatisticsSeason,
         onTransferWindowSelect = viewModel::selectTransferWindow,
-        onSchedulePageSelect = viewModel::selectSchedulePage,
         onRetry = viewModel::retryAll,
         modifier = modifier,
     )
@@ -110,12 +121,10 @@ fun TeamProfileScreen(
     onTeamClick: (TeamId) -> Unit,
     onPlayerClick: (PlayerId) -> Unit,
     onTabSelect: (TeamTab) -> Unit,
-    onScheduleFilterSelect: (TeamScheduleFilter) -> Unit,
-    onCompetitionSelect: (CompetitionId?) -> Unit,
     onScheduleSeasonSelect: (String) -> Unit,
+    onSquadSeasonSelect: (String) -> Unit,
     onStatisticsSeasonSelect: (String) -> Unit,
     onTransferWindowSelect: (String) -> Unit,
-    onSchedulePageSelect: (Int) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -190,13 +199,10 @@ fun TeamProfileScreen(
                     emptyDescription = stringResource(R.string.team_fixtures_empty_description),
                 ) { schedule ->
                     TeamScheduleContent(
-                        uiState = uiState,
+                        matches = schedule.matches,
                         seasons = schedule.seasons,
                         selectedSeasonId = schedule.selectedSeasonId,
                         onSeasonSelect = onScheduleSeasonSelect,
-                        onCompetitionSelect = onCompetitionSelect,
-                        onFilterSelect = onScheduleFilterSelect,
-                        onPageSelect = onSchedulePageSelect,
                         onMatchClick = onMatchClick,
                     )
                 }
@@ -206,7 +212,10 @@ fun TeamProfileScreen(
                     onRetry = onRetry,
                     emptyTitle = stringResource(R.string.team_squad_empty_title),
                     emptyDescription = stringResource(R.string.team_squad_empty_description),
-                ) { SquadList(it, onPlayerClick) }
+                ) { squad ->
+                    SeasonPicker(squad.seasons, squad.selectedSeasonId, onSquadSeasonSelect)
+                    SquadList(squad.groups, onPlayerClick)
+                }
 
                 TeamTab.Data -> TeamInfoContent(
                     profileState = uiState.profile,
@@ -257,70 +266,17 @@ fun TeamProfileScreen(
 
 @Composable
 private fun TeamScheduleContent(
-    uiState: TeamProfileUiState,
+    matches: List<io.github.chos1n11111.dongqiudipure.core.model.MatchSummary>,
     seasons: List<SeasonOption>,
     selectedSeasonId: String?,
     onSeasonSelect: (String) -> Unit,
-    onCompetitionSelect: (CompetitionId?) -> Unit,
-    onFilterSelect: (TeamScheduleFilter) -> Unit,
-    onPageSelect: (Int) -> Unit,
     onMatchClick: (MatchId) -> Unit,
 ) {
     SeasonPicker(seasons, selectedSeasonId, onSeasonSelect)
-    val schedule = (uiState.schedule as? SectionState.Content)?.value
-    val competitions = schedule?.matches.orEmpty()
-        .map { it.competition }
-        .distinctBy { it.id }
-    LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = DqdSpacing.sm, vertical = DqdSpacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        item {
-            ChoiceChip(
-                label = stringResource(R.string.team_schedule_all_competitions),
-                selected = uiState.selectedCompetitionId == null,
-                onClick = { onCompetitionSelect(null) },
-            )
-        }
-        items(competitions, key = { it.id.raw }) { competition ->
-            ChoiceChip(
-                label = competition.name,
-                selected = competition.id == uiState.selectedCompetitionId,
-                onClick = { onCompetitionSelect(competition.id) },
-            )
-        }
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
-    ) {
-        TeamScheduleFilter.entries.forEach { filter ->
-            ChoiceChip(
-                label = stringResource(filter.labelRes),
-                selected = filter == uiState.scheduleFilter,
-                onClick = { onFilterSelect(filter) },
-                modifier = Modifier.weight(1f),
-                centered = true,
-            )
-        }
-    }
-    if (uiState.visibleMatches.isEmpty()) {
+    if (matches.isEmpty()) {
         InlineEmpty(stringResource(R.string.team_schedule_filter_empty))
     } else {
-        TeamFixtureList(uiState.visibleMatches, onMatchClick)
-    }
-    if (uiState.schedulePageCount > 1) {
-        Pagination(
-            page = uiState.schedulePage,
-            pages = uiState.schedulePageCount,
-            onPageSelect = onPageSelect,
-        )
+        TeamFixtureList(matches, onMatchClick)
     }
 }
 
@@ -344,50 +300,46 @@ private fun TeamInfoContent(
         title = stringResource(R.string.team_details),
     ) { profile ->
         TeamFacts(profile)
-        profile.description?.let { description ->
-            SectionHeader(stringResource(R.string.team_description))
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(
-                    start = DqdSpacing.listHorizontal,
-                    end = DqdSpacing.listHorizontal,
-                    bottom = DqdSpacing.md,
-                ),
+        if (profile.rankHistory.isNotEmpty()) {
+            SectionHeader(stringResource(R.string.team_rank_history))
+            RankingChart(
+                values = profile.rankHistory.map { it.seasonLabel to it.rank },
+                maxRank = profile.rankHistory.mapNotNull { it.teamCount }.maxOrNull(),
             )
-        }
-        if (profile.honors.isNotEmpty()) {
-            SectionHeader(stringResource(R.string.team_honors))
-            profile.honors.forEach { honor ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(honor.name, style = MaterialTheme.typography.bodySmall)
-                        if (honor.seasons.isNotEmpty()) {
-                            Text(
-                                honor.seasons.joinToString(" · "),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                    ValueText(honor.timesLabel, style = DqdTheme.dataText.statValue)
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
         }
         if (profile.historicalCoaches.isNotEmpty()) {
             SectionHeader(stringResource(R.string.team_historical_coaches))
-            profile.historicalCoaches.forEach { coach ->
+            var coachesExpanded by remember(profile.id) { mutableStateOf(false) }
+            val visibleCoaches = if (coachesExpanded) {
+                profile.historicalCoaches
+            } else {
+                profile.historicalCoaches.take(9)
+            }
+            visibleCoaches.forEach { coach ->
                 HistoricalCoachRow(coach, onPlayerClick)
             }
+            if (profile.historicalCoaches.size > 9) {
+                Text(
+                    text = stringResource(
+                        if (coachesExpanded) R.string.team_collapse_all else R.string.team_expand_all,
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { coachesExpanded = !coachesExpanded }
+                        .padding(vertical = DqdSpacing.md),
+                )
+            }
+        }
+        if (profile.topScorers.isNotEmpty() || profile.appearanceLeaders.isNotEmpty()) {
+            SectionHeader(stringResource(R.string.team_records))
+            TeamRecords(profile, onPlayerClick)
+        }
+        if (profile.honors.isNotEmpty()) {
+            SectionHeader(stringResource(R.string.team_honors))
+            TeamHonors(profile)
         }
     }
 
@@ -420,10 +372,6 @@ private fun TeamInfoContent(
         TeamTransferList(transfers, onPlayerClick, onTeamClick)
     }
 
-    if (showProfile) {
-        SectionHeader(stringResource(R.string.team_availability))
-        InlineEmpty(stringResource(R.string.team_availability_unavailable))
-    }
 }
 
 @Composable
@@ -546,9 +494,8 @@ private fun TeamFacts(profile: TeamProfile) {
                 profile.venueCapacity?.let { stringResource(R.string.team_capacity, it) },
             ).joinToString(" · ")
         },
-        profile.marketValueLabel?.let { stringResource(R.string.team_fact_value) to it },
     )
-    val facts = (profile.facts.map { it.label to it.value } + fallbackFacts).distinctBy { it.first }
+    val facts = profile.facts.map { it.label to it.value }.ifEmpty { fallbackFacts }
     facts.forEach { (label, value) ->
         Row(
             modifier = Modifier
@@ -574,6 +521,9 @@ private fun TeamStatisticsContent(statistics: TeamStatistics, onPlayerClick: (Pl
         statistics.rankLabel?.let { stringResource(R.string.team_stat_rank) to it },
         statistics.recordLabel?.let { stringResource(R.string.team_stat_record) to it },
     )
+    if (summaries.isNotEmpty() || statistics.rankingTrend.isNotEmpty()) {
+        SectionHeader(stringResource(R.string.team_league_data))
+    }
     if (summaries.isNotEmpty()) {
         Row(modifier = Modifier.fillMaxWidth()) {
             summaries.forEach { (label, value) ->
@@ -587,29 +537,254 @@ private fun TeamStatisticsContent(statistics: TeamStatistics, onPlayerClick: (Pl
             }
         }
     }
+    if (statistics.rankingTrend.isNotEmpty()) {
+        RankingChart(statistics.rankingTrend.map { it.weekLabel to it.rank })
+        RankingTrendSnapshot(statistics.rankingTrend.last())
+    }
     statistics.categories.forEach { category ->
         SectionHeader(category.name)
-        TeamStatsGrid(category.values)
+        TeamStatsGrid(category.values, columns = 4)
+    }
+    statistics.characteristics?.let {
+        SectionHeader(stringResource(R.string.team_tactical_characteristics))
+        TeamCharacteristicsContent(it)
     }
     if (statistics.keyPlayers.isNotEmpty()) {
         SectionHeader(stringResource(R.string.team_key_players))
-        statistics.keyPlayers.forEach { item ->
+        statistics.keyPlayers.chunked(4).forEach { rowItems ->
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onPlayerClick(item.player.id) }
-                    .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = DqdSpacing.sm),
                 horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
             ) {
-                PlayerAvatar(item.player.id, item.player.name, item.player.avatarUrl, 32.dp)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(item.player.name, style = MaterialTheme.typography.bodySmall)
-                    Text(item.metric, style = MaterialTheme.typography.labelSmall)
+                rowItems.forEach { item ->
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onPlayerClick(item.player.id) }
+                            .padding(vertical = DqdSpacing.sm),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        PlayerAvatar(item.player.id, item.player.name, item.player.avatarUrl, 42.dp)
+                        Text(
+                            item.player.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        ValueText(item.value, style = DqdTheme.dataText.tableCellStrong)
+                        Text(
+                            item.metric,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
                 }
-                ValueText(item.value, style = DqdTheme.dataText.statValue)
+                repeat(4 - rowItems.size) { Box(Modifier.weight(1f)) }
             }
         }
+    }
+}
+
+@Composable
+private fun RankingTrendSnapshot(point: TeamRankingTrendPoint) {
+    val match = point.match ?: return
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Text(
+            text = listOfNotNull(
+                stringResource(R.string.team_ranking_value, point.rank),
+                stringResource(R.string.team_round_value, point.weekLabel),
+                point.dateLabel,
+            ).joinToString(" · "),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        ) {
+            Text(match.home.name, style = MaterialTheme.typography.labelSmall)
+            TeamCrest(
+                teamId = match.home.id,
+                teamName = match.home.name,
+                crestUrl = match.home.crestUrl,
+                size = 24.dp,
+            )
+            Text(
+                text = if (match.homeScore != null && match.awayScore != null) {
+                    "${match.homeScore}-${match.awayScore}"
+                } else {
+                    "—"
+                },
+                style = DqdTheme.dataText.tableCellStrong,
+            )
+            TeamCrest(
+                teamId = match.away.id,
+                teamName = match.away.name,
+                crestUrl = match.away.crestUrl,
+                size = 24.dp,
+            )
+            Text(match.away.name, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun TeamCharacteristicsContent(characteristics: FootballCharacteristics) {
+    val rows = listOf(
+        stringResource(R.string.team_styles) to characteristics.styles,
+        stringResource(R.string.team_very_strong) to characteristics.veryStrong,
+        stringResource(R.string.team_strong) to characteristics.strong,
+        stringResource(R.string.team_weak) to characteristics.weak,
+        stringResource(R.string.team_very_weak) to characteristics.veryWeak,
+    ).filter { it.second.isNotEmpty() }
+    rows.forEach { (label, values) ->
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.width(58.dp),
+            )
+            Text(values.joinToString("、"), style = MaterialTheme.typography.bodySmall)
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+@Composable
+private fun RankingChart(
+    values: List<Pair<String, Int>>,
+    maxRank: Int? = null,
+) {
+    if (values.isEmpty()) return
+    val lineColor = MaterialTheme.colorScheme.primary
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val ceiling = (maxRank ?: values.maxOf { it.second }).coerceAtLeast(1)
+    Canvas(
+        Modifier
+            .fillMaxWidth()
+            .height(148.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = DqdSpacing.md, vertical = DqdSpacing.lg),
+    ) {
+        repeat(4) { index ->
+            val y = size.height * index / 3f
+            drawLine(gridColor, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
+        }
+        val path = Path()
+        values.forEachIndexed { index, (_, rank) ->
+            val x = if (values.size == 1) size.width / 2 else size.width * index / values.lastIndex
+            val y = if (ceiling == 1) size.height / 2 else size.height * (rank - 1) / (ceiling - 1)
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            drawCircle(lineColor, 3.dp.toPx(), Offset(x, y))
+        }
+        drawPath(path, lineColor, style = Stroke(2.dp.toPx()))
+    }
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = DqdSpacing.listHorizontal, vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        listOfNotNull(values.firstOrNull(), values.getOrNull(values.size / 2), values.lastOrNull())
+            .distinctBy { it.first }
+            .forEach { (label, rank) ->
+                Text(
+                    "$label  第${rank}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+    }
+}
+
+@Composable
+private fun TeamRecords(profile: TeamProfile, onPlayerClick: (PlayerId) -> Unit) {
+    var scorersSelected by remember { mutableStateOf(profile.topScorers.isNotEmpty()) }
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
+        if (profile.topScorers.isNotEmpty()) {
+            ChoiceChip(
+                label = stringResource(R.string.team_record_scorers),
+                selected = scorersSelected,
+                onClick = { scorersSelected = true },
+                modifier = Modifier.weight(1f),
+                centered = true,
+            )
+        }
+        if (profile.appearanceLeaders.isNotEmpty()) {
+            ChoiceChip(
+                label = stringResource(R.string.team_record_appearances),
+                selected = !scorersSelected,
+                onClick = { scorersSelected = false },
+                modifier = Modifier.weight(1f),
+                centered = true,
+            )
+        }
+    }
+    val entries = if (scorersSelected) profile.topScorers else profile.appearanceLeaders
+    entries.forEach { entry -> TeamRecordRow(entry, onPlayerClick) }
+}
+
+@Composable
+private fun TeamRecordRow(entry: TeamRecordEntry, onPlayerClick: (PlayerId) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onPlayerClick(entry.player.id) }
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
+        Text(entry.rank.toString(), style = DqdTheme.dataText.tableCell, modifier = Modifier.width(22.dp))
+        PlayerAvatar(entry.player.id, entry.player.name, entry.player.avatarUrl, 34.dp)
+        Column(Modifier.weight(1f)) {
+            Text(entry.player.name, style = MaterialTheme.typography.bodySmall)
+            Text(
+                listOfNotNull(entry.birthdayLabel, entry.nationality).joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(entry.countLabel, style = DqdTheme.dataText.tableCellStrong)
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+}
+
+@Composable
+private fun TeamHonors(profile: TeamProfile) {
+    profile.honors.forEach { honor ->
+        Column(Modifier.fillMaxWidth().padding(DqdSpacing.md)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(honor.name, style = MaterialTheme.typography.bodySmall)
+                ValueText(honor.timesLabel, style = DqdTheme.dataText.statValue)
+            }
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = DqdSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+            ) {
+                honor.seasons.ifEmpty { listOf("") }.forEach { season ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        ImagePlaceholder(
+                            url = honor.imageUrl,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(44.dp),
+                        )
+                        if (season.isNotEmpty()) Text(season, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
@@ -626,6 +801,13 @@ private fun HistoricalCoachRow(coach: HistoricalCoach, onPlayerClick: (PlayerId)
         PlayerAvatar(coach.player.id, coach.player.name, coach.player.avatarUrl, 34.dp)
         Column(modifier = Modifier.weight(1f)) {
             Text(coach.player.name, style = MaterialTheme.typography.bodySmall)
+            coach.durationLabel?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(
                 listOfNotNull(coach.startDate, coach.endDate).joinToString(" - "),
                 style = MaterialTheme.typography.labelSmall,
@@ -712,18 +894,61 @@ private fun SeasonPicker(
     onSelect: (String) -> Unit,
 ) {
     if (options.isEmpty()) return
-    LazyRow(
+    var expanded by remember { mutableStateOf(false) }
+    val selectedIndex = options.indexOfFirst { it.id == selectedId }.takeIf { it >= 0 } ?: 0
+    val selected = options[selectedIndex]
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = DqdSpacing.sm, vertical = DqdSpacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
     ) {
-        items(options, key = { it.id }) { option ->
-            ChoiceChip(
-                label = option.label,
-                selected = option.id == selectedId,
-                onClick = { onSelect(option.id) },
+        IconButton(
+            onClick = { options.getOrNull(selectedIndex + 1)?.let { onSelect(it.id) } },
+            enabled = selectedIndex < options.lastIndex,
+        ) {
+            Icon(
+                painterResource(DqdIcons.ChevronRight),
+                contentDescription = "上一赛季",
+                modifier = Modifier.rotate(180f),
+            )
+        }
+        Box {
+            Row(
+                modifier = Modifier
+                    .clickable { expanded = true }
+                    .padding(horizontal = DqdSpacing.lg, vertical = DqdSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(selected.label, style = MaterialTheme.typography.labelLarge)
+                Icon(
+                    painterResource(DqdIcons.ChevronRight),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp).rotate(90f),
+                )
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option.label) },
+                        onClick = {
+                            expanded = false
+                            onSelect(option.id)
+                        },
+                    )
+                }
+            }
+        }
+        IconButton(
+            onClick = { options.getOrNull(selectedIndex - 1)?.let { onSelect(it.id) } },
+            enabled = selectedIndex > 0,
+        ) {
+            Icon(
+                painterResource(DqdIcons.ChevronRight),
+                contentDescription = "下一赛季",
             )
         }
     }

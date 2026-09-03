@@ -3,6 +3,7 @@ package io.github.chos1n11111.dongqiudipure.core.data
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleBlock
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleLinkTarget
+import io.github.chos1n11111.dongqiudipure.core.model.CommentBodyPart
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleMedia
 import io.github.chos1n11111.dongqiudipure.core.model.EntityRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
@@ -68,6 +69,9 @@ class NewsMappersTest {
                 <p><img data-gif-src="https://img1.qunliao.info/goal.gif"
                     data-src="https://img1.qunliao.info/goal.jpg"
                     data-width="640" data-height="360"></p>
+                <div class="video" src="https://img.qunliao.info/highlight.mp4"
+                    thumb="https://img.qunliao.info/highlight.jpg"
+                    data-width="1280" data-height="720"></div>
                 <p><a href="dongqiudi://v1/main/match/matchinfo/54473222">查看比赛</a></p>
             """.trimIndent(),
             infos = ArticleInfosDto(
@@ -90,11 +94,19 @@ class NewsMappersTest {
             article.blocks[0],
         )
         assertEquals(
+            ArticleBlock.Video(
+                url = "https://img.qunliao.info/highlight.mp4",
+                posterUrl = "https://img.qunliao.info/highlight.jpg",
+                aspectRatio = 16f / 9f,
+            ),
+            article.blocks[1],
+        )
+        assertEquals(
             ArticleBlock.Link(
                 text = "查看比赛",
                 target = ArticleLinkTarget.Match(MatchId("54473222")),
             ),
-            article.blocks[1],
+            article.blocks[2],
         )
         assertEquals(
             EntityRef.Team(
@@ -142,7 +154,12 @@ class NewsMappersTest {
     @Test
     fun `comment mapper strips markup and resolves author from user list`() {
         val users = listOf(
-            CommentUserDto(id = JsonPrimitive(901), username = "Fixture Reader"),
+            CommentUserDto(
+                id = JsonPrimitive(901),
+                username = "Fixture Reader",
+                avatar = "https://img1.dongqiudi.com/avatar/901.jpg",
+                teamIcon = "https://sd.qunliao.info/teams/42.png",
+            ),
         ).byId()
 
         val comment = CommentDto(
@@ -159,6 +176,8 @@ class NewsMappersTest {
         assertEquals("Readable fixture comment.", comment.body)
         assertEquals(2, comment.replyCount)
         assertEquals(9, comment.likeCount)
+        assertEquals("https://img1.dongqiudi.com/avatar/901.jpg", comment.avatarUrl)
+        assertEquals("https://sd.qunliao.info/teams/42.png", comment.teamCrestUrl)
     }
 
     @Test
@@ -189,6 +208,13 @@ class NewsMappersTest {
         ).toDomain(users)
 
         assertEquals("[表情]", comment.body)
+        assertEquals(
+            CommentBodyPart.InlineImage(
+                url = "https://fixture.qunliao.info/emoji.png",
+                contentDescription = "[表情]",
+            ),
+            comment.bodyParts.single(),
+        )
     }
 
     private fun fixture(name: String): String = FixtureLoader.read(

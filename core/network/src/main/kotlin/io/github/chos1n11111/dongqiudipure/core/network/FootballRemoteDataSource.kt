@@ -60,7 +60,10 @@ interface FootballRemoteDataSource {
         teamId: TeamId,
         seasonId: String? = null,
     ): ApiResult<TeamStatisticDto>
-    suspend fun loadTeamMembers(teamId: TeamId): ApiResult<TeamMembersEnvelopeDto>
+    suspend fun loadTeamMembers(
+        teamId: TeamId,
+        seasonId: String? = null,
+    ): ApiResult<TeamMembersEnvelopeDto>
     suspend fun loadTeamSchedule(
         teamId: TeamId,
         seasonId: String? = null,

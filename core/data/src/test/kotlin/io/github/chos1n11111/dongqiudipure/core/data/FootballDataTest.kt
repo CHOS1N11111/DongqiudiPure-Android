@@ -166,6 +166,11 @@ class FootballDataTest {
         val teamA = MatchLineupTeamDto(
             teamId = JsonPrimitive("50000001"),
             teamName = "主队",
+            teamMarketValue = "2.21亿欧",
+            teamAge = "27.3岁",
+            coach = "主教练甲",
+            coachLogo = "https://fixture.qunliao.info/coach.jpg",
+            coachRole = "主教练",
             lineups = listOf(
                 MatchLineupPlayerDto(
                     personId = JsonPrimitive("50000011"),
@@ -185,13 +190,26 @@ class FootballDataTest {
             ),
         )
         val lineup = MatchLineupEnvelopeDto(
+            base = MatchLineupBaseDto(
+                weather = "局部有云",
+                temperature = "14°C",
+                weatherInfo = MatchLineupWeatherInfoDto(altitude = JsonPrimitive("106")),
+                field = "维拉公园球场",
+            ),
             persons = MatchLineupTeamsDto(home = teamA, away = teamA.copy(teamName = "客队")),
-        ).toDomain()?.actual
+        ).toDomain()
 
-        assertEquals(1, lineup?.home?.starters?.size)
-        assertEquals(1, lineup?.home?.substitutes?.size)
-        assertNull(lineup?.home?.substitutes?.single()?.gridRow)
-        assertNull(lineup?.home?.substitutes?.single()?.gridColumn)
+        assertEquals(1, lineup?.actual?.home?.starters?.size)
+        assertEquals(1, lineup?.actual?.home?.substitutes?.size)
+        assertNull(lineup?.actual?.home?.substitutes?.single()?.gridRow)
+        assertNull(lineup?.actual?.home?.substitutes?.single()?.gridColumn)
+        assertEquals("2.21亿欧", lineup?.actual?.home?.marketValueLabel)
+        assertEquals("27.3岁", lineup?.actual?.home?.averageAgeLabel)
+        assertEquals("主教练甲", lineup?.actual?.home?.coach)
+        assertEquals("主教练", lineup?.actual?.home?.coachRole)
+        assertEquals("https://fixture.qunliao.info/coach.jpg", lineup?.actual?.home?.coachAvatarUrl)
+        assertEquals("维拉公园球场", lineup?.info?.venue)
+        assertEquals("106m", lineup?.info?.altitude)
     }
 
     @Test
@@ -307,6 +325,118 @@ class FootballDataTest {
         assertEquals(SeasonId("8001"), remote.requestedSeason)
     }
 
+    @Test
+    fun `player detail keeps original facts characteristics careers and injury duration`() {
+        val dto = json.decodeFromString(
+            PlayerDetailDto.serializer(),
+            """
+            {
+              "base_info": {"person_id":"50466810","person_name":"萨卡"},
+              "base_info_v_1": [{"type":"周薪","value":"30万英镑"}],
+              "character_info": {
+                "styles":["喜欢内切"],
+                "strength":{"strong":["传中"]},
+                "weakness":{"weak":["抢断"]}
+              },
+              "player_career_info": [{
+                "team_id":"50000513","team_name":"阿森纳","appearance":"315",
+                "goals":"83","assist":"81"
+              }],
+              "injury_records":{"history":[{
+                "injury":"跟腱问题","days":29,"games_missed":7
+              }]}
+            }
+            """.trimIndent(),
+        ).toDomain()
+
+        assertEquals("30万英镑", dto.facts.single().value)
+        assertEquals(listOf("喜欢内切"), dto.characteristics?.styles)
+        assertEquals(315, dto.clubCareer.single().appearances)
+        assertEquals(29, dto.injuries.single().durationDays)
+    }
+
+    @Test
+    fun `player statistics map the four original summary fields`() {
+        val dto = json.decodeFromString(
+            PlayerStatisticsDto.serializer(),
+            """
+            {"league":[{
+              "id":"1",
+              "season":{"season_id":"27502","name":"2026/2027"},
+              "team":{"id":"50000513","name":"阿森纳"},
+              "base_info":{
+                "appearances":"2","starts":"2","avg_appearances_time":"79",
+                "goals":"2","assists":"0","substitute_in":"0"
+              }
+            }],"tabs_default":"league"}
+            """.trimIndent(),
+        ).toDomain()
+
+        val summary = dto.entries.getValue(dto.defaultScope).single().summary
+        assertEquals(listOf("出场/首发", "场均时间", "进球", "助攻"), summary.map { it.label })
+        assertEquals("2/2", summary.first().value)
+    }
+
+    @Test
+    fun `team detail keeps rank history coaches and record leaders`() {
+        val dto = json.decodeFromString(
+            TeamDetailDto.serializer(),
+            """
+            {
+              "base_info":{"team_id":"50000513","team_name":"阿森纳"},
+              "base_info_v_1":[{"type":"成立时间","value":"1886"}],
+              "history_rank":{"season":["25/26"],"data":[{"rank":4,"competition_clubs":20}]},
+              "history_coach":[{
+                "time":"6年","win":10,"draw":2,"loss":1,"win_rate":"76.9",
+                "person":{"id":"50002641","name":"阿尔特塔"}
+              }],
+              "goals_info":[{
+                "rank":1,"count":"228球",
+                "person":{"id":"511","name":"亨利","nationality":{"name":"法国"}}
+              }]
+            }
+            """.trimIndent(),
+        ).toDomain()
+
+        assertEquals(4, dto.rankHistory.single().rank)
+        assertEquals("6年", dto.historicalCoaches.single().durationLabel)
+        assertEquals("228球", dto.topScorers.single().countLabel)
+    }
+
+    @Test
+    fun `team statistics and squad preserve original seasons and characteristics`() {
+        val statistics = json.decodeFromString(
+            TeamStatisticDto.serializer(),
+            """
+            {
+              "season_list":[{"name":"2026/2027","current":true,"url":"https://x?season_id=27502"}],
+              "season":{"name":"2026/2027","rank":2},
+              "characteristics":{"styles":["控球"],"strength":{"very_strong":["边路进攻"]}},
+              "ranking_trend":{"weeks":[{"week":1,"rank":2,"window_start":"2026-08-21"}]}
+            }
+            """.trimIndent(),
+        ).toDomain()
+        val squad = json.decodeFromString(
+            TeamMembersEnvelopeDto.serializer(),
+            """
+            {
+              "code":0,
+              "seasons":[{"name":"2026/2027","current":true,"url":"https://x?season=0&current=1"}],
+              "data":{"list":[{
+                "title":"前锋","type":"attacker","statistics":["出场","进球"],
+                "data":[{"person_id":"50466810","person_name":"萨卡","statistic":[{"出场":"2"},{"进球":"2"}]}]
+              }]}
+            }
+            """.trimIndent(),
+        ).toDomain(null)
+
+        assertEquals("2026/2027", statistics.seasonLabel)
+        assertEquals(listOf("控球"), statistics.characteristics?.styles)
+        assertEquals(2, statistics.rankingTrend.single().rank)
+        assertEquals("0", squad.selectedSeasonId)
+        assertEquals(listOf("出场", "进球"), squad.groups.single().statisticLabels)
+    }
+
     private fun matchesFixture(): MatchListEnvelopeDto = json.decodeFromString(
         MatchListEnvelopeDto.serializer(),
         fixture("matches-success.json"),
@@ -392,7 +522,10 @@ class FootballDataTest {
             seasonId: String?,
         ): ApiResult<TeamStatisticDto> = error("Not used")
 
-        override suspend fun loadTeamMembers(teamId: TeamId): ApiResult<TeamMembersEnvelopeDto> =
+        override suspend fun loadTeamMembers(
+            teamId: TeamId,
+            seasonId: String?,
+        ): ApiResult<TeamMembersEnvelopeDto> =
             error("Not used")
 
         override suspend fun loadTeamSchedule(

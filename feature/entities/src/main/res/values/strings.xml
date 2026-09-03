@@ -12,7 +12,7 @@
     <string name="team_schedule_past">过去</string>
     <string name="team_schedule_future">未来</string>
     <string name="team_schedule_all_competitions">全部赛事</string>
-    <string name="team_schedule_filter_empty">这个筛选下暂无比赛</string>
+    <string name="team_schedule_filter_empty">暂无比赛</string>
     <string name="team_previous_page">上一页</string>
     <string name="team_next_page">下一页</string>
     <string name="team_page_number">第 %1$d / %2$d 页</string>
@@ -20,7 +20,20 @@
     <string name="team_description">球队介绍</string>
     <string name="team_honors">荣誉</string>
     <string name="team_historical_coaches">历任主教练</string>
+    <string name="team_rank_history">历年联赛排名</string>
+    <string name="team_records">球队记录</string>
+    <string name="team_record_scorers">队史射手榜</string>
+    <string name="team_record_appearances">队史出场榜</string>
     <string name="team_statistics">球队数据</string>
+    <string name="team_league_data">联赛数据</string>
+    <string name="team_ranking_value">排名第 %1$d</string>
+    <string name="team_round_value">第 %1$s 轮</string>
+    <string name="team_tactical_characteristics">技战术特点</string>
+    <string name="team_styles">比赛风格</string>
+    <string name="team_very_strong">非常强</string>
+    <string name="team_strong">强项</string>
+    <string name="team_weak">弱项</string>
+    <string name="team_very_weak">非常弱</string>
     <string name="team_transfers">转会</string>
     <string name="team_availability">伤停与停赛</string>
     <string name="team_availability_unavailable">懂球帝当前没有返回球队级伤停或停赛列表。</string>
@@ -36,6 +49,8 @@
     <string name="team_key_players">关键球员</string>
     <string name="team_win_rate">胜率 %1$s</string>
     <string name="team_captain">队长</string>
+    <string name="team_expand_all">展开全部</string>
+    <string name="team_collapse_all">收起</string>
     <string name="entity_news_comments">%1$d 评论</string>
 
     <string name="team_founded">建于 %1$s</string>
@@ -67,6 +82,9 @@
     <string name="player_scope_league">联赛</string>
     <string name="player_scope_cup">杯赛</string>
     <string name="player_scope_national">国家队</string>
+    <string name="player_header_height">身高%1$s</string>
+    <string name="player_header_weight">体重%1$s</string>
+    <string name="player_header_value">身价%1$s</string>
     <string name="player_news_empty_title">暂无动态</string>
     <string name="player_news_empty_description">最近没有与这名球员关联的公开内容。</string>
     <string name="player_profile_empty_title">暂无球员资料</string>
@@ -104,6 +122,17 @@
     <string name="player_honors">荣誉</string>
     <string name="player_transfers">转会记录</string>
     <string name="player_injuries">伤病记录</string>
+    <string name="player_characteristics">技术特点</string>
+    <string name="player_styles">比赛风格</string>
+    <string name="player_very_strong">非常强</string>
+    <string name="player_strong">强项</string>
+    <string name="player_weak">弱项</string>
+    <string name="player_very_weak">非常弱</string>
+    <string name="player_club_career">俱乐部生涯</string>
+    <string name="player_national_career">国家/地区队生涯</string>
+    <string name="player_expand_details">展开详细数据</string>
+    <string name="player_collapse_details">收起详细数据</string>
+    <string name="player_injury_days">%1$d 天</string>
     <string name="player_career">履历</string>
     <string name="player_attr_nationality">国籍</string>
     <string name="player_attr_other_nationalities">其他国籍</string>

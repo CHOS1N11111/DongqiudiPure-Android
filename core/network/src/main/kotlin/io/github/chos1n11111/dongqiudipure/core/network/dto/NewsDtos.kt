@@ -139,4 +139,5 @@ data class CommentUserDto(
     val id: JsonElement? = null,
     val username: String? = null,
     val avatar: String? = null,
+    @SerialName("team_icon") val teamIcon: String? = null,
 )

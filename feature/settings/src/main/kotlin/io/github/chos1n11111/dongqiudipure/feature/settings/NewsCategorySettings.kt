@@ -125,11 +125,6 @@ private fun NewsCategorySettingsScreen(
                         text = stringResource(R.string.settings_news_football_only),
                         style = MaterialTheme.typography.labelLarge,
                     )
-                    Text(
-                        text = stringResource(R.string.settings_news_football_only_description),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
                 Switch(
                     checked = preferences.footballOnly,

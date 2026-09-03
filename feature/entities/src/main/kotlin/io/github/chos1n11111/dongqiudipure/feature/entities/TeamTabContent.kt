@@ -17,6 +17,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,22 +28,28 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchRow
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchStatusBadge
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ValueText
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.TeamCrest
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
+import io.github.chos1n11111.dongqiudipure.core.model.MatchStatus
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerSeasonStat
 import io.github.chos1n11111.dongqiudipure.core.model.SquadMember
 import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadGroup
 import io.github.chos1n11111.dongqiudipure.core.model.TeamMemberGroupKind
+import io.github.chos1n11111.dongqiudipure.core.model.hasScore
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * 阵容名单。
@@ -73,8 +83,13 @@ fun SquadList(
             ) {
                 StaffGrid(group.members, onPlayerClick)
             } else {
+                SquadColumnHeader(group.statisticLabels)
                 group.members.forEach { member ->
-                    SquadRow(member = member, onClick = { onPlayerClick(member.id) })
+                    SquadRow(
+                        member = member,
+                        statisticLabels = group.statisticLabels,
+                        onClick = { onPlayerClick(member.id) },
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
@@ -84,6 +99,8 @@ fun SquadList(
 
 @Composable
 private fun StaffGrid(members: List<SquadMember>, onPlayerClick: (PlayerId) -> Unit) {
+    var expanded by remember(members) { mutableStateOf(false) }
+    val visibleMembers = if (expanded) members else members.take(6)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -91,7 +108,7 @@ private fun StaffGrid(members: List<SquadMember>, onPlayerClick: (PlayerId) -> U
             .padding(horizontal = DqdSpacing.sm, vertical = DqdSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
     ) {
-        members.chunked(2).forEach { rowMembers ->
+        visibleMembers.chunked(2).forEach { rowMembers ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
@@ -105,6 +122,20 @@ private fun StaffGrid(members: List<SquadMember>, onPlayerClick: (PlayerId) -> U
                 }
                 if (rowMembers.size == 1) Box(Modifier.weight(1f))
             }
+        }
+        if (members.size > 6) {
+            Text(
+                text = stringResource(
+                    if (expanded) R.string.team_collapse_all else R.string.team_expand_all,
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = DqdSpacing.sm),
+            )
         }
     }
 }
@@ -140,12 +171,51 @@ private fun StaffCell(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            val details = listOfNotNull(member.ageLabel, member.nationality).joinToString(" · ")
+            if (details.isNotEmpty()) {
+                Text(
+                    text = details,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun SquadRow(member: SquadMember, onClick: () -> Unit) {
+private fun SquadColumnHeader(labels: List<String>) {
+    if (labels.isEmpty()) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.weight(1f))
+        labels.take(4).forEachIndexed { index, label ->
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.width(if (index == 3) 54.dp else 38.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SquadRow(
+    member: SquadMember,
+    statisticLabels: List<String>,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -206,31 +276,18 @@ private fun SquadRow(member: SquadMember, onClick: () -> Unit) {
             }
         }
 
-        val value = member.stats.firstOrNull { it.label.contains("身价") }?.value
-        val performance = member.stats
-            .filterNot { it.label.contains("身价") }
-            .take(3)
-            .joinToString("  ") { stat -> "${stat.label}${stat.value ?: "—"}" }
-        Column(
-            modifier = Modifier.widthIn(max = 148.dp),
-            horizontalAlignment = Alignment.End,
-        ) {
-            if (performance.isNotEmpty()) {
-                Text(
-                    text = performance,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            val trailing = value ?: member.salaryLabel
-            if (trailing != null) {
-                Text(
-                    text = trailing,
-                    style = DqdTheme.dataText.tableCellStrong,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+        val stats = statisticLabels.take(4).map { label ->
+            member.stats.firstOrNull { it.label == label }?.value
+        }
+        stats.forEachIndexed { index, value ->
+            Box(
+                modifier = Modifier.width(if (index == 3) 54.dp else 38.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                ValueText(
+                    value = value,
+                    style = if (index == 3) DqdTheme.dataText.tableCellStrong
+                    else DqdTheme.dataText.tableCell,
                 )
             }
         }
@@ -257,17 +314,105 @@ fun TeamFixtureList(
                 )
             }
             matches.forEach { match ->
-                MatchRow(
+                EntityFixtureRow(
                     match = match,
                     onClick = { onMatchClick(match.id) },
-                    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer),
-                    showDate = true,
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
     }
 }
+
+@Composable
+fun EntityFixtureRow(
+    match: MatchSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(onClick = onClick)
+            .defaultMinSize(minHeight = 66.dp)
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
+        Column(Modifier.width(82.dp)) {
+            Text(
+                text = listOfNotNull(match.dateLabel?.takeLast(5), match.kickoffLabel)
+                    .joinToString(" "),
+                style = DqdTheme.dataText.minuteLabel,
+                maxLines = 1,
+            )
+            Text(
+                text = listOfNotNull(
+                    match.dateLabel.weekdayLabel(),
+                    match.matchInfoLabel ?: listOfNotNull(
+                        match.competition.name,
+                        match.competition.roundLabel,
+                    ).joinToString(" · "),
+                ).joinToString(" "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        FixtureTeam(match.home, home = true, Modifier.weight(1f))
+        Box(Modifier.width(56.dp), contentAlignment = Alignment.Center) {
+            if (match.status.hasScore) {
+                Text(
+                    text = "${match.homeScore ?: "—"}-${match.awayScore ?: "—"}",
+                    style = DqdTheme.dataText.scoreMedium,
+                    color = if (match.status is MatchStatus.Live || match.status == MatchStatus.HalfTime) {
+                        DqdTheme.sports.live
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
+            } else {
+                MatchStatusBadge(match.status)
+            }
+        }
+        FixtureTeam(match.away, home = false, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun FixtureTeam(
+    team: io.github.chos1n11111.dongqiudipure.core.model.TeamRef,
+    home: Boolean,
+    modifier: Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if (home) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        TeamCrest(
+            teamId = team.id,
+            teamName = team.name,
+            crestUrl = team.crestUrl,
+            size = 28.dp,
+        )
+        Text(
+            text = team.name,
+            style = MaterialTheme.typography.labelSmall,
+            textAlign = if (home) TextAlign.End else TextAlign.Start,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private fun String?.weekdayLabel(): String? = runCatching {
+    val date = this?.take(10)?.let { LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE) }
+        ?: return null
+    "周" + date.dayOfWeek.getDisplayName(java.time.format.TextStyle.NARROW, Locale.CHINA)
+}.getOrNull()
 
 private fun formatMonthLabel(raw: String): String {
     val parts = raw.split('-')
@@ -285,6 +430,7 @@ private fun formatMonthLabel(raw: String): String {
 fun TeamStatsGrid(
     stats: List<PlayerSeasonStat>,
     modifier: Modifier = Modifier,
+    columns: Int = 2,
 ) {
     val sorted = stats.sortedBy { it.displayOrder }
     Column(
@@ -292,7 +438,7 @@ fun TeamStatsGrid(
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainer),
     ) {
-        sorted.chunked(2).forEach { pair ->
+        sorted.chunked(columns).forEach { pair ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 pair.forEach { stat ->
                     Column(
@@ -318,9 +464,7 @@ fun TeamStatsGrid(
                     }
                 }
                 // 奇数项时补一个空格子，保持两列对齐。
-                if (pair.size == 1) {
-                    Box(modifier = Modifier.weight(1f))
-                }
+                repeat(columns - pair.size) { Box(modifier = Modifier.weight(1f)) }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }

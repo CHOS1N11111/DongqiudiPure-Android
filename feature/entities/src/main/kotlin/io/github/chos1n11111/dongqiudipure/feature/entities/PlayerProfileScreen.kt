@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -40,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -49,8 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
-import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchRow
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ImagePlaceholder
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
@@ -62,10 +64,11 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
-import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
+import io.github.chos1n11111.dongqiudipure.core.model.FootballCharacteristics
 import io.github.chos1n11111.dongqiudipure.core.model.MarketValuePoint
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerAbility
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerCareerSummary
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerHeatMap
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerHonor
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
@@ -103,11 +106,8 @@ fun PlayerProfileRoute(
         onTeamClick = onTeamClick,
         onTabSelect = viewModel::selectTab,
         onScopeSelect = viewModel::selectScope,
-        onSeasonSelect = viewModel::selectSeason,
-        onCompetitionSelect = viewModel::selectCompetition,
-        onTeamSelect = viewModel::selectTeam,
+        onStatisticToggle = viewModel::toggleStatistic,
         onMatchesPageSelect = viewModel::selectMatchesPage,
-        onShotMatchSelect = viewModel::selectShotMatch,
         onRetry = viewModel::retryAll,
         modifier = modifier,
     )
@@ -123,11 +123,8 @@ fun PlayerProfileScreen(
     onTeamClick: (TeamId) -> Unit,
     onTabSelect: (PlayerTab) -> Unit,
     onScopeSelect: (PlayerStatisticScope) -> Unit,
-    onSeasonSelect: (String) -> Unit,
-    onCompetitionSelect: (CompetitionId?) -> Unit,
-    onTeamSelect: (TeamId) -> Unit,
+    onStatisticToggle: (PlayerStatisticEntry) -> Unit,
     onMatchesPageSelect: (Int) -> Unit,
-    onShotMatchSelect: (MatchId) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -196,9 +193,7 @@ fun PlayerProfileScreen(
                 PlayerTab.Data -> PlayerDataTab(
                     uiState,
                     onScopeSelect,
-                    onSeasonSelect,
-                    onCompetitionSelect,
-                    onTeamSelect,
+                    onStatisticToggle,
                     onRetry,
                 )
 
@@ -206,7 +201,6 @@ fun PlayerProfileScreen(
                     uiState,
                     onMatchClick,
                     onMatchesPageSelect,
-                    onShotMatchSelect,
                     onRetry,
                 )
 
@@ -234,9 +228,7 @@ fun PlayerProfileScreen(
 private fun PlayerDataTab(
     uiState: PlayerProfileUiState,
     onScopeSelect: (PlayerStatisticScope) -> Unit,
-    onSeasonSelect: (String) -> Unit,
-    onCompetitionSelect: (CompetitionId?) -> Unit,
-    onTeamSelect: (TeamId) -> Unit,
+    onStatisticToggle: (PlayerStatisticEntry) -> Unit,
     onRetry: () -> Unit,
 ) {
     SectionContainer(
@@ -245,80 +237,88 @@ private fun PlayerDataTab(
         emptyTitle = stringResource(R.string.player_season_stats_empty_title),
         emptyDescription = stringResource(R.string.player_season_stats_empty_description),
     ) {
-        PlayerDataSelectors(
-            uiState,
-            onScopeSelect,
-            onSeasonSelect,
-            onCompetitionSelect,
-            onTeamSelect,
+        ChoiceRow(
+            options = PlayerStatisticScope.entries.map { it.name to stringResource(it.labelRes()) },
+            selectedId = uiState.selectedScope.name,
+            onSelect = { raw -> onScopeSelect(PlayerStatisticScope.valueOf(raw)) },
         )
-        val entry = uiState.selectedEntry
-        if (entry == null) {
+        if (uiState.scopeEntries.isEmpty()) {
             InlineEmpty(stringResource(R.string.player_selection_empty))
         } else {
-            StatisticEntryContent(entry)
+            uiState.scopeEntries.forEach { entry ->
+                PlayerStatisticCard(
+                    entry = entry,
+                    expanded = entry.id == uiState.expandedStatisticId,
+                    heatMap = uiState.heatMap,
+                    onToggle = { onStatisticToggle(entry) },
+                    onRetry = onRetry,
+                )
+            }
         }
-    }
-    SectionContainer(
-        state = uiState.heatMap,
-        onRetry = onRetry,
-        title = stringResource(R.string.player_heat_map),
-        emptyTitle = stringResource(R.string.player_heat_map_empty_title),
-        emptyDescription = stringResource(R.string.player_heat_map_empty_description),
-    ) { HeatMap(it) }
-    val ratings = (uiState.matches as? SectionState.Content)?.value?.matches.orEmpty()
-        .mapNotNull { match -> match.ratingLabel?.toFloatOrNull()?.let { match.match.id.raw to it } }
-        .reversed()
-    if (ratings.size >= 2) {
-        SectionHeader(stringResource(R.string.player_form_trend))
-        TrendChart(ratings.map { it.second })
     }
 }
 
 @Composable
-private fun PlayerDataSelectors(
-    state: PlayerProfileUiState,
-    onScopeSelect: (PlayerStatisticScope) -> Unit,
-    onSeasonSelect: (String) -> Unit,
-    onCompetitionSelect: (CompetitionId?) -> Unit,
-    onTeamSelect: (TeamId) -> Unit,
+private fun PlayerStatisticCard(
+    entry: PlayerStatisticEntry,
+    expanded: Boolean,
+    heatMap: SectionState<PlayerHeatMap>,
+    onToggle: () -> Unit,
+    onRetry: () -> Unit,
 ) {
-    ChoiceRow(
-        options = PlayerStatisticScope.entries.map { it.name to stringResource(it.labelRes()) },
-        selectedId = state.selectedScope.name,
-        onSelect = { raw -> onScopeSelect(PlayerStatisticScope.valueOf(raw)) },
-    )
-    ChoiceRow(
-        options = state.scopeEntries.distinctBy { it.season.id }
-            .map { it.season.id to it.season.label },
-        selectedId = state.selectedSeasonId,
-        onSelect = onSeasonSelect,
-    )
-    val competitions = state.seasonEntries.mapNotNull { it.competition }.distinctBy { it.id }
-    if (competitions.isNotEmpty()) {
-        ChoiceRow(
-            options = competitions.map { it.id.raw to it.name },
-            selectedId = state.selectedCompetitionId?.raw,
-            onSelect = { onCompetitionSelect(CompetitionId(it)) },
-        )
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle)
+                .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        ) {
+            TeamCrest(
+                teamId = entry.team.id,
+                teamName = entry.team.name,
+                crestUrl = entry.team.crestUrl,
+                size = 36.dp,
+            )
+            Column(Modifier.weight(1f)) {
+                Text(entry.season.label, style = MaterialTheme.typography.labelLarge)
+                Text(
+                    listOfNotNull(entry.team.name, entry.competition?.name).joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                stringResource(if (expanded) R.string.player_collapse_details else R.string.player_expand_details),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        if (entry.summary.isNotEmpty()) TeamStatsGrid(entry.summary, columns = 4)
+        if (expanded) {
+            SectionContainer(
+                state = heatMap,
+                onRetry = onRetry,
+                title = stringResource(R.string.player_heat_map),
+                emptyTitle = stringResource(R.string.player_heat_map_empty_title),
+                emptyDescription = stringResource(R.string.player_heat_map_empty_description),
+            ) { HeatMap(it) }
+            StatisticEntryContent(entry)
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
-    ChoiceRow(
-        options = state.competitionEntries.map { it.team }.distinctBy { it.id }
-            .map { it.id.raw to it.name },
-        selectedId = state.selectedTeamId?.raw,
-        onSelect = { onTeamSelect(TeamId(it)) },
-    )
 }
 
 @Composable
 private fun StatisticEntryContent(entry: PlayerStatisticEntry) {
-    if (entry.summary.isNotEmpty()) {
-        SectionHeader(stringResource(R.string.player_summary_data))
-        TeamStatsGrid(entry.summary)
-    }
     entry.sections.forEach { section ->
         SectionHeader(section.name)
-        TeamStatsGrid(section.values)
+        TeamStatsGrid(section.values, columns = 4)
     }
 }
 
@@ -327,7 +327,6 @@ private fun PlayerMatchesTab(
     uiState: PlayerProfileUiState,
     onMatchClick: (MatchId) -> Unit,
     onPageSelect: (Int) -> Unit,
-    onShotMatchSelect: (MatchId) -> Unit,
     onRetry: () -> Unit,
 ) {
     SectionContainer(
@@ -340,34 +339,15 @@ private fun PlayerMatchesTab(
         if (page.totalPages > 1) {
             EntityPagination(page.page, page.totalPages, onPageSelect)
         }
-        if (page.matches.isNotEmpty()) {
-            SectionHeader(stringResource(R.string.player_shot_match))
-            ChoiceRow(
-                options = page.matches.map { performance ->
-                    performance.match.id.raw to
-                        "${performance.match.home.name}-${performance.match.away.name}"
-                },
-                selectedId = uiState.selectedShotMatchId?.raw,
-                onSelect = { onShotMatchSelect(MatchId(it)) },
-            )
-        }
     }
-    SectionContainer(
-        state = uiState.shotMap,
-        onRetry = onRetry,
-        title = stringResource(R.string.player_shot_map),
-        emptyTitle = stringResource(R.string.player_shot_map_empty_title),
-        emptyDescription = stringResource(R.string.player_shot_map_empty_description),
-    ) { ShotMap(it) }
 }
 
 @Composable
 private fun PlayerMatchList(page: PlayerMatchPage, onMatchClick: (MatchId) -> Unit) {
     page.matches.forEach { performance ->
-        MatchRow(
+        EntityFixtureRow(
             match = performance.match,
             onClick = { onMatchClick(performance.match.id) },
-            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer),
         )
         PerformanceRow(performance)
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -518,26 +498,34 @@ private fun TrendChart(values: List<Float>) {
 @Composable
 private fun PlayerInfoContent(overview: PlayerOverview, onTeamClick: (TeamId) -> Unit) {
     SectionHeader(stringResource(R.string.player_profile_section))
-    AttributeGrid(overview.profile)
-    if (overview.honors.isNotEmpty()) {
-        SectionHeader(stringResource(R.string.player_honors))
-        HonorList(overview.honors)
+    AttributeGrid(overview)
+    if (overview.marketValues.isNotEmpty()) {
+        SectionHeader(stringResource(R.string.player_market_value_history))
+        MarketValueChart(overview.marketValues)
+    }
+    overview.characteristics?.let {
+        SectionHeader(stringResource(R.string.player_characteristics))
+        CharacteristicsContent(it)
     }
     if (overview.transfers.isNotEmpty()) {
         SectionHeader(stringResource(R.string.player_transfers))
         TransferList(overview.transfers, onTeamClick)
     }
-    SectionHeader(stringResource(R.string.player_injuries))
-    if (overview.injuries.isEmpty()) {
-        InlineEmpty(stringResource(R.string.player_injuries_empty_description))
-    } else {
+    if (overview.clubCareer.isNotEmpty()) {
+        SectionHeader(stringResource(R.string.player_club_career))
+        CareerSummaryList(overview.clubCareer, onTeamClick)
+    }
+    if (overview.nationalCareer.isNotEmpty()) {
+        SectionHeader(stringResource(R.string.player_national_career))
+        CareerSummaryList(overview.nationalCareer, onTeamClick)
+    }
+    if (overview.injuries.isNotEmpty()) {
+        SectionHeader(stringResource(R.string.player_injuries))
         InjuryList(overview.injuries)
     }
-    SectionHeader(stringResource(R.string.player_market_value_history))
-    if (overview.marketValues.isEmpty()) {
-        InlineEmpty(stringResource(R.string.player_market_value_empty))
-    } else {
-        MarketValueChart(overview.marketValues)
+    if (overview.honors.isNotEmpty()) {
+        SectionHeader(stringResource(R.string.player_honors))
+        HonorList(overview.honors)
     }
 }
 
@@ -552,9 +540,6 @@ private fun PlayerHeader(profile: PlayerProfile, onTeamClick: (TeamId) -> Unit) 
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(profile.name, style = MaterialTheme.typography.headlineSmall)
-                profile.shirtNumber?.let {
-                    Text(stringResource(R.string.player_shirt_number, it), style = DqdTheme.dataText.statValue)
-                }
             }
             profile.englishName?.let {
                 Text(
@@ -571,6 +556,28 @@ private fun PlayerHeader(profile: PlayerProfile, onTeamClick: (TeamId) -> Unit) 
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            val physical = listOfNotNull(
+                profile.heightLabel?.let { stringResource(R.string.player_header_height, it) },
+                profile.weightLabel?.let { stringResource(R.string.player_header_weight, it) },
+                profile.marketValueLabel?.let { stringResource(R.string.player_header_value, it) },
+            ).joinToString(" / ")
+            if (physical.isNotEmpty()) {
+                Text(
+                    physical,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            val roleDetails = listOfNotNull(
+                profile.ageLabel,
+                profile.shirtNumber?.let { stringResource(R.string.player_shirt_number, it) },
+                listOfNotNull(stringResource(profile.position.labelRes()), profile.footLabel)
+                    .joinToString("/")
+                    .takeIf(String::isNotEmpty),
+            ).joinToString("  |  ")
+            if (roleDetails.isNotEmpty()) {
+                Text(roleDetails, style = MaterialTheme.typography.labelSmall)
             }
             val team = profile.team
             if (team != null) {
@@ -598,26 +605,25 @@ private fun PlayerHeader(profile: PlayerProfile, onTeamClick: (TeamId) -> Unit) 
 }
 
 @Composable
-private fun AttributeGrid(profile: PlayerProfile) {
-    val values = listOf(
-        stringResource(R.string.player_attr_nationality) to profile.nationality,
-        stringResource(R.string.player_attr_other_nationalities) to
-            profile.otherNationalities.joinToString("、").ifEmpty { null },
-        stringResource(R.string.player_attr_age) to profile.ageLabel,
-        stringResource(R.string.player_attr_birthday) to profile.birthdayLabel,
-        stringResource(R.string.player_attr_height) to profile.heightLabel,
-        stringResource(R.string.player_attr_weight) to profile.weightLabel,
-        stringResource(R.string.player_attr_foot) to profile.footLabel,
-        stringResource(R.string.player_attr_value) to profile.marketValueLabel,
-        stringResource(R.string.player_attr_contract) to profile.contractUntil,
-        stringResource(R.string.player_attr_weekly_salary) to profile.weeklySalaryLabel,
-    )
+private fun AttributeGrid(overview: PlayerOverview) {
+    val profile = overview.profile
+    val values = overview.facts.map { it.label to it.value } .ifEmpty {
+        listOfNotNull(
+            profile.name.takeIf(String::isNotEmpty)?.let { "姓名" to it },
+            profile.englishName?.let { "全名" to it },
+            profile.nationality?.let { "国籍/会籍" to it },
+            profile.birthdayLabel?.let { "生日" to it },
+            profile.weeklySalaryLabel?.let { "周薪" to it },
+            profile.marketValueLabel?.let { "身价" to it },
+            profile.contractUntil?.let { "合同到期" to it },
+        )
+    }
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer)) {
         values.chunked(2).forEach { pair ->
             Row(Modifier.fillMaxWidth()) {
                 pair.forEach { (label, value) ->
                     Column(Modifier.weight(1f).padding(DqdSpacing.md)) {
-                        ValueText(value, style = MaterialTheme.typography.bodySmall)
+                        Text(value, style = MaterialTheme.typography.bodySmall)
                         Text(label, style = MaterialTheme.typography.labelSmall)
                     }
                 }
@@ -625,6 +631,77 @@ private fun AttributeGrid(profile: PlayerProfile) {
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
+    }
+}
+
+@Composable
+private fun CharacteristicsContent(characteristics: FootballCharacteristics) {
+    val rows = listOf(
+        stringResource(R.string.player_styles) to characteristics.styles,
+        stringResource(R.string.player_very_strong) to characteristics.veryStrong,
+        stringResource(R.string.player_strong) to characteristics.strong,
+        stringResource(R.string.player_weak) to characteristics.weak,
+        stringResource(R.string.player_very_weak) to characteristics.veryWeak,
+    ).filter { it.second.isNotEmpty() }
+    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer)) {
+        rows.forEach { (label, values) ->
+            Row(
+                Modifier.fillMaxWidth().padding(DqdSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(58.dp),
+                )
+                Text(values.joinToString("、"), style = MaterialTheme.typography.bodySmall)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+    }
+}
+
+@Composable
+private fun CareerSummaryList(
+    entries: List<PlayerCareerSummary>,
+    onTeamClick: (TeamId) -> Unit,
+) {
+    entries.forEach { entry ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onTeamClick(entry.team.id) }
+                .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        ) {
+            TeamCrest(
+                teamId = entry.team.id,
+                teamName = entry.team.name,
+                crestUrl = entry.team.crestUrl,
+                size = 32.dp,
+            )
+            Column(Modifier.weight(1f)) {
+                Text(entry.team.name, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    listOfNotNull(entry.startDate, entry.endDate).joinToString(" - "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            listOf(
+                stringResource(R.string.player_career_column_appearances) to entry.appearances,
+                stringResource(R.string.player_career_column_goals) to entry.goals,
+                stringResource(R.string.player_career_column_assists) to entry.assists,
+            ).forEach { (label, value) ->
+                Column(Modifier.width(36.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    ValueText(value, style = DqdTheme.dataText.tableCellStrong)
+                    Text(label, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
@@ -647,23 +724,34 @@ private fun AbilityContent(ability: PlayerAbility) {
 @Composable
 private fun HonorList(honors: List<PlayerHonor>) {
     honors.forEach { honor ->
-        Row(
-            Modifier.fillMaxWidth().padding(DqdSpacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
+        Column(Modifier.fillMaxWidth().padding(DqdSpacing.md)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(honor.name, style = MaterialTheme.typography.bodySmall)
-                if (honor.seasons.isNotEmpty()) {
-                    Text(
-                        honor.seasons.joinToString(" · "),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                honor.times?.let { Text(stringResource(R.string.player_honor_times, it)) }
             }
-            honor.times?.let { Text(stringResource(R.string.player_honor_times, it)) }
+            if (honor.seasons.isNotEmpty()) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = DqdSpacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+                ) {
+                    honor.seasons.forEach { season ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            ImagePlaceholder(
+                                url = honor.logoUrl,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.size(42.dp),
+                            )
+                            Text(season, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            } else if (honor.logoUrl != null) {
+                ImagePlaceholder(
+                    url = honor.logoUrl,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.padding(top = DqdSpacing.sm).size(42.dp),
+                )
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
@@ -722,6 +810,7 @@ private fun InjuryList(injuries: List<PlayerInjury>) {
                 Text(
                     listOfNotNull(
                         injury.teamName,
+                        injury.durationDays?.let { stringResource(R.string.player_injury_days, it) },
                         listOfNotNull(injury.startDate, injury.endDate)
                             .joinToString(" - ")
                             .takeIf { it.isNotEmpty() },

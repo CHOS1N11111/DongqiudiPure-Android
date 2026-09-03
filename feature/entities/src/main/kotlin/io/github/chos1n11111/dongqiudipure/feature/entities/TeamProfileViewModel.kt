@@ -14,7 +14,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamProfile
 import io.github.chos1n11111.dongqiudipure.core.model.TeamScheduleData
-import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadGroup
+import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
 import javax.inject.Inject
@@ -43,7 +43,7 @@ data class TeamProfileUiState(
     val profile: SectionState<TeamProfile> = SectionState.Loading,
     val news: SectionState<List<ArticleSummary>> = SectionState.Loading,
     val schedule: SectionState<TeamScheduleData> = SectionState.Loading,
-    val squad: SectionState<List<TeamSquadGroup>> = SectionState.Loading,
+    val squad: SectionState<TeamSquadData> = SectionState.Loading,
     val statistics: SectionState<TeamStatistics> = SectionState.Loading,
     val transfers: SectionState<TeamTransferData> = SectionState.Loading,
     val selectedTab: TeamTab = TeamTab.Dynamic,
@@ -125,6 +125,11 @@ class TeamProfileViewModel @Inject constructor(
         loadStatistics(id, seasonId)
     }
 
+    fun selectSquadSeason(seasonId: String) {
+        val id = teamId ?: return
+        loadSquad(id, seasonId)
+    }
+
     fun selectTransferWindow(windowId: String) {
         val id = teamId ?: return
         loadTransfers(id, windowId)
@@ -153,13 +158,7 @@ class TeamProfileViewModel @Inject constructor(
             updateIfCurrent(id) { it.copy(news = state) }
         }
         loadSchedule(id, null)
-        jobs["squad"] = viewModelScope.launch {
-            val state = when (val result = repository.loadTeamSquad(id)) {
-                is DataResult.Failure -> SectionState.Failed(result.error)
-                is DataResult.Success -> result.value.toSectionState()
-            }
-            updateIfCurrent(id) { it.copy(squad = state) }
-        }
+        loadSquad(id, null)
         loadStatistics(id, null)
         loadTransfers(id, null)
     }
@@ -191,6 +190,18 @@ class TeamProfileViewModel @Inject constructor(
                 is DataResult.Success -> result.value.toSectionState()
             }
             updateIfCurrent(id) { it.copy(statistics = state) }
+        }
+    }
+
+    private fun loadSquad(id: TeamId, seasonId: String?) {
+        jobs["squad"]?.cancel()
+        _uiState.update { it.copy(squad = SectionState.Loading) }
+        jobs["squad"] = viewModelScope.launch {
+            val state = when (val result = repository.loadTeamSquad(id, seasonId)) {
+                is DataResult.Failure -> SectionState.Failed(result.error)
+                is DataResult.Success -> result.value.toSectionState { it.groups.isNotEmpty() }
+            }
+            updateIfCurrent(id) { it.copy(squad = state) }
         }
     }
 
