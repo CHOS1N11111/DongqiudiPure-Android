@@ -480,6 +480,7 @@ private fun MatchLineupPlayerDto.toDomainPlayer(): LineupPlayer? {
         avatarUrl = safeFootballMediaUrl(logo),
         ratingLabel = rate.scalarFootball().displayable()?.takeUnless { it == "0" },
         isMvp = isMvp.optionalFootballInt() == 1,
+        isCaptain = captain.optionalFootballInt() == 1,
         nationality = nationalityName.displayable(),
         events = events.orEmpty().mapNotNull { event ->
             val type = event.type.displayable() ?: return@mapNotNull null
@@ -490,6 +491,7 @@ private fun MatchLineupPlayerDto.toDomainPlayer(): LineupPlayer? {
                 minuteLabel = minute?.let {
                     if (extra == null) "$it'" else "$it+$extra'"
                 },
+                iconUrl = safeFootballMediaUrl(event.eventPic),
             )
         },
     )
@@ -518,7 +520,7 @@ private fun MatchAnalysisMatchDto.toDomain(): AnalysisMatch? {
 }
 
 private fun io.github.chos1n11111.dongqiudipure.core.network.dto.MatchSidelinePlayerDto.toAbsentee(): Absentee? {
-    val name = person.displayable() ?: personName.displayable() ?: return null
+    val name = person.displayable() ?: personName.displayable() ?: this.name.displayable() ?: return null
     return Absentee(name, reason.displayable() ?: injury.displayable())
 }
 
@@ -912,7 +914,7 @@ internal fun TeamMembersEnvelopeDto.toDomain(requestedSeasonId: String?): TeamSq
             SquadMember(
                 id = PlayerId(id.fullDqdId()),
                 name = name,
-                shirtNumber = member.shirtnumber.optionalFootballInt(),
+                shirtNumber = member.shirtnumber.optionalShirtNumber(),
                 position = member.type.toPlayerPosition(),
                 nationality = member.nationalityName.displayable(),
                 ageLabel = member.age.displayable(),
@@ -1509,6 +1511,12 @@ private fun JsonElement?.requiredFootballInt(): Int =
 private fun JsonElement?.optionalFootballInt(): Int? {
     val value = scalarFootball()?.trim() ?: return null
     if (value.isEmpty()) return null
+    return value.toIntOrNull() ?: throw ContractViolation()
+}
+
+private fun JsonElement?.optionalShirtNumber(): Int? {
+    val value = scalarFootball()?.trim() ?: return null
+    if (value.isEmpty() || value == "-") return null
     return value.toIntOrNull() ?: throw ContractViolation()
 }
 

@@ -3,6 +3,8 @@ package io.github.chos1n11111.dongqiudipure.feature.entities
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.data.FootballEntityRepository
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
@@ -22,9 +24,13 @@ import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -39,7 +45,6 @@ enum class PlayerTab(@param:StringRes val labelRes: Int) {
 data class PlayerProfileUiState(
     val profile: SectionState<PlayerProfile> = SectionState.Loading,
     val overview: SectionState<PlayerOverview> = SectionState.Loading,
-    val news: SectionState<List<ArticleSummary>> = SectionState.Loading,
     val statistics: SectionState<PlayerStatisticsData> = SectionState.Loading,
     val matches: SectionState<PlayerMatchPage> = SectionState.Loading,
     val ability: SectionState<PlayerAbility> = SectionState.Loading,
@@ -60,6 +65,7 @@ data class PlayerProfileUiState(
         get() = scopeEntries.firstOrNull { it.id == expandedStatisticId }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PlayerProfileViewModel @Inject constructor(
     private val repository: FootballEntityRepository,
@@ -67,6 +73,11 @@ class PlayerProfileViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(PlayerProfileUiState())
     val uiState: StateFlow<PlayerProfileUiState> = _uiState.asStateFlow()
+    private val newsPlayerId = MutableStateFlow<PlayerId?>(null)
+    val news: Flow<PagingData<ArticleSummary>> = newsPlayerId
+        .filterNotNull()
+        .flatMapLatest { repository.pagedPlayerNews(it) }
+        .cachedIn(viewModelScope)
 
     private var playerId: PlayerId? = null
     private val jobs = mutableMapOf<String, Job>()
@@ -74,6 +85,7 @@ class PlayerProfileViewModel @Inject constructor(
     fun load(id: PlayerId) {
         if (playerId == id) return
         playerId = id
+        newsPlayerId.value = id
         loadAll(id)
     }
 
@@ -136,13 +148,6 @@ class PlayerProfileViewModel @Inject constructor(
                     )
                 }
             }
-        }
-        jobs["news"] = viewModelScope.launch {
-            val state = when (val result = repository.loadPlayerNews(id)) {
-                is DataResult.Failure -> SectionState.Failed(result.error)
-                is DataResult.Success -> result.value.toSectionState()
-            }
-            updateIfCurrent(id) { it.copy(news = state) }
         }
         jobs["statistics"] = viewModelScope.launch {
             when (val result = repository.loadPlayerStatistics(id)) {

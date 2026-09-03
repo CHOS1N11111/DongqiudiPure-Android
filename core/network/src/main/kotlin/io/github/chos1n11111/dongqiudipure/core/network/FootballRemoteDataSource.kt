@@ -72,7 +72,7 @@ interface FootballRemoteDataSource {
         teamId: TeamId,
         windowId: String? = null,
     ): ApiResult<TeamTransferEnvelopeDto>
-    suspend fun loadEntityFeed(entityId: String, type: String): ApiResult<EntityFeedEnvelopeDto>
+    suspend fun loadEntityFeed(request: EntityFeedRequest): ApiResult<EntityFeedEnvelopeDto>
     suspend fun loadPlayerDetail(playerId: PlayerId): ApiResult<PlayerDetailDto>
     suspend fun loadPlayerStatistics(playerId: PlayerId): ApiResult<PlayerStatisticsDto>
     suspend fun loadPlayerMatches(
@@ -90,3 +90,11 @@ interface FootballRemoteDataSource {
     ): ApiResult<PlayerShotMapDto>
     suspend fun loadPlayerAbility(playerId: PlayerId): ApiResult<PlayerAbilityEnvelopeDto>
 }
+
+data class EntityFeedRequest(
+    val entityId: String,
+    val type: String,
+    val after: String? = null,
+    val page: Int? = null,
+    val offset: Int? = null,
+)

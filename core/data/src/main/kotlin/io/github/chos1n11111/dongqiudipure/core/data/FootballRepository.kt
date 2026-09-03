@@ -1,5 +1,6 @@
 package io.github.chos1n11111.dongqiudipure.core.data
 
+import androidx.paging.PagingData
 import io.github.chos1n11111.dongqiudipure.core.model.CareerEntry
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionCatalogGroup
@@ -31,6 +32,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamScheduleData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
+import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
 interface FootballCatalogRepository {
@@ -94,12 +96,12 @@ interface FootballEntityRepository {
         teamId: TeamId,
         windowId: String? = null,
     ): DataResult<TeamTransferData>
-    suspend fun loadTeamNews(teamId: TeamId): DataResult<List<ArticleSummary>>
+    fun pagedTeamNews(teamId: TeamId): Flow<PagingData<ArticleSummary>>
     suspend fun loadPlayerOverview(playerId: PlayerId): DataResult<PlayerOverview?>
     suspend fun loadPlayerCareer(playerId: PlayerId): DataResult<List<CareerEntry>>
     suspend fun loadPlayerStatistics(playerId: PlayerId): DataResult<PlayerStatisticsData>
     suspend fun loadPlayerMatches(playerId: PlayerId, page: Int): DataResult<PlayerMatchPage>
-    suspend fun loadPlayerNews(playerId: PlayerId): DataResult<List<ArticleSummary>>
+    fun pagedPlayerNews(playerId: PlayerId): Flow<PagingData<ArticleSummary>>
     suspend fun loadPlayerHeatMap(
         playerId: PlayerId,
         seasonId: String,

@@ -1,5 +1,6 @@
 package io.github.chos1n11111.dongqiudipure.core.data
 
+import androidx.paging.PagingSource
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.DataResult
@@ -9,6 +10,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.model.StandingZone
 import io.github.chos1n11111.dongqiudipure.core.network.ApiResult
+import io.github.chos1n11111.dongqiudipure.core.network.EntityFeedRequest
 import io.github.chos1n11111.dongqiudipure.core.network.FootballRemoteDataSource
 import io.github.chos1n11111.dongqiudipure.core.network.dto.*
 import io.github.chos1n11111.dongqiudipure.core.testing.FixtureLoader
@@ -149,6 +151,38 @@ class FootballDataTest {
     }
 
     @Test
+    fun `entity feed page preserves upstream order and exposes android cursor`() = runBlocking {
+        val remote = FakeFootballRemoteDataSource().apply {
+            entityFeedResult = ApiResult.Success(
+                EntityFeedEnvelopeDto(
+                    code = JsonPrimitive(0),
+                    data = FeedResponseDto(
+                        articles = listOf(
+                            FeedArticleDto(id = JsonPrimitive("102"), title = "Second upstream item"),
+                            FeedArticleDto(id = JsonPrimitive("101"), title = "First upstream item"),
+                        ),
+                        next = "https://api.dongqiudi.com/v3/archive/app/channel/feeds" +
+                            "?id=50000513&type=team&size=20&platform=android&version=" +
+                            "&page=2&after=1788417307&offset=1",
+                    ),
+                ),
+            )
+        }
+
+        val result = EntityFeedPagingSource(remote, entityId = "513", type = "team").load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 20,
+                placeholdersEnabled = false,
+            ),
+        ) as PagingSource.LoadResult.Page
+
+        assertEquals(listOf("102", "101"), result.data.map { it.id.raw })
+        assertEquals(EntityFeedPageKey("1788417307", 2, 1), result.nextKey)
+        assertEquals(EntityFeedRequest(entityId = "513", type = "team"), remote.requestedEntityFeed)
+    }
+
+    @Test
     fun `team sample separates world rank from market value`() {
         val profile = TeamSampleDto(
             teamId = JsonPrimitive("50000804"),
@@ -176,8 +210,17 @@ class FootballDataTest {
                     personId = JsonPrimitive("50000011"),
                     person = "首发",
                     rate = JsonPrimitive("7.2"),
+                    isMvp = JsonPrimitive(1),
+                    captain = JsonPrimitive(1),
                     positionX = JsonPrimitive("50"),
                     positionY = JsonPrimitive("20"),
+                    events = listOf(
+                        MatchLineupPlayerEventDto(
+                            type = "YC",
+                            minute = JsonPrimitive(81),
+                            eventPic = "https://fixture.qunliao.info/card.png",
+                        ),
+                    ),
                 ),
             ),
             sub = listOf(
@@ -195,11 +238,18 @@ class FootballDataTest {
                 temperature = "14°C",
                 weatherInfo = MatchLineupWeatherInfoDto(altitude = JsonPrimitive("106")),
                 field = "维拉公园球场",
+                referee = "裁判甲",
             ),
             persons = MatchLineupTeamsDto(home = teamA, away = teamA.copy(teamName = "客队")),
+            sideline = MatchSidelineDto(
+                home = listOf(MatchSidelinePlayerDto(name = "伤员", reason = "受伤")),
+            ),
         ).toDomain()
 
         assertEquals(1, lineup?.actual?.home?.starters?.size)
+        assertTrue(lineup?.actual?.home?.starters?.single()?.isMvp == true)
+        assertTrue(lineup?.actual?.home?.starters?.single()?.isCaptain == true)
+        assertEquals("https://fixture.qunliao.info/card.png", lineup?.actual?.home?.starters?.single()?.events?.single()?.iconUrl)
         assertEquals(1, lineup?.actual?.home?.substitutes?.size)
         assertNull(lineup?.actual?.home?.substitutes?.single()?.gridRow)
         assertNull(lineup?.actual?.home?.substitutes?.single()?.gridColumn)
@@ -209,7 +259,36 @@ class FootballDataTest {
         assertEquals("主教练", lineup?.actual?.home?.coachRole)
         assertEquals("https://fixture.qunliao.info/coach.jpg", lineup?.actual?.home?.coachAvatarUrl)
         assertEquals("维拉公园球场", lineup?.info?.venue)
+        assertEquals("裁判甲", lineup?.info?.referee)
         assertEquals("106m", lineup?.info?.altitude)
+        assertEquals("伤员", lineup?.actual?.home?.absentees?.single()?.name)
+        assertEquals("受伤", lineup?.actual?.home?.absentees?.single()?.reason)
+    }
+
+    @Test
+    fun `historical squad treats dash shirt number as missing`() {
+        val squad = TeamMembersEnvelopeDto(
+            code = JsonPrimitive(0),
+            data = TeamMembersDataDto(
+                list = listOf(
+                    TeamMemberGroupDto(
+                        title = "前锋",
+                        type = "Attacker",
+                        data = listOf(
+                            TeamMemberDto(
+                                personId = JsonPrimitive("230636"),
+                                personName = "查普林",
+                                shirtnumber = JsonPrimitive("-"),
+                                type = "Attacker",
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ).toDomain("2025-2026")
+
+        assertNull(squad.groups.single().members.single().shirtNumber)
+        assertEquals("2025-2026", squad.selectedSeasonId)
     }
 
     @Test
@@ -461,7 +540,9 @@ class FootballDataTest {
         lateinit var seasonResult: ApiResult<List<SeasonDto>>
         lateinit var standingResult: ApiResult<StandingEnvelopeDto>
         lateinit var competitionScheduleResult: ApiResult<CompetitionScheduleEnvelopeDto>
+        lateinit var entityFeedResult: ApiResult<EntityFeedEnvelopeDto>
         var requestedSeason: SeasonId? = null
+        var requestedEntityFeed: EntityFeedRequest? = null
 
         override suspend fun loadImportantMatches(
             startDate: LocalDate,
@@ -539,9 +620,11 @@ class FootballDataTest {
         ): ApiResult<TeamTransferEnvelopeDto> = error("Not used")
 
         override suspend fun loadEntityFeed(
-            entityId: String,
-            type: String,
-        ): ApiResult<EntityFeedEnvelopeDto> = error("Not used")
+            request: EntityFeedRequest,
+        ): ApiResult<EntityFeedEnvelopeDto> {
+            requestedEntityFeed = request
+            return entityFeedResult
+        }
 
         override suspend fun loadPlayerDetail(playerId: PlayerId): ApiResult<PlayerDetailDto> =
             error("Not used")

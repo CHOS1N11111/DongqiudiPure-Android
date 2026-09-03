@@ -3,6 +3,8 @@ package io.github.chos1n11111.dongqiudipure.feature.entities
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.data.FootballEntityRepository
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
@@ -19,9 +21,13 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -41,7 +47,6 @@ enum class TeamScheduleFilter(@param:StringRes val labelRes: Int) {
 
 data class TeamProfileUiState(
     val profile: SectionState<TeamProfile> = SectionState.Loading,
-    val news: SectionState<List<ArticleSummary>> = SectionState.Loading,
     val schedule: SectionState<TeamScheduleData> = SectionState.Loading,
     val squad: SectionState<TeamSquadData> = SectionState.Loading,
     val statistics: SectionState<TeamStatistics> = SectionState.Loading,
@@ -80,6 +85,7 @@ data class TeamProfileUiState(
     }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TeamProfileViewModel @Inject constructor(
     private val repository: FootballEntityRepository,
@@ -87,18 +93,29 @@ class TeamProfileViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(TeamProfileUiState())
     val uiState: StateFlow<TeamProfileUiState> = _uiState.asStateFlow()
+    private val newsTeamId = MutableStateFlow<TeamId?>(null)
+    val news: Flow<PagingData<ArticleSummary>> = newsTeamId
+        .filterNotNull()
+        .flatMapLatest { repository.pagedTeamNews(it) }
+        .cachedIn(viewModelScope)
 
     private var teamId: TeamId? = null
+    private var scheduleSeasonId: String? = null
+    private var statisticsSeasonId: String? = null
+    private var squadSeasonId: String? = null
+    private var transferWindowId: String? = null
     private val jobs = mutableMapOf<String, Job>()
 
     fun load(id: TeamId) {
         if (teamId == id) return
         teamId = id
+        newsTeamId.value = id
         loadAll(id)
     }
 
     fun selectTab(tab: TeamTab) {
         _uiState.update { it.copy(selectedTab = tab) }
+        if (tab.hasFailure(_uiState.value)) retryTab(tab)
     }
 
     fun selectScheduleFilter(filter: TeamScheduleFilter) {
@@ -136,13 +153,33 @@ class TeamProfileViewModel @Inject constructor(
     }
 
     fun retryAll() {
-        teamId?.let(::loadAll)
+        val id = teamId ?: return
+        loadProfile(id)
+        retryTab(_uiState.value.selectedTab)
+    }
+
+    fun retrySelectedTab() {
+        retryTab(_uiState.value.selectedTab)
     }
 
     private fun loadAll(id: TeamId) {
         jobs.values.forEach(Job::cancel)
         jobs.clear()
+        scheduleSeasonId = null
+        statisticsSeasonId = null
+        squadSeasonId = null
+        transferWindowId = null
         _uiState.value = TeamProfileUiState(selectedTab = _uiState.value.selectedTab)
+        loadProfile(id)
+        loadSchedule(id, null)
+        loadSquad(id, null)
+        loadStatistics(id, null)
+        loadTransfers(id, null)
+    }
+
+    private fun loadProfile(id: TeamId) {
+        jobs["profile"]?.cancel()
+        _uiState.update { it.copy(profile = SectionState.Loading) }
         jobs["profile"] = viewModelScope.launch {
             val state = when (val result = repository.loadTeamProfile(id)) {
                 is DataResult.Failure -> SectionState.Failed(result.error)
@@ -150,20 +187,10 @@ class TeamProfileViewModel @Inject constructor(
             }
             updateIfCurrent(id) { it.copy(profile = state) }
         }
-        jobs["news"] = viewModelScope.launch {
-            val state = when (val result = repository.loadTeamNews(id)) {
-                is DataResult.Failure -> SectionState.Failed(result.error)
-                is DataResult.Success -> result.value.toSectionState()
-            }
-            updateIfCurrent(id) { it.copy(news = state) }
-        }
-        loadSchedule(id, null)
-        loadSquad(id, null)
-        loadStatistics(id, null)
-        loadTransfers(id, null)
     }
 
     private fun loadSchedule(id: TeamId, seasonId: String?) {
+        scheduleSeasonId = seasonId
         jobs["schedule"]?.cancel()
         _uiState.update {
             it.copy(
@@ -182,6 +209,7 @@ class TeamProfileViewModel @Inject constructor(
     }
 
     private fun loadStatistics(id: TeamId, seasonId: String?) {
+        statisticsSeasonId = seasonId
         jobs["statistics"]?.cancel()
         _uiState.update { it.copy(statistics = SectionState.Loading) }
         jobs["statistics"] = viewModelScope.launch {
@@ -194,6 +222,7 @@ class TeamProfileViewModel @Inject constructor(
     }
 
     private fun loadSquad(id: TeamId, seasonId: String?) {
+        squadSeasonId = seasonId
         jobs["squad"]?.cancel()
         _uiState.update { it.copy(squad = SectionState.Loading) }
         jobs["squad"] = viewModelScope.launch {
@@ -206,6 +235,7 @@ class TeamProfileViewModel @Inject constructor(
     }
 
     private fun loadTransfers(id: TeamId, windowId: String?) {
+        transferWindowId = windowId
         jobs["transfers"]?.cancel()
         _uiState.update { it.copy(transfers = SectionState.Loading) }
         jobs["transfers"] = viewModelScope.launch {
@@ -231,4 +261,25 @@ class TeamProfileViewModel @Inject constructor(
 
     private fun <T> T.toSectionState(hasContent: (T) -> Boolean): SectionState<T> =
         if (hasContent(this)) SectionState.Content(this) else SectionState.Empty
+
+    private fun retryTab(tab: TeamTab) {
+        val id = teamId ?: return
+        when (tab) {
+            TeamTab.Dynamic -> Unit
+            TeamTab.Schedule -> loadSchedule(id, scheduleSeasonId)
+            TeamTab.Data -> loadStatistics(id, statisticsSeasonId)
+            TeamTab.Players -> loadSquad(id, squadSeasonId)
+            TeamTab.Info -> loadProfile(id)
+            TeamTab.Transfers -> loadTransfers(id, transferWindowId)
+        }
+    }
+
+    private fun TeamTab.hasFailure(state: TeamProfileUiState): Boolean = when (this) {
+        TeamTab.Dynamic -> false
+        TeamTab.Schedule -> state.schedule is SectionState.Failed
+        TeamTab.Data -> state.statistics is SectionState.Failed
+        TeamTab.Players -> state.squad is SectionState.Failed
+        TeamTab.Info -> state.profile is SectionState.Failed
+        TeamTab.Transfers -> state.transfers is SectionState.Failed
+    }
 }

@@ -129,14 +129,15 @@ fun DqdEmptyState(
  * 错误状态。
  *
  * 把 [AppError] 映射为「用户能采取的动作」，不展示 exception message
- * （ARCHITECTURE.md §8）。只有重试可能改变结果时才显示重试按钮 ——
- * contract 不兼容时再点一百次也不会成功，那种情况需要的是更新应用。
+ * （ARCHITECTURE.md §8）。默认只有重试可能改变结果时才显示重试按钮；调用方确认
+ * 服务端响应可能恢复时，可以通过 [forceRetry] 为 contract 错误提供直接重载入口。
  */
 @Composable
 fun DqdErrorState(
     error: AppError,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    forceRetry: Boolean = false,
 ) {
     val sports = DqdTheme.sports
     val copy = errorCopy(error)
@@ -150,8 +151,8 @@ fun DqdErrorState(
         title = stringResource(copy.titleRes),
         description = stringResource(copy.descriptionRes),
         diagnostic = error.diagnostic,
-        actionLabel = if (error.isRetryable) stringResource(R.string.ds_action_retry) else null,
-        onAction = onRetry.takeIf { error.isRetryable },
+        actionLabel = if (error.isRetryable || forceRetry) stringResource(R.string.ds_action_retry) else null,
+        onAction = onRetry.takeIf { error.isRetryable || forceRetry },
     )
 }
 

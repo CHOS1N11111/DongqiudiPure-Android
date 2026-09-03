@@ -86,6 +86,21 @@ fun ImagePlaceholder(
     }
 }
 
+/** A small server-provided icon without the framed image placeholder treatment. */
+@Composable
+fun RemoteIcon(
+    url: String?,
+    modifier: Modifier = Modifier,
+) {
+    if (url == null) return
+    AsyncImage(
+        model = url,
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = modifier,
+    )
+}
+
 /** Displays article media without cropping it; portrait statistics images remain complete. */
 @Composable
 fun OriginalAspectImage(

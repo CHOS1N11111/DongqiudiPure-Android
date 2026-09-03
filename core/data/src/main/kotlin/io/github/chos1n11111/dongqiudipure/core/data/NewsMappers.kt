@@ -52,8 +52,18 @@ internal fun FeedArticleDto.toDomain(): ArticleSummary {
     val rawId = id.scalarString().required()
     val image = matchImageList.orEmpty().firstOrNull()
     val imageUrl = safeMediaUrl(
-        image?.apiUrl ?: image?.apithumb ?: image?.thumb ?: image?.url ?: thumb,
+        slideThumb ?: thumb ?: image?.apiUrl ?: image?.apithumb ?: image?.thumb ?: image?.url,
     )
+    val isVideoItem = isVideo == true || hasVideo.scalarBooleanLike()
+    val media = when {
+        isVideoItem -> ArticleMedia.Video(imageUrl, durationLabel = null)
+        matchImageList.orEmpty().size > 1 -> ArticleMedia.Gallery(
+            url = imageUrl,
+            photoCount = matchImageList?.size,
+        )
+        imageUrl != null -> ArticleMedia.Thumbnail(imageUrl)
+        else -> ArticleMedia.None
+    }
     return ArticleSummary(
         id = ArticleId(rawId),
         title = title.required(),
@@ -64,7 +74,7 @@ internal fun FeedArticleDto.toDomain(): ArticleSummary {
             ?: publishedAt?.trim()?.takeIf(String::isNotEmpty)
             ?: "",
         commentCount = commentsTotal.scalarIntOrNull(),
-        media = imageUrl?.let { ArticleMedia.Thumbnail(it) } ?: ArticleMedia.None,
+        media = media,
         tag = showContent?.trim()?.takeIf(String::isNotEmpty)
             ?: if (top == true) "置顶" else null,
     )
@@ -104,6 +114,11 @@ internal fun CommentDto.toDomain(users: Map<String, CommentUserDto>): Comment {
         teamCrestUrl = safeMediaUrl(user.teamIcon),
         bodyParts = parsedContent.parts,
     )
+}
+
+private fun JsonElement?.scalarBooleanLike(): Boolean = when (scalarString()?.lowercase()) {
+    "1", "true" -> true
+    else -> false
 }
 
 internal fun io.github.chos1n11111.dongqiudipure.core.network.dto.CommentsDataDto

@@ -52,6 +52,9 @@
     <string name="team_expand_all">展开全部</string>
     <string name="team_collapse_all">收起</string>
     <string name="entity_news_comments">%1$d 评论</string>
+    <string name="entity_news_video">视频</string>
+    <string name="entity_news_gallery_count">%1$d 图</string>
+    <string name="entity_news_load_more_retry">重新加载</string>
 
     <string name="team_founded">建于 %1$s</string>
     <string name="team_recent_form">近期战绩</string>

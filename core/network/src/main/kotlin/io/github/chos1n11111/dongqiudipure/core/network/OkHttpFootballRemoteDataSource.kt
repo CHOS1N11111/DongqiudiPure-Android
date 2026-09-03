@@ -288,18 +288,22 @@ class OkHttpFootballRemoteDataSource @Inject constructor(
         return get(url, TEAM_TRANSFERS_ENDPOINT, TeamTransferEnvelopeDto.serializer())
     }
 
-    override suspend fun loadEntityFeed(
-        entityId: String,
-        type: String,
-    ): ApiResult<EntityFeedEnvelopeDto> {
-        requireEntityId(entityId)
-        require(type == "team" || type == "player")
+    override suspend fun loadEntityFeed(request: EntityFeedRequest): ApiResult<EntityFeedEnvelopeDto> {
+        requireEntityId(request.entityId)
+        require(request.type == "team" || request.type == "player")
+        require(request.page == null || request.page > 0)
+        require(request.offset == null || request.offset >= 0)
         val url = apiBaseUrl.newBuilder()
             .addPathSegments("v3/archive/app/channel/feeds")
-            .addQueryParameter("id", entityId.fullDqdId())
-            .addQueryParameter("type", type)
-            .addQueryParameter("platform", "web")
+            .addQueryParameter("id", request.entityId.fullDqdId())
+            .addQueryParameter("type", request.type)
+            .addQueryParameter("platform", "android")
             .addQueryParameter("size", "20")
+            .apply {
+                request.after?.let { addQueryParameter("after", it) }
+                request.page?.let { addQueryParameter("page", it.toString()) }
+                request.offset?.let { addQueryParameter("offset", it.toString()) }
+            }
             .build()
         return get(url, ENTITY_FEED_ENDPOINT, EntityFeedEnvelopeDto.serializer())
     }

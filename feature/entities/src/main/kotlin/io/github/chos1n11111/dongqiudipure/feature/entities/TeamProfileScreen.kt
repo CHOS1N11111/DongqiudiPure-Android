@@ -52,6 +52,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.FormBadge
@@ -93,9 +95,11 @@ fun TeamProfileRoute(
 ) {
     LaunchedEffect(teamId) { viewModel.load(teamId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val news = viewModel.news.collectAsLazyPagingItems()
 
     TeamProfileScreen(
         uiState = uiState,
+        news = news,
         onBack = onBack,
         onArticleClick = onArticleClick,
         onMatchClick = onMatchClick,
@@ -107,6 +111,7 @@ fun TeamProfileRoute(
         onStatisticsSeasonSelect = viewModel::selectStatisticsSeason,
         onTransferWindowSelect = viewModel::selectTransferWindow,
         onRetry = viewModel::retryAll,
+        onRetryTab = viewModel::retrySelectedTab,
         modifier = modifier,
     )
 }
@@ -115,6 +120,7 @@ fun TeamProfileRoute(
 @Composable
 fun TeamProfileScreen(
     uiState: TeamProfileUiState,
+    news: LazyPagingItems<io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary>,
     onBack: () -> Unit,
     onArticleClick: (ArticleId) -> Unit,
     onMatchClick: (MatchId) -> Unit,
@@ -126,6 +132,7 @@ fun TeamProfileScreen(
     onStatisticsSeasonSelect: (String) -> Unit,
     onTransferWindowSelect: (String) -> Unit,
     onRetry: () -> Unit,
+    onRetryTab: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -152,12 +159,12 @@ fun TeamProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState()),
+                .padding(padding),
         ) {
             SectionContainer(
                 state = uiState.profile,
                 onRetry = onRetry,
+                forceRetry = true,
                 modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                 loading = { ProfileHeaderSkeleton() },
             ) { profile -> ProfileHeader(profile) }
@@ -184,82 +191,94 @@ fun TeamProfileScreen(
                 }
             }
 
-            when (uiState.selectedTab) {
-                TeamTab.Dynamic -> SectionContainer(
-                    state = uiState.news,
-                    onRetry = onRetry,
+            if (uiState.selectedTab == TeamTab.Dynamic) {
+                EntityNewsFeed(
+                    articles = news,
+                    onArticleClick = onArticleClick,
                     emptyTitle = stringResource(R.string.team_news_empty_title),
                     emptyDescription = stringResource(R.string.team_news_empty_description),
-                ) { TeamNewsList(it, onArticleClick) }
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    when (uiState.selectedTab) {
+                        TeamTab.Dynamic -> Unit
+                        TeamTab.Schedule -> SectionContainer(
+                            state = uiState.schedule,
+                            onRetry = onRetryTab,
+                            forceRetry = true,
+                            emptyTitle = stringResource(R.string.team_fixtures_empty_title),
+                            emptyDescription = stringResource(R.string.team_fixtures_empty_description),
+                        ) { schedule ->
+                            TeamScheduleContent(
+                                matches = schedule.matches,
+                                seasons = schedule.seasons,
+                                selectedSeasonId = schedule.selectedSeasonId,
+                                onSeasonSelect = onScheduleSeasonSelect,
+                                onMatchClick = onMatchClick,
+                            )
+                        }
 
-                TeamTab.Schedule -> SectionContainer(
-                    state = uiState.schedule,
-                    onRetry = onRetry,
-                    emptyTitle = stringResource(R.string.team_fixtures_empty_title),
-                    emptyDescription = stringResource(R.string.team_fixtures_empty_description),
-                ) { schedule ->
-                    TeamScheduleContent(
-                        matches = schedule.matches,
-                        seasons = schedule.seasons,
-                        selectedSeasonId = schedule.selectedSeasonId,
-                        onSeasonSelect = onScheduleSeasonSelect,
-                        onMatchClick = onMatchClick,
-                    )
+                        TeamTab.Players -> SectionContainer(
+                            state = uiState.squad,
+                            onRetry = onRetryTab,
+                            forceRetry = true,
+                            emptyTitle = stringResource(R.string.team_squad_empty_title),
+                            emptyDescription = stringResource(R.string.team_squad_empty_description),
+                        ) { squad ->
+                            SeasonPicker(squad.seasons, squad.selectedSeasonId, onSquadSeasonSelect)
+                            SquadList(squad.groups, onPlayerClick)
+                        }
+
+                        TeamTab.Data -> TeamInfoContent(
+                            profileState = uiState.profile,
+                            statisticsState = uiState.statistics,
+                            transfersState = uiState.transfers,
+                            onStatisticsSeasonSelect = onStatisticsSeasonSelect,
+                            onTransferWindowSelect = onTransferWindowSelect,
+                            onPlayerClick = onPlayerClick,
+                            onTeamClick = onTeamClick,
+                            onRetry = onRetryTab,
+                            showProfile = false,
+                            showStatistics = true,
+                            showTransfers = false,
+                        )
+
+                        TeamTab.Info -> TeamInfoContent(
+                            profileState = uiState.profile,
+                            statisticsState = uiState.statistics,
+                            transfersState = uiState.transfers,
+                            onStatisticsSeasonSelect = onStatisticsSeasonSelect,
+                            onTransferWindowSelect = onTransferWindowSelect,
+                            onPlayerClick = onPlayerClick,
+                            onTeamClick = onTeamClick,
+                            onRetry = onRetryTab,
+                            showProfile = true,
+                            showStatistics = false,
+                            showTransfers = false,
+                        )
+
+                        TeamTab.Transfers -> TeamInfoContent(
+                            profileState = uiState.profile,
+                            statisticsState = uiState.statistics,
+                            transfersState = uiState.transfers,
+                            onStatisticsSeasonSelect = onStatisticsSeasonSelect,
+                            onTransferWindowSelect = onTransferWindowSelect,
+                            onPlayerClick = onPlayerClick,
+                            onTeamClick = onTeamClick,
+                            onRetry = onRetryTab,
+                            showProfile = false,
+                            showStatistics = false,
+                            showTransfers = true,
+                        )
+                    }
+                    Box(modifier = Modifier.height(DqdSpacing.xl))
                 }
-
-                TeamTab.Players -> SectionContainer(
-                    state = uiState.squad,
-                    onRetry = onRetry,
-                    emptyTitle = stringResource(R.string.team_squad_empty_title),
-                    emptyDescription = stringResource(R.string.team_squad_empty_description),
-                ) { squad ->
-                    SeasonPicker(squad.seasons, squad.selectedSeasonId, onSquadSeasonSelect)
-                    SquadList(squad.groups, onPlayerClick)
-                }
-
-                TeamTab.Data -> TeamInfoContent(
-                    profileState = uiState.profile,
-                    statisticsState = uiState.statistics,
-                    transfersState = uiState.transfers,
-                    onStatisticsSeasonSelect = onStatisticsSeasonSelect,
-                    onTransferWindowSelect = onTransferWindowSelect,
-                    onPlayerClick = onPlayerClick,
-                    onTeamClick = onTeamClick,
-                    onRetry = onRetry,
-                    showProfile = false,
-                    showStatistics = true,
-                    showTransfers = false,
-                )
-
-                TeamTab.Info -> TeamInfoContent(
-                    profileState = uiState.profile,
-                    statisticsState = uiState.statistics,
-                    transfersState = uiState.transfers,
-                    onStatisticsSeasonSelect = onStatisticsSeasonSelect,
-                    onTransferWindowSelect = onTransferWindowSelect,
-                    onPlayerClick = onPlayerClick,
-                    onTeamClick = onTeamClick,
-                    onRetry = onRetry,
-                    showProfile = true,
-                    showStatistics = false,
-                    showTransfers = false,
-                )
-
-                TeamTab.Transfers -> TeamInfoContent(
-                    profileState = uiState.profile,
-                    statisticsState = uiState.statistics,
-                    transfersState = uiState.transfers,
-                    onStatisticsSeasonSelect = onStatisticsSeasonSelect,
-                    onTransferWindowSelect = onTransferWindowSelect,
-                    onPlayerClick = onPlayerClick,
-                    onTeamClick = onTeamClick,
-                    onRetry = onRetry,
-                    showProfile = false,
-                    showStatistics = false,
-                    showTransfers = true,
-                )
             }
-            Box(modifier = Modifier.height(DqdSpacing.xl))
         }
     }
 }
@@ -297,6 +316,7 @@ private fun TeamInfoContent(
     if (showProfile) SectionContainer(
         state = profileState,
         onRetry = onRetry,
+        forceRetry = true,
         title = stringResource(R.string.team_details),
     ) { profile ->
         TeamFacts(profile)
@@ -346,6 +366,7 @@ private fun TeamInfoContent(
     if (showStatistics) SectionContainer(
         state = statisticsState,
         onRetry = onRetry,
+        forceRetry = true,
         title = stringResource(R.string.team_statistics),
         emptyTitle = stringResource(R.string.team_stats_empty_title),
         emptyDescription = stringResource(R.string.team_stats_empty_description),
@@ -361,6 +382,7 @@ private fun TeamInfoContent(
     if (showTransfers) SectionContainer(
         state = transfersState,
         onRetry = onRetry,
+        forceRetry = true,
         title = stringResource(R.string.team_transfers),
         emptyTitle = stringResource(R.string.team_transfers_empty_title),
         emptyDescription = stringResource(R.string.team_transfers_empty_description),

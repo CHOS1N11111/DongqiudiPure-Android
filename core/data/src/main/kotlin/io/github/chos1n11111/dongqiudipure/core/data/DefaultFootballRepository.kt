@@ -1,5 +1,8 @@
 package io.github.chos1n11111.dongqiudipure.core.data
 
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import io.github.chos1n11111.dongqiudipure.core.model.AppError
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.CareerEntry
@@ -42,6 +45,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
@@ -346,8 +350,8 @@ class DefaultFootballRepository @Inject constructor(
         }
     }
 
-    override suspend fun loadTeamNews(teamId: TeamId): DataResult<List<ArticleSummary>> =
-        loadEntityNews(teamId.raw, "team")
+    override fun pagedTeamNews(teamId: TeamId): Flow<PagingData<ArticleSummary>> =
+        pagedEntityNews(teamId.raw, "team")
 
     override suspend fun loadPlayerOverview(playerId: PlayerId): DataResult<PlayerOverview?> =
         when (val result = remote.loadPlayerDetail(playerId)) {
@@ -382,8 +386,8 @@ class DefaultFootballRepository @Inject constructor(
         }
     }
 
-    override suspend fun loadPlayerNews(playerId: PlayerId): DataResult<List<ArticleSummary>> =
-        loadEntityNews(playerId.raw, "player")
+    override fun pagedPlayerNews(playerId: PlayerId): Flow<PagingData<ArticleSummary>> =
+        pagedEntityNews(playerId.raw, "player")
 
     override suspend fun loadPlayerHeatMap(
         playerId: PlayerId,
@@ -425,19 +429,12 @@ class DefaultFootballRepository @Inject constructor(
         }
     }
 
-    private suspend fun loadEntityNews(
+    private fun pagedEntityNews(
         entityId: String,
         type: String,
-    ): DataResult<List<ArticleSummary>> = when (val result = remote.loadEntityFeed(entityId, type)) {
-        is ApiResult.Failure -> DataResult.Failure(result.error)
-        is ApiResult.Success -> mapContract(ENTITY_FEED_ENDPOINT) {
-            if (result.value.code.scalarFootball() != "0") throw ContractViolation()
-            val feed = result.value.data ?: throw ContractViolation()
-            feed.flattenedArticles().mapNotNull { article ->
-                runCatching { article.toDomain() }.getOrNull()
-            }
-        }
-    }
+    ): Flow<PagingData<ArticleSummary>> = Pager(ENTITY_FEED_PAGING_CONFIG) {
+        EntityFeedPagingSource(remote, entityId, type)
+    }.flow
 
     private suspend fun resolveSeason(
         competitionId: CompetitionId,
@@ -538,6 +535,12 @@ class DefaultFootballRepository @Inject constructor(
     private data class CurrentSeason(val id: SeasonId, val name: String)
 
     private companion object {
+        val ENTITY_FEED_PAGING_CONFIG = PagingConfig(
+            pageSize = 20,
+            initialLoadSize = 20,
+            prefetchDistance = 5,
+            enablePlaceholders = false,
+        )
         val MATCHES_ENDPOINT = EndpointId("football.matches")
         val MATCH_DETAIL_ENDPOINT = EndpointId("football.match-detail")
         val MATCH_OVERVIEW_ENDPOINT = EndpointId("football.match-overview")
@@ -554,7 +557,6 @@ class DefaultFootballRepository @Inject constructor(
         val TEAM_MEMBERS_ENDPOINT = EndpointId("football.team-members")
         val TEAM_SCHEDULE_ENDPOINT = EndpointId("football.team-schedule")
         val TEAM_TRANSFERS_ENDPOINT = EndpointId("football.team-transfers")
-        val ENTITY_FEED_ENDPOINT = EndpointId("football.entity-feed")
         val PLAYER_DETAIL_ENDPOINT = EndpointId("football.player-detail")
         val PLAYER_STATISTICS_ENDPOINT = EndpointId("football.player-statistics")
         val PLAYER_MATCHES_ENDPOINT = EndpointId("football.player-matches")
