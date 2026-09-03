@@ -39,6 +39,8 @@ data class TeamStatistics(
     val keyPlayers: List<TeamKeyPlayer>,
     val seasons: List<SeasonOption> = emptyList(),
     val selectedSeasonId: String? = null,
+    val rankingTrend: List<TeamRankingTrendPoint> = emptyList(),
+    val characteristics: FootballCharacteristics? = null,
 )
 
 data class TeamStatisticCategory(

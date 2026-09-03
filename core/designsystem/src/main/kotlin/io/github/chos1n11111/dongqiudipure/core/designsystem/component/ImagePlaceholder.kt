@@ -38,6 +38,7 @@ fun ImagePlaceholder(
     cornerRadius: androidx.compose.ui.unit.Dp = 6.dp,
     badgeLabel: String? = null,
     @DrawableRes badgeIcon: Int? = null,
+    contentScale: ContentScale = ContentScale.Crop,
 ) {
     val scheme = MaterialTheme.colorScheme
     Box(
@@ -49,7 +50,7 @@ fun ImagePlaceholder(
             AsyncImage(
                 model = url,
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = contentScale,
                 modifier = Modifier.fillMaxSize(),
             )
         }

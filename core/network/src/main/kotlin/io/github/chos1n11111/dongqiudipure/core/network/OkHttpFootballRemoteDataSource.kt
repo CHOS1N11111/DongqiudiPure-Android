@@ -239,11 +239,21 @@ class OkHttpFootballRemoteDataSource @Inject constructor(
         return get(url, TEAM_STATISTICS_ENDPOINT, TeamStatisticDto.serializer())
     }
 
-    override suspend fun loadTeamMembers(teamId: TeamId): ApiResult<TeamMembersEnvelopeDto> {
+    override suspend fun loadTeamMembers(
+        teamId: TeamId,
+        seasonId: String?,
+    ): ApiResult<TeamMembersEnvelopeDto> {
         requireEntityId(teamId.raw)
+        require(seasonId == null || seasonId.isNotEmpty() && seasonId.all(Char::isDigit))
         val url = sportDataBaseUrl.newBuilder()
             .addPathSegments("soccer/biz/dqd/v1/team/member_v2/${teamId.raw.fullDqdId()}")
             .addQueryParameter("app", "dqd")
+            .apply {
+                seasonId?.let {
+                    addQueryParameter("season", it)
+                    addQueryParameter("current", if (it == "0") "1" else "0")
+                }
+            }
             .build()
         return get(url, TEAM_MEMBERS_ENDPOINT, TeamMembersEnvelopeDto.serializer())
     }

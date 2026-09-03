@@ -203,8 +203,14 @@ data class MatchLineupBaseDto(
     @SerialName("attendance_rate") val attendance: String? = null,
     val weather: String? = null,
     val temperature: String? = null,
+    @SerialName("weather_info") val weatherInfo: MatchLineupWeatherInfoDto? = null,
     val field: String? = null,
     val referee: String? = null,
+)
+
+@Serializable
+data class MatchLineupWeatherInfoDto(
+    val altitude: JsonElement? = null,
 )
 
 @Serializable
@@ -218,7 +224,10 @@ data class MatchLineupTeamDto(
     @SerialName("team_id") val teamId: JsonElement? = null,
     @SerialName("team_name") val teamName: String? = null,
     @SerialName("team_logo") val teamLogo: String? = null,
+    @SerialName("team_market_value") val teamMarketValue: String? = null,
+    @SerialName("team_age") val teamAge: String? = null,
     @SerialName("team_coach") val coach: String? = null,
+    @SerialName("team_coach_logo") val coachLogo: String? = null,
     @SerialName("team_coach_role") val coachRole: String? = null,
     val formation: String? = null,
     val lineups: List<MatchLineupPlayerDto>? = null,
@@ -464,6 +473,9 @@ data class TeamDetailDto(
     @SerialName("archive_info") val archiveInfo: JsonElement? = null,
     @SerialName("history_coach") val historyCoach: List<TeamHistoricalCoachDto>? = null,
     @SerialName("base_info_v_1") val facts: List<TeamFactDto>? = null,
+    @SerialName("history_rank") val historyRank: TeamHistoryRankDto? = null,
+    @SerialName("goals_info") val goalsInfo: List<TeamRecordLeaderDto>? = null,
+    @SerialName("apps_info") val appsInfo: List<TeamRecordLeaderDto>? = null,
 )
 
 @Serializable
@@ -522,7 +534,41 @@ data class TeamHistoricalCoachDto(
     @SerialName("start_date") val startDate: String? = null,
     @SerialName("end_date") val endDate: String? = null,
     @SerialName("win_rate") val winRate: JsonElement? = null,
+    val time: String? = null,
     val person: SimplePersonDto? = null,
+)
+
+@Serializable
+data class TeamHistoryRankDto(
+    val data: List<TeamHistoryRankEntryDto>? = null,
+    val season: List<String>? = null,
+)
+
+@Serializable
+data class TeamHistoryRankEntryDto(
+    val rank: JsonElement? = null,
+    @SerialName("competition_clubs") val competitionClubs: JsonElement? = null,
+)
+
+@Serializable
+data class TeamRecordLeaderDto(
+    val rank: JsonElement? = null,
+    val count: JsonElement? = null,
+    val person: TeamRecordPersonDto? = null,
+)
+
+@Serializable
+data class TeamRecordPersonDto(
+    val id: JsonElement? = null,
+    val name: String? = null,
+    val logo: String? = null,
+    @SerialName("date_of_birth") val dateOfBirth: String? = null,
+    val nationality: TeamRecordNationalityDto? = null,
+)
+
+@Serializable
+data class TeamRecordNationalityDto(
+    val name: String? = null,
 )
 
 @Serializable
@@ -537,6 +583,49 @@ data class TeamStatisticDto(
     val season: TeamSeasonSummaryDto? = null,
     val statistics: TeamStatisticGroupsDto? = null,
     val person: List<TeamKeyPlayerDto>? = null,
+    val characteristics: FootballCharacteristicsDto? = null,
+    @SerialName("ranking_trend") val rankingTrend: TeamRankingTrendDto? = null,
+)
+
+@Serializable
+data class TeamRankingTrendDto(
+    val weeks: List<TeamRankingTrendWeekDto>? = null,
+)
+
+@Serializable
+data class TeamRankingTrendWeekDto(
+    val week: JsonElement? = null,
+    val rank: JsonElement? = null,
+    @SerialName("window_start") val windowStart: String? = null,
+    @SerialName("window_end") val windowEnd: String? = null,
+    val matches: List<TeamRankingTrendMatchDto>? = null,
+)
+
+@Serializable
+data class TeamRankingTrendMatchDto(
+    @SerialName("home_team_id") val homeTeamId: JsonElement? = null,
+    @SerialName("home_team_name") val homeTeamName: String? = null,
+    @SerialName("home_team_logo") val homeTeamLogo: String? = null,
+    @SerialName("away_team_id") val awayTeamId: JsonElement? = null,
+    @SerialName("away_team_name") val awayTeamName: String? = null,
+    @SerialName("away_team_logo") val awayTeamLogo: String? = null,
+    @SerialName("home_score") val homeScore: JsonElement? = null,
+    @SerialName("away_score") val awayScore: JsonElement? = null,
+)
+
+@Serializable
+data class FootballCharacteristicsDto(
+    val styles: List<String>? = null,
+    val strength: FootballCharacteristicLevelsDto? = null,
+    val weakness: FootballCharacteristicLevelsDto? = null,
+)
+
+@Serializable
+data class FootballCharacteristicLevelsDto(
+    @SerialName("very_strong") val veryStrong: List<String>? = null,
+    val strong: List<String>? = null,
+    val weak: List<String>? = null,
+    @SerialName("very_weak") val veryWeak: List<String>? = null,
 )
 
 @Serializable
@@ -594,6 +683,7 @@ data class SimplePersonDto(
 data class TeamMembersEnvelopeDto(
     val code: JsonElement? = null,
     val data: TeamMembersDataDto? = null,
+    val seasons: List<TeamSeasonOptionDto>? = null,
 )
 
 @Serializable
@@ -606,6 +696,8 @@ data class TeamMemberGroupDto(
     val title: String? = null,
     val type: String? = null,
     val data: List<TeamMemberDto>? = null,
+    val statistics: List<String>? = null,
+    @SerialName("show_type") val showType: JsonElement? = null,
 )
 
 @Serializable
@@ -714,6 +806,31 @@ data class PlayerDetailDto(
     @SerialName("injury_records") val injuryRecords: PlayerInjuryRecordsDto? = null,
     @SerialName("history_market_values")
     val historyMarketValues: Map<String, List<PlayerMarketValueDto>>? = null,
+    @SerialName("base_info_v_1") val facts: List<PlayerProfileFactDto>? = null,
+    @SerialName("character_info") val characterInfo: FootballCharacteristicsDto? = null,
+    @SerialName("player_career_info") val playerCareerInfo: List<PlayerCareerSummaryDto>? = null,
+    @SerialName("player_nation_career_info")
+    val playerNationCareerInfo: List<PlayerCareerSummaryDto>? = null,
+)
+
+@Serializable
+data class PlayerProfileFactDto(
+    val type: String? = null,
+    val value: String? = null,
+)
+
+@Serializable
+data class PlayerCareerSummaryDto(
+    @SerialName("team_id") val teamId: JsonElement? = null,
+    @SerialName("team_name") val teamName: String? = null,
+    @SerialName("team_logo") val teamLogo: String? = null,
+    @SerialName("start_date") val startDate: String? = null,
+    @SerialName("end_date") val endDate: String? = null,
+    val appearance: JsonElement? = null,
+    val goals: JsonElement? = null,
+    val assist: JsonElement? = null,
+    @SerialName("goals_conceded") val goalsConceded: JsonElement? = null,
+    @SerialName("clean_sheets") val cleanSheets: JsonElement? = null,
 )
 
 @Serializable
@@ -791,6 +908,7 @@ data class PlayerInjuryDto(
     @SerialName("date_from") val dateFrom: String? = null,
     @SerialName("date_until") val dateUntil: String? = null,
     @SerialName("games_missed") val gamesMissed: JsonElement? = null,
+    val days: JsonElement? = null,
     val teams: List<PlayerInjuryTeamDto>? = null,
 )
 

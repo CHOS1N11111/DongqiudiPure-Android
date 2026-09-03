@@ -5,6 +5,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.CompetitionCatalogGroup
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.CareerEntry
 import io.github.chos1n11111.dongqiudipure.core.model.FormResult
+import io.github.chos1n11111.dongqiudipure.core.model.FootballCharacteristics
 import io.github.chos1n11111.dongqiudipure.core.model.HeatPoint
 import io.github.chos1n11111.dongqiudipure.core.model.HistoricalCoach
 import io.github.chos1n11111.dongqiudipure.core.model.Absentee
@@ -38,7 +39,9 @@ import io.github.chos1n11111.dongqiudipure.core.model.PlayerOverview
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerHeatMap
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerPosition
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerProfile
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerProfileFact
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerRef
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerCareerSummary
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerSeasonStat
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerMatchPage
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerMatchPerformance
@@ -68,7 +71,12 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamType
 import io.github.chos1n11111.dongqiudipure.core.model.TeamProfile
 import io.github.chos1n11111.dongqiudipure.core.model.TeamMemberGroupKind
+import io.github.chos1n11111.dongqiudipure.core.model.TeamRankHistoryPoint
+import io.github.chos1n11111.dongqiudipure.core.model.TeamRankingTrendPoint
+import io.github.chos1n11111.dongqiudipure.core.model.TeamRankingTrendMatch
+import io.github.chos1n11111.dongqiudipure.core.model.TeamRecordEntry
 import io.github.chos1n11111.dongqiudipure.core.model.TeamScheduleData
+import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadGroup
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferEntry
@@ -78,6 +86,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.StatisticRankingTable
 import io.github.chos1n11111.dongqiudipure.core.model.StatItem
 import io.github.chos1n11111.dongqiudipure.core.model.TeamLineup
 import io.github.chos1n11111.dongqiudipure.core.network.dto.DataMenuEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.FootballCharacteristicsDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CompetitionScheduleEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.MatchDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.MatchAnalysisDto
@@ -97,6 +106,7 @@ import io.github.chos1n11111.dongqiudipure.core.network.dto.MatchStatisticsDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.MatchTendenciesDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerAbilityEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerCareerDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerCareerSummaryDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerDetailDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerHeatMapDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerMatchesEnvelopeDto
@@ -113,6 +123,7 @@ import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamDetailDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamSampleDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamScheduleEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamStatisticDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamRecordLeaderDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamTransferEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamTransferTeamDto
 import java.net.URI
@@ -308,6 +319,9 @@ internal fun MatchLineupEnvelopeDto.toDomain(): MatchLineupBundle? {
         weather = base?.weather.displayable(),
         temperature = base?.temperature.displayable(),
         attendance = base?.attendance.displayable(),
+        altitude = base?.weatherInfo?.altitude.scalarFootball().displayable()?.let { altitude ->
+            if (altitude.endsWith("m", ignoreCase = true)) altitude else "${altitude}m"
+        },
     )
     val actual = persons.toDomainLineup(sideline)
     val forecast = forecasts.toDomainLineup(sideline)
@@ -442,11 +456,14 @@ private fun MatchLineupTeamDto.toDomainTeamLineup(
         formation = formation.displayable(),
         starters = lineups.orEmpty().mapNotNull(MatchLineupPlayerDto::toDomainPlayer),
         substitutes = sub.orEmpty().mapNotNull(MatchLineupPlayerDto::toDomainPlayer),
-        coach = listOfNotNull(coach.displayable(), coachRole.displayable()).distinct().joinToString(" · ")
-            .takeIf(String::isNotEmpty),
+        coach = coach.displayable(),
         absentees = sidelined.mapNotNull { item ->
             item.toAbsentee()
         },
+        coachRole = coachRole.displayable(),
+        coachAvatarUrl = safeFootballMediaUrl(coachLogo),
+        marketValueLabel = teamMarketValue.displayable(),
+        averageAgeLabel = teamAge.displayable(),
     )
 }
 
@@ -512,7 +529,8 @@ private fun io.github.chos1n11111.dongqiudipure.core.network.dto.MatchStatisticT
 }
 
 private fun MatchInfo.hasContent(): Boolean =
-    venue != null || referee != null || weather != null || temperature != null || attendance != null
+    venue != null || referee != null || weather != null || temperature != null || attendance != null ||
+        altitude != null
 
 private inline fun <reified T> JsonElement?.decodeOverviewValue(): T? = when (this) {
     null, JsonNull -> null
@@ -668,16 +686,17 @@ internal fun TeamSampleDto.toDomain(): TeamProfile {
 internal fun TeamDetailDto.toDomain(): TeamProfile {
     val base = baseInfo ?: throw ContractViolation()
     val id = base.teamId.scalarFootball().requiredFootball().fullDqdId()
-    val mappedFacts = buildList {
-        facts.orEmpty().mapNotNullTo(this) { fact ->
-            val label = fact.type.displayable() ?: return@mapNotNullTo null
-            val value = fact.value.displayable() ?: return@mapNotNullTo null
+    val mappedFacts = facts.orEmpty().mapNotNull { fact ->
+            val label = fact.type.displayable() ?: return@mapNotNull null
+            val value = fact.value.displayable() ?: return@mapNotNull null
             TeamFact(label, value)
-        }
-        base.address.displayable()?.let { add(TeamFact("地址", it)) }
-        base.telephone.displayable()?.let { add(TeamFact("电话", it)) }
-        base.email.displayable()?.let { add(TeamFact("邮箱", it)) }
-    }.distinctBy { it.label to it.value }
+        }.ifEmpty {
+            listOfNotNull(
+                base.address.displayable()?.let { TeamFact("地址", it) },
+                base.telephone.displayable()?.let { TeamFact("电话", it) },
+                base.email.displayable()?.let { TeamFact("邮箱", it) },
+            )
+        }.distinctBy { it.label to it.value }
     val trophies = trophyInfo.orEmpty().mapNotNull { trophy ->
         TeamHonor(
             name = trophy.competitionName.displayable() ?: return@mapNotNull null,
@@ -713,6 +732,15 @@ internal fun TeamDetailDto.toDomain(): TeamProfile {
             endDate = coach.endDate.displayable(),
             recordLabel = record,
             winRateLabel = coach.winRate.scalarFootball().displayable()?.let { "$it%" },
+            durationLabel = coach.time.displayable(),
+        )
+    }
+    val rankHistory = historyRank?.season.orEmpty().mapIndexedNotNull { index, label ->
+        val item = historyRank?.data?.getOrNull(index) ?: return@mapIndexedNotNull null
+        TeamRankHistoryPoint(
+            seasonLabel = label,
+            rank = item.rank.optionalFootballInt() ?: return@mapIndexedNotNull null,
+            teamCount = item.competitionClubs.optionalFootballInt(),
         )
     }
     return TeamProfile(
@@ -737,6 +765,9 @@ internal fun TeamDetailDto.toDomain(): TeamProfile {
         facts = mappedFacts,
         honors = honors,
         historicalCoaches = coaches,
+        rankHistory = rankHistory,
+        topScorers = goalsInfo.toTeamRecordEntries(),
+        appearanceLeaders = appsInfo.toTeamRecordEntries(),
         description = base.description.scalarFootball().displayable()
             ?: historyInfo.scalarFootball().displayable()
             ?: archiveInfo.scalarFootball().displayable(),
@@ -780,7 +811,8 @@ internal fun TeamStatisticDto.toDomain(): TeamStatistics {
         null
     }
     return TeamStatistics(
-        seasonLabel = seasonList.orEmpty().firstOrNull { it.current == true }?.name.displayable()
+        seasonLabel = season?.name.displayable()
+            ?: seasonList.orEmpty().firstOrNull { it.current == true }?.name.displayable()
             ?: seasonList.orEmpty().firstOrNull()?.name.displayable(),
         rankLabel = season?.rank.scalarFootball().displayable()?.let { "第${it}" },
         recordLabel = recordLabel,
@@ -797,12 +829,81 @@ internal fun TeamStatisticDto.toDomain(): TeamStatistics {
         },
         selectedSeasonId = seasonList.orEmpty().firstOrNull { it.current == true }
             ?.url.queryValue("season_id"),
+        rankingTrend = rankingTrend?.weeks.orEmpty().mapIndexedNotNull { index, week ->
+            TeamRankingTrendPoint(
+                weekLabel = week.week.scalarFootball().displayable() ?: (index + 1).toString(),
+                rank = week.rank.optionalFootballInt() ?: return@mapIndexedNotNull null,
+                dateLabel = listOfNotNull(
+                    week.windowStart.displayable(),
+                    week.windowEnd.displayable(),
+                ).joinToString(" - ").displayable(),
+                match = week.matches.orEmpty().firstOrNull()?.let { match ->
+                    val homeId = match.homeTeamId.scalarFootball().displayable()
+                        ?: return@let null
+                    val awayId = match.awayTeamId.scalarFootball().displayable()
+                        ?: return@let null
+                    TeamRankingTrendMatch(
+                        home = TeamRef(
+                            TeamId(homeId.fullDqdId()),
+                            match.homeTeamName.displayable() ?: return@let null,
+                            safeFootballMediaUrl(match.homeTeamLogo),
+                        ),
+                        away = TeamRef(
+                            TeamId(awayId.fullDqdId()),
+                            match.awayTeamName.displayable() ?: return@let null,
+                            safeFootballMediaUrl(match.awayTeamLogo),
+                        ),
+                        homeScore = match.homeScore.optionalFootballInt(),
+                        awayScore = match.awayScore.optionalFootballInt(),
+                    )
+                },
+            )
+        },
+        characteristics = characteristics.toDomain(),
     )
 }
 
-internal fun TeamMembersEnvelopeDto.toDomain(): List<TeamSquadGroup> {
+private fun List<TeamRecordLeaderDto>?.toTeamRecordEntries(): List<TeamRecordEntry> =
+    orEmpty().mapNotNull { item ->
+        val person = item.person ?: return@mapNotNull null
+        val id = person.id.scalarFootball().displayable() ?: return@mapNotNull null
+        TeamRecordEntry(
+            rank = item.rank.optionalFootballInt() ?: return@mapNotNull null,
+            player = PlayerRef(
+                id = PlayerId(id.fullDqdId()),
+                name = person.name.displayable() ?: return@mapNotNull null,
+                avatarUrl = safeFootballMediaUrl(person.logo),
+            ),
+            countLabel = item.count.scalarFootball().displayable() ?: return@mapNotNull null,
+            birthdayLabel = person.dateOfBirth.displayable(),
+            nationality = person.nationality?.name.displayable(),
+        )
+    }
+
+private fun FootballCharacteristicsDto?.toDomain(): FootballCharacteristics? {
+    if (this == null) return null
+    return FootballCharacteristics(
+        styles = styles.orEmpty().mapNotNull(String::displayable),
+        veryStrong = strength?.veryStrong.orEmpty().mapNotNull(String::displayable),
+        strong = strength?.strong.orEmpty().mapNotNull(String::displayable),
+        weak = weakness?.weak.orEmpty().mapNotNull(String::displayable),
+        veryWeak = weakness?.veryWeak.orEmpty().mapNotNull(String::displayable),
+    ).takeIf {
+        it.styles.isNotEmpty() || it.veryStrong.isNotEmpty() || it.strong.isNotEmpty() ||
+            it.weak.isNotEmpty() || it.veryWeak.isNotEmpty()
+    }
+}
+
+internal fun TeamMembersEnvelopeDto.toDomain(requestedSeasonId: String?): TeamSquadData {
     if (code.optionalFootballInt() != 0) throw ContractViolation()
-    return data?.list.orEmpty().mapNotNull { group ->
+    val mappedSeasons = seasons.orEmpty().mapNotNull { option ->
+        val label = option.name.displayable() ?: return@mapNotNull null
+        val id = option.url.queryValue("season")
+            ?: option.id.scalarFootball().displayable()
+            ?: return@mapNotNull null
+        SeasonOption(id, label, option.current == true)
+    }
+    val groups = data?.list.orEmpty().mapNotNull { group ->
         val groupTitle = group.title.displayable() ?: return@mapNotNull null
         val kind = group.type.toTeamMemberGroupKind()
         val members = group.data.orEmpty().mapNotNull { member ->
@@ -835,8 +936,20 @@ internal fun TeamMembersEnvelopeDto.toDomain(): List<TeamSquadGroup> {
                 isCaptain = member.captainLogo.displayable() != null,
             )
         }
-        TeamSquadGroup(groupTitle, kind, members).takeIf { members.isNotEmpty() }
+        TeamSquadGroup(
+            title = groupTitle,
+            kind = kind,
+            members = members,
+            statisticLabels = group.statistics.orEmpty().mapNotNull(String::displayable),
+        ).takeIf { members.isNotEmpty() }
     }.sortedBy { TEAM_GROUP_ORDER.indexOf(it.kind).let { index -> if (index < 0) Int.MAX_VALUE else index } }
+    return TeamSquadData(
+        seasons = mappedSeasons,
+        selectedSeasonId = requestedSeasonId
+            ?: mappedSeasons.firstOrNull { it.isCurrent }?.id
+            ?: mappedSeasons.firstOrNull()?.id,
+        groups = groups,
+    )
 }
 
 internal fun TeamTransferEnvelopeDto.toDomain(requestedWindowId: String?): TeamTransferData {
@@ -943,6 +1056,7 @@ internal fun PlayerDetailDto.toDomain(): PlayerOverview {
             startDate = injury.dateFrom.displayable(),
             endDate = injury.dateUntil.displayable(),
             gamesMissed = injury.gamesMissed.optionalFootballInt(),
+            durationDays = injury.days.optionalFootballInt(),
         )
     }
     val marketValues = historyMarketValues.orEmpty()
@@ -975,8 +1089,44 @@ internal fun PlayerDetailDto.toDomain(): PlayerOverview {
             )
         }
         .sortedBy { it.dateLabel }
-    return PlayerOverview(profile, honors, transfers, injuries, marketValues)
+    val mappedFacts = facts.orEmpty().mapNotNull { fact ->
+        PlayerProfileFact(
+            label = fact.type.displayable() ?: return@mapNotNull null,
+            value = fact.value.displayable() ?: return@mapNotNull null,
+        )
+    }
+    return PlayerOverview(
+        profile = profile,
+        honors = honors,
+        transfers = transfers,
+        injuries = injuries,
+        marketValues = marketValues,
+        facts = mappedFacts,
+        characteristics = characterInfo.toDomain(),
+        clubCareer = playerCareerInfo.toCareerSummaries(),
+        nationalCareer = playerNationCareerInfo.toCareerSummaries(),
+    )
 }
+
+private fun List<PlayerCareerSummaryDto>?.toCareerSummaries(): List<PlayerCareerSummary> =
+    orEmpty().mapNotNull { entry ->
+        val teamId = entry.teamId.scalarFootball().displayable() ?: return@mapNotNull null
+        val teamName = entry.teamName.displayable() ?: return@mapNotNull null
+        PlayerCareerSummary(
+            team = TeamRef(
+                id = TeamId(teamId.fullDqdId()),
+                name = teamName,
+                crestUrl = safeFootballMediaUrl(entry.teamLogo),
+            ),
+            startDate = entry.startDate.displayable(),
+            endDate = entry.endDate.displayable(),
+            appearances = entry.appearance.optionalFootballInt(),
+            goals = entry.goals.optionalFootballInt(),
+            assists = entry.assist.optionalFootballInt(),
+            goalsConceded = entry.goalsConceded.optionalFootballInt(),
+            cleanSheets = entry.cleanSheets.optionalFootballInt(),
+        )
+    }
 
 internal fun PlayerStatisticsDto.toCareerEntries(): List<CareerEntry> = total.orEmpty().mapNotNull { entry ->
     val values = entry.list.orEmpty().associate { it.title.orEmpty() to it.value.scalarFootball() }
@@ -1054,7 +1204,7 @@ private fun PlayerCareerDto.toDomain(
             )
         }
     } else {
-        baseInfo.toStatValues("$entryId-summary")
+        baseInfo.toPlayerSummaryValues("$entryId-summary")
     }
     val sections = listOf(
         "进攻" to attack,
@@ -1438,6 +1588,23 @@ private fun JsonObject?.toStatValues(idPrefix: String): List<PlayerSeasonStat> =
             displayOrder = index,
         )
     }
+
+private fun JsonObject?.toPlayerSummaryValues(idPrefix: String): List<PlayerSeasonStat> {
+    val values = this ?: return emptyList()
+    val appearances = values["appearances"].scalarFootball().displayable()
+    val starts = values["starts"].scalarFootball().displayable()
+    return listOfNotNull(
+        listOfNotNull(appearances, starts).joinToString("/")
+            .takeIf(String::isNotEmpty)
+            ?.let { PlayerSeasonStat("$idPrefix-appearances", "出场/首发", it, 0) },
+        values["avg_appearances_time"].scalarFootball().displayable()
+            ?.let { PlayerSeasonStat("$idPrefix-time", "场均时间", it, 1) },
+        values["goals"].scalarFootball().displayable()
+            ?.let { PlayerSeasonStat("$idPrefix-goals", "进球", it, 2) },
+        values["assists"].scalarFootball().displayable()
+            ?.let { PlayerSeasonStat("$idPrefix-assists", "助攻", it, 3) },
+    )
+}
 
 private fun String?.queryValue(name: String): String? =
     this?.toHttpUrlOrNull()?.queryParameter(name).displayable()

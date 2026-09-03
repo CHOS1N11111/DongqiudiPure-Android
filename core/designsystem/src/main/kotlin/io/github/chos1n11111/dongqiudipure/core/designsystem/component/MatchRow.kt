@@ -1,6 +1,7 @@
 package io.github.chos1n11111.dongqiudipure.core.designsystem.component
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
@@ -10,16 +11,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.chos1n11111.dongqiudipure.core.designsystem.R
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
@@ -62,9 +64,6 @@ fun MatchRow(
         ) {
             TeamMatchSide(
                 team = match.home,
-                rank = match.homeRank,
-                yellowCards = match.homeYellowCards,
-                redCards = match.homeRedCards,
                 events = match.homeEvents,
                 isHome = true,
                 dimmed = match.status == MatchStatus.Finished && !homeWon,
@@ -77,16 +76,12 @@ fun MatchRow(
             )
             TeamMatchSide(
                 team = match.away,
-                rank = match.awayRank,
-                yellowCards = match.awayYellowCards,
-                redCards = match.awayRedCards,
                 events = match.awayEvents,
                 isHome = false,
                 dimmed = match.status == MatchStatus.Finished && !awayWon,
                 modifier = Modifier.weight(1f),
             )
         }
-        MatchMetaLine(match)
     }
 }
 
@@ -132,9 +127,6 @@ private fun MatchHeaderLine(match: MatchSummary, showDate: Boolean) {
 @Composable
 private fun TeamMatchSide(
     team: TeamRef,
-    rank: String?,
-    yellowCards: Int?,
-    redCards: Int?,
     events: List<MatchListEvent>,
     isHome: Boolean,
     dimmed: Boolean,
@@ -181,31 +173,49 @@ private fun TeamMatchSide(
                 )
             }
         }
-        val badges = listOfNotNull(
-            rank,
-            yellowCards?.takeIf { it > 0 }?.let {
-                stringResource(R.string.ds_match_yellow_cards, it)
-            },
-            redCards?.takeIf { it > 0 }?.let {
-                stringResource(R.string.ds_match_red_cards, it)
-            },
-        )
-        if (badges.isNotEmpty()) {
-            Text(
-                text = badges.joinToString(" · "),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = if (isHome) TextAlign.End else TextAlign.Start,
-            )
-        }
         events.forEach { event ->
-            Text(
-                text = event.label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = if (isHome) TextAlign.End else TextAlign.Start,
-                maxLines = 2,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (!isHome) EventMarker(event.code)
+                Text(
+                    text = event.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = if (isHome) TextAlign.End else TextAlign.Start,
+                    maxLines = 2,
+                )
+                if (isHome) EventMarker(event.code)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventMarker(code: String?) {
+    val normalized = code.orEmpty().uppercase()
+    when (normalized) {
+        "RC" -> Box(
+            Modifier
+                .size(width = 7.dp, height = 10.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(DqdTheme.sports.redCard),
+        )
+        "YC" -> Box(
+            Modifier
+                .size(width = 7.dp, height = 10.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(DqdTheme.sports.yellowCard),
+        )
+        "G", "PG", "OG" -> Box(
+            Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.onSurface),
+        )
+        else -> if (normalized in setOf("SI", "SO") || normalized.contains("SUB")) {
+            Text("⇄", style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -238,37 +248,6 @@ private fun MatchCenter(
         MatchStatusBadge(status = match.status)
     }
 }
-
-@Composable
-private fun MatchMetaLine(match: MatchSummary) {
-    val labels = listOfNotNull(
-        pairedScore(match.homeHalfScore, match.awayHalfScore)?.let {
-            stringResource(R.string.ds_match_half_score, it)
-        },
-        pairedScore(match.homeAggregateScore, match.awayAggregateScore)?.let {
-            stringResource(R.string.ds_match_aggregate_score, it)
-        },
-        pairedScore(match.homePenaltyScore, match.awayPenaltyScore)?.let {
-            stringResource(R.string.ds_match_penalty_score, it)
-        },
-        pairedScore(match.homeCorners, match.awayCorners)?.let {
-            stringResource(R.string.ds_match_corners, it)
-        },
-    )
-    if (labels.isEmpty()) return
-    Text(
-        text = labels.joinToString(" · "),
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-private fun pairedScore(home: Int?, away: Int?): String? =
-    if (home != null && away != null) "$home-$away" else null
 
 /**
  * 比分格。

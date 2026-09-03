@@ -103,6 +103,23 @@ data class PlayerInjury(
     val startDate: String?,
     val endDate: String?,
     val gamesMissed: Int?,
+    val durationDays: Int? = null,
+)
+
+data class PlayerProfileFact(
+    val label: String,
+    val value: String,
+)
+
+data class PlayerCareerSummary(
+    val team: TeamRef,
+    val startDate: String?,
+    val endDate: String?,
+    val appearances: Int?,
+    val goals: Int?,
+    val assists: Int?,
+    val goalsConceded: Int?,
+    val cleanSheets: Int?,
 )
 
 data class PlayerAbility(
@@ -117,4 +134,8 @@ data class PlayerOverview(
     val transfers: List<PlayerTransfer>,
     val injuries: List<PlayerInjury>,
     val marketValues: List<MarketValuePoint> = emptyList(),
+    val facts: List<PlayerProfileFact> = emptyList(),
+    val characteristics: FootballCharacteristics? = null,
+    val clubCareer: List<PlayerCareerSummary> = emptyList(),
+    val nationalCareer: List<PlayerCareerSummary> = emptyList(),
 )

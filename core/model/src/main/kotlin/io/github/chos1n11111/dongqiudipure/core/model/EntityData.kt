@@ -20,6 +20,13 @@ data class TeamSquadGroup(
     val title: String,
     val kind: TeamMemberGroupKind,
     val members: List<SquadMember>,
+    val statisticLabels: List<String> = emptyList(),
+)
+
+data class TeamSquadData(
+    val seasons: List<SeasonOption>,
+    val selectedSeasonId: String?,
+    val groups: List<TeamSquadGroup>,
 )
 
 data class TeamFact(
@@ -40,6 +47,43 @@ data class HistoricalCoach(
     val endDate: String?,
     val recordLabel: String?,
     val winRateLabel: String?,
+    val durationLabel: String? = null,
+)
+
+data class FootballCharacteristics(
+    val styles: List<String>,
+    val veryStrong: List<String>,
+    val strong: List<String>,
+    val weak: List<String>,
+    val veryWeak: List<String>,
+)
+
+data class TeamRankHistoryPoint(
+    val seasonLabel: String,
+    val rank: Int,
+    val teamCount: Int?,
+)
+
+data class TeamRecordEntry(
+    val rank: Int,
+    val player: PlayerRef,
+    val countLabel: String,
+    val birthdayLabel: String?,
+    val nationality: String?,
+)
+
+data class TeamRankingTrendPoint(
+    val weekLabel: String,
+    val rank: Int,
+    val dateLabel: String?,
+    val match: TeamRankingTrendMatch? = null,
+)
+
+data class TeamRankingTrendMatch(
+    val home: TeamRef,
+    val away: TeamRef,
+    val homeScore: Int?,
+    val awayScore: Int?,
 )
 
 data class TeamScheduleData(

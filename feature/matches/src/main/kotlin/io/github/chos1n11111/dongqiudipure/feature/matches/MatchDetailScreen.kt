@@ -74,7 +74,6 @@ import io.github.chos1n11111.dongqiudipure.core.model.MatchLineup
 import io.github.chos1n11111.dongqiudipure.core.model.MatchLineupBundle
 import io.github.chos1n11111.dongqiudipure.core.model.MatchMomentumPoint
 import io.github.chos1n11111.dongqiudipure.core.model.MatchOverview
-import io.github.chos1n11111.dongqiudipure.core.model.MatchRating
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
@@ -192,7 +191,6 @@ fun MatchDetailScreen(
             when (uiState.selectedTab) {
                 MatchTab.Ratings -> RatingsTab(
                     lineupState = uiState.lineup,
-                    overviewState = uiState.overview,
                     userRatings = uiState.userRatings,
                     onRetry = onRetryLineup,
                     onPlayerClick = onPlayerClick,
@@ -227,41 +225,27 @@ fun MatchDetailScreen(
 @Composable
 private fun RatingsTab(
     lineupState: SectionState<MatchLineupBundle>,
-    overviewState: SectionState<MatchOverview>,
     userRatings: Map<PlayerId, String>,
     onRetry: () -> Unit,
     onPlayerClick: (PlayerId) -> Unit,
 ) {
-    val actual = lineupState.contentOrNull()?.actual
-    val ratedPlayers = actual?.let { lineup ->
-        listOf(lineup.home, lineup.away).flatMap { team ->
-            (team.starters + team.substitutes)
-                .filter { it.ratingLabel != null }
-                .map { player -> team.team.name to player }
-        }.sortedByDescending { it.second.ratingLabel?.toFloatOrNull() }
-    }.orEmpty()
+    SectionContainer(
+        state = lineupState,
+        onRetry = onRetry,
+        emptyTitle = stringResource(R.string.match_ratings_empty_title),
+        emptyDescription = stringResource(R.string.match_ratings_empty_description),
+        loading = { RatingsSkeleton() },
+    ) { bundle ->
+        val players = bundle.actual?.let { lineup ->
+            listOf(lineup.home, lineup.away).flatMap { team ->
+                (team.starters + team.substitutes).map { player -> team.team.name to player }
+            }
+        }.orEmpty()
+        val userRatedPlayers = players.mapNotNull { (teamName, player) ->
+            userRatings[player.id]?.let { rating -> Triple(teamName, player, rating) }
+        }.sortedByDescending { it.third.toFloatOrNull() }
 
-    if (ratedPlayers.isNotEmpty()) {
-        SectionHeader(title = stringResource(R.string.match_official_ratings_title))
-        Text(
-            text = stringResource(R.string.match_ratings_read_only),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(
-                start = DqdSpacing.listHorizontal,
-                end = DqdSpacing.listHorizontal,
-                bottom = DqdSpacing.sm,
-            ),
-        )
-        ratedPlayers.forEach { (teamName, player) ->
-            PlayerRatingRow(
-                player = player,
-                teamName = teamName,
-                onClick = { onPlayerClick(player.id) },
-            )
-        }
         SectionHeader(title = stringResource(R.string.match_user_ratings_title))
-        val userRatedPlayers = ratedPlayers.filter { (_, player) -> userRatings[player.id] != null }
         if (userRatedPlayers.isEmpty()) {
             Text(
                 text = stringResource(R.string.match_user_ratings_empty),
@@ -273,76 +257,16 @@ private fun RatingsTab(
                 ),
             )
         } else {
-            userRatedPlayers.forEach { (teamName, player) ->
+            userRatedPlayers.forEach { (teamName, player, rating) ->
                 UserRatingRow(
                     player = player,
                     teamName = teamName,
-                    ratingLabel = requireNotNull(userRatings[player.id]),
+                    ratingLabel = rating,
                     onClick = { onPlayerClick(player.id) },
                 )
             }
         }
-    } else {
-        SectionContainer(
-            state = overviewState,
-            onRetry = onRetry,
-            emptyTitle = stringResource(R.string.match_ratings_empty_title),
-            emptyDescription = stringResource(R.string.match_ratings_empty_description),
-            loading = { RatingsSkeleton() },
-        ) { overview ->
-            if (overview.topRatings.isEmpty()) {
-                InlineEmpty(
-                    title = stringResource(R.string.match_ratings_empty_title),
-                    description = stringResource(R.string.match_ratings_empty_description),
-                )
-            } else {
-                SectionHeader(title = stringResource(R.string.match_ratings_title))
-                overview.topRatings.forEach { rating ->
-                    MatchRatingRow(rating, onPlayerClick)
-                }
-            }
-        }
     }
-}
-
-@Composable
-private fun PlayerRatingRow(
-    player: LineupPlayer,
-    teamName: String,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
-    ) {
-        PlayerAvatar(player.id, player.name, player.avatarUrl, 38.dp)
-        Column(modifier = Modifier.weight(1f)) {
-            Text(player.name, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                teamName,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (player.isMvp) {
-            Text(
-                stringResource(R.string.match_rating_mvp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        Text(
-            player.ratingLabel.orEmpty(),
-            style = DqdTheme.dataText.statValue,
-            color = MaterialTheme.colorScheme.primary,
-            maxLines = 1,
-        )
-    }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @Composable
@@ -376,45 +300,6 @@ private fun UserRatingRow(
         )
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-}
-
-@Composable
-private fun MatchRatingRow(rating: MatchRating, onPlayerClick: (PlayerId) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onPlayerClick(rating.player.id) }
-            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
-    ) {
-        PlayerAvatar(
-            rating.player.id,
-            rating.player.name,
-            rating.player.avatarUrl,
-            38.dp,
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(rating.player.name, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                rating.team.name,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (rating.isMvp) {
-            Text(
-                stringResource(R.string.match_rating_mvp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        Text(
-            rating.ratingLabel,
-            style = DqdTheme.dataText.statValue,
-            color = MaterialTheme.colorScheme.primary,
-        )
-    }
 }
 
 @Composable
@@ -502,7 +387,11 @@ private fun LineupTab(
         emptyDescription = stringResource(R.string.match_lineup_empty_description),
         loading = { LineupSkeleton() },
     ) { lineup ->
-        LineupContent(lineup, onPlayerClick)
+        LineupContent(
+            lineup = lineup,
+            onPlayerClick = onPlayerClick,
+            info = state.contentOrNull()?.info,
+        )
     }
 }
 
@@ -528,7 +417,11 @@ private fun IntelligenceTab(
         emptyDescription = stringResource(R.string.match_forecast_empty_description),
         loading = { LineupSkeleton() },
     ) { lineup ->
-        LineupContent(lineup, onPlayerClick)
+        LineupContent(
+            lineup = lineup,
+            onPlayerClick = onPlayerClick,
+            info = lineupState.contentOrNull()?.info,
+        )
     }
 
     val bundle = lineupState.contentOrNull()

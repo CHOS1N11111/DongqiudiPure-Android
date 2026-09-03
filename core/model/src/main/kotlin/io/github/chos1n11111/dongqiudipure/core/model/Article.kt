@@ -47,6 +47,12 @@ sealed interface ArticleBlock {
         val aspectRatio: Float? = null,
     ) : ArticleBlock
 
+    data class Video(
+        val url: String?,
+        val posterUrl: String?,
+        val aspectRatio: Float? = null,
+    ) : ArticleBlock
+
     data class Link(
         val text: String,
         val target: ArticleLinkTarget,
@@ -104,7 +110,19 @@ data class Comment(
     val replyCount: Int?,
     val likeCount: Int? = null,
     val attachments: List<CommentAttachment> = emptyList(),
+    val avatarUrl: String? = null,
+    val teamCrestUrl: String? = null,
+    val bodyParts: List<CommentBodyPart> = emptyList(),
 )
+
+sealed interface CommentBodyPart {
+    data class Text(val value: String) : CommentBodyPart
+
+    data class InlineImage(
+        val url: String,
+        val contentDescription: String,
+    ) : CommentBodyPart
+}
 
 data class CommentAttachment(
     val url: String?,

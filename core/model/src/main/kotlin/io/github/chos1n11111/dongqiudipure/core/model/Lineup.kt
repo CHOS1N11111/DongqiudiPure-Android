@@ -61,6 +61,10 @@ data class TeamLineup(
     val substitutes: List<LineupPlayer>,
     val coach: String?,
     val absentees: List<Absentee>,
+    val coachRole: String? = null,
+    val coachAvatarUrl: String? = null,
+    val marketValueLabel: String? = null,
+    val averageAgeLabel: String? = null,
 ) {
     /**
      * 是否具备绘制阵型图的完整坐标。

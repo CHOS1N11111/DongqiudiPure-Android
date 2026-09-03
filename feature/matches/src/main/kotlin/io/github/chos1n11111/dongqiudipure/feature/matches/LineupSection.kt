@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -38,7 +39,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ImagePlaceholder
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
@@ -48,6 +51,7 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.LineupPlayer
+import io.github.chos1n11111.dongqiudipure.core.model.MatchInfo
 import io.github.chos1n11111.dongqiudipure.core.model.MatchLineup
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerPosition
@@ -62,45 +66,109 @@ enum class LineupSide(@param:StringRes val labelRes: Int) {
 fun LineupContent(
     lineup: MatchLineup,
     onPlayerClick: (PlayerId) -> Unit,
+    info: MatchInfo? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        DualFormationBar(lineup)
-
         if (lineup.hasCombinedCoordinatePitch()) {
-            CombinedFormationPitch(
-                lineup = lineup,
-                onPlayerClick = onPlayerClick,
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(PitchGreen),
+            ) {
+                LineupMetaHeader(info = info, onPitch = true)
+                LineupVenue(info?.venue, onPitch = true)
+                CombinedFormationPitch(
+                    lineup = lineup,
+                    onPlayerClick = onPlayerClick,
+                )
+            }
         } else {
+            LineupMetaHeader(info = info, onPitch = false)
+            LineupVenue(info?.venue, onPitch = false)
+            DualFormationBar(lineup)
             NoGridNotice()
             SectionHeader(title = stringResource(R.string.lineup_starters))
             DualPlayerColumns(
                 home = lineup.home,
                 away = lineup.away,
                 players = { it.starters },
+                includeCoach = false,
                 onPlayerClick = onPlayerClick,
             )
         }
 
-        if (lineup.home.substitutes.isNotEmpty() || lineup.away.substitutes.isNotEmpty()) {
+        if (
+            lineup.home.substitutes.isNotEmpty() || lineup.away.substitutes.isNotEmpty() ||
+            lineup.home.coach != null || lineup.away.coach != null
+        ) {
             SectionHeader(title = stringResource(R.string.lineup_substitutes))
             DualPlayerColumns(
                 home = lineup.home,
                 away = lineup.away,
                 players = { it.substitutes },
+                includeCoach = true,
                 onPlayerClick = onPlayerClick,
             )
         }
-
-        SectionHeader(title = stringResource(R.string.lineup_coach))
-        DualCoachRow(lineup.home, lineup.away)
 
         if (lineup.home.absentees.isNotEmpty() || lineup.away.absentees.isNotEmpty()) {
             SectionHeader(title = stringResource(R.string.lineup_absentees))
             DualAbsenteeColumns(lineup.home, lineup.away)
         }
     }
+}
+
+@Composable
+private fun LineupMetaHeader(info: MatchInfo?, onPitch: Boolean) {
+    val details = listOfNotNull(info?.weather, info?.temperature, info?.altitude)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
+        Text(
+            text = stringResource(R.string.lineup_starters),
+            style = MaterialTheme.typography.titleSmall,
+            color = if (onPitch) Color.White else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        if (details.isNotEmpty()) {
+            Text(
+                text = details.joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (onPitch) Color.White.copy(alpha = 0.88f) else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LineupVenue(venue: String?, onPitch: Boolean) {
+    if (venue == null) return
+    Text(
+        text = venue,
+        style = MaterialTheme.typography.labelMedium,
+        color = if (onPitch) Color.White else MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DqdSpacing.listHorizontal)
+            .clip(RoundedCornerShape(6.dp))
+            .background(
+                if (onPitch) Color.Black.copy(alpha = 0.10f) else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                },
+            )
+            .padding(horizontal = DqdSpacing.md, vertical = DqdSpacing.sm),
+    )
 }
 
 private fun MatchLineup.hasCombinedCoordinatePitch(): Boolean {
@@ -177,15 +245,14 @@ private fun CombinedFormationPitch(
     lineup: MatchLineup,
     onPlayerClick: (PlayerId) -> Unit,
 ) {
-    val pitchLine = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-    val pitchFill = MaterialTheme.colorScheme.surfaceContainerHigh
+    val pitchLine = Color.White.copy(alpha = 0.42f)
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .padding(DqdSpacing.md)
             .clip(RoundedCornerShape(8.dp))
-            .background(pitchFill)
-            .aspectRatio(0.68f),
+            .background(PitchGreen)
+            .aspectRatio(0.48f),
     ) {
         val width = maxWidth
         val height = maxHeight
@@ -223,23 +290,72 @@ private fun CombinedFormationPitch(
             )
         }
 
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .padding(horizontal = DqdSpacing.md),
+        ) {
+            PitchTeamSummary(lineup.home)
+            PitchTeamSummary(lineup.away)
+        }
+
         listOf(true to lineup.home, false to lineup.away).forEach { (isHome, team) ->
             team.starters.forEach { player ->
                 val sourceX = requireNotNull(player.gridColumn).coerceIn(0, 100) / 100f
                 val sourceY = requireNotNull(player.gridRow).coerceIn(0, 100) / 100f
-                val xFraction = if (isHome) sourceX else 1f - sourceX
-                val yFraction = if (isHome) 1f - sourceY * 0.44f else sourceY * 0.44f
+                val xFraction = 0.06f + (if (isHome) sourceX else 1f - sourceX) * 0.88f
+                val yFraction = if (isHome) {
+                    0.07f + sourceY * 0.40f
+                } else {
+                    0.93f - sourceY * 0.40f
+                }
                 PlayerMarker(
                     player = player,
+                    isHome = isHome,
                     onClick = { onPlayerClick(player.id) },
                     modifier = Modifier
-                        .width(64.dp)
+                        .width(68.dp)
                         .offset(
-                            x = width * xFraction - 32.dp,
-                            y = height * yFraction - 28.dp,
+                            x = width * xFraction - 34.dp,
+                            y = height * yFraction - 30.dp,
                         ),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun PitchTeamSummary(team: TeamLineup) {
+    val rightLabel = listOfNotNull(
+        team.marketValueLabel?.let { stringResource(R.string.lineup_team_market_value, it) },
+        team.averageAgeLabel?.let { stringResource(R.string.lineup_team_average_age, it) },
+    ).joinToString("  ")
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        TeamCrest(
+            teamId = team.team.id,
+            teamName = team.team.name,
+            crestUrl = team.team.crestUrl,
+            size = 15.dp,
+        )
+        team.formation?.let {
+            Text(it, style = MaterialTheme.typography.labelSmall, color = Color.White)
+        }
+        Box(modifier = Modifier.weight(1f))
+        if (rightLabel.isNotEmpty()) {
+            Text(
+                text = rightLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.88f),
+                maxLines = 1,
+            )
         }
     }
 }
@@ -249,6 +365,7 @@ private fun DualPlayerColumns(
     home: TeamLineup,
     away: TeamLineup,
     players: (TeamLineup) -> List<LineupPlayer>,
+    includeCoach: Boolean,
     onPlayerClick: (PlayerId) -> Unit,
 ) {
     Row(
@@ -259,8 +376,8 @@ private fun DualPlayerColumns(
         horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
         verticalAlignment = Alignment.Top,
     ) {
-        CompactTeamPlayers(home, players(home), onPlayerClick, Modifier.weight(1f))
-        CompactTeamPlayers(away, players(away), onPlayerClick, Modifier.weight(1f))
+        CompactTeamPlayers(home, players(home), true, includeCoach, onPlayerClick, Modifier.weight(1f))
+        CompactTeamPlayers(away, players(away), false, includeCoach, onPlayerClick, Modifier.weight(1f))
     }
 }
 
@@ -268,16 +385,34 @@ private fun DualPlayerColumns(
 private fun CompactTeamPlayers(
     team: TeamLineup,
     players: List<LineupPlayer>,
+    isHome: Boolean,
+    includeCoach: Boolean,
     onPlayerClick: (PlayerId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        Text(
-            text = team.team.name,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Row(
             modifier = Modifier.padding(horizontal = DqdSpacing.sm, vertical = DqdSpacing.xs),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            TeamCrest(
+                teamId = team.team.id,
+                teamName = team.team.name,
+                crestUrl = team.team.crestUrl,
+                size = 22.dp,
+            )
+            Text(
+                text = team.team.name,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (includeCoach && (team.coach != null || team.coachRole != null)) {
+            CompactCoachRow(team)
+        }
         players.forEach { player ->
             Row(
                 modifier = Modifier
@@ -287,11 +422,22 @@ private fun CompactTeamPlayers(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                PlayerAvatar(player.id, player.name, player.avatarUrl, 28.dp)
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(if (isHome) PitchHomeMarker else PitchAwayMarker),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = player.shirtNumber?.toString() ?: "–",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                    )
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = listOfNotNull(player.shirtNumber?.toString(), player.name)
-                            .joinToString(" "),
+                        text = player.name,
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -307,25 +453,30 @@ private fun CompactTeamPlayers(
 }
 
 @Composable
-private fun DualCoachRow(home: TeamLineup, away: TeamLineup) {
+private fun CompactCoachRow(team: TeamLineup) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
-        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+            .padding(horizontal = DqdSpacing.sm, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        CoachCell(home, Modifier.weight(1f))
-        CoachCell(away, Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun CoachCell(team: TeamLineup, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Text(team.team.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        team.coach?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-            ?: MissingValue(style = MaterialTheme.typography.bodySmall)
+        ImagePlaceholder(
+            url = team.coachAvatarUrl,
+            cornerRadius = 16.dp,
+            modifier = Modifier.size(32.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            team.coach?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+            }
+            Text(
+                text = team.coachRole ?: stringResource(R.string.lineup_coach),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -341,7 +492,22 @@ private fun DualAbsenteeColumns(home: TeamLineup, away: TeamLineup) {
     ) {
         listOf(home, away).forEach { team ->
             Column(modifier = Modifier.weight(1f)) {
-                Text(team.team.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    TeamCrest(
+                        teamId = team.team.id,
+                        teamName = team.team.name,
+                        crestUrl = team.team.crestUrl,
+                        size = 22.dp,
+                    )
+                    Text(
+                        team.team.name,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 team.absentees.forEach { absentee ->
                     Text(absentee.name, style = MaterialTheme.typography.bodySmall)
                     absentee.reason?.let {
@@ -509,6 +675,7 @@ private fun FormationPitch(
 
                 PlayerMarker(
                     player = player,
+                    isHome = true,
                     onClick = { onPlayerClick(player.id) },
                     modifier = Modifier
                         .width(64.dp)
@@ -525,48 +692,105 @@ private fun FormationPitch(
 @Composable
 private fun PlayerMarker(
     player: LineupPlayer,
+    isHome: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier.clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        PlayerAvatar(
-            playerId = player.id,
-            playerName = player.name,
-            avatarUrl = player.avatarUrl,
-            size = 30.dp,
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(30.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(if (isHome) PitchHomeMarker else PitchAwayMarker),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = player.shirtNumber?.toString() ?: "–",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White,
+                    maxLines = 1,
+                )
+            }
+            PitchEventBadges(
+                events = player.events,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 5.dp, y = (-3).dp),
+            )
+        }
         Text(
-            text = listOfNotNull(
-                player.shirtNumber?.toString(),
-                player.name,
-            ).joinToString(" "),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface,
+            text = player.name,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            color = Color.White,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        player.ratingLabel?.let { rating ->
+            Text(
+                text = rating,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                color = Color.White,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(PitchRatingBackground)
+                    .padding(horizontal = 3.dp, vertical = 1.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PitchEventBadges(
+    events: List<io.github.chos1n11111.dongqiudipure.core.model.LineupPlayerEvent>,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+    events.filter { it.type.uppercase() in PitchEventTypes }.take(2).forEach { event ->
         Row(
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(1.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            player.ratingLabel?.let { rating ->
+            when (event.type.uppercase()) {
+                "G", "PG", "PSG", "OG", "AS" -> Icon(
+                    painter = painterResource(DqdIcons.Ball),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(10.dp),
+                )
+                "YC" -> Box(Modifier.size(7.dp, 10.dp).background(PitchYellowCard))
+                "RC", "Y2C", "SY" -> Box(Modifier.size(7.dp, 10.dp).background(PitchRedCard))
+                "SI", "SO" -> Icon(
+                    painter = painterResource(DqdIcons.Substitution),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(10.dp),
+                )
+                else -> Unit
+            }
+            event.minuteLabel?.let {
                 Text(
-                    text = rating,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(horizontal = 3.dp, vertical = 1.dp),
+                    text = it,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                    color = Color.White,
                 )
             }
-            PlayerEventText(player)
         }
+    }
     }
 }
 
@@ -697,3 +921,11 @@ private fun PlayerChip(player: LineupPlayer, onClick: () -> Unit) {
         }
     }
 }
+
+private val PitchGreen = Color(0xFF2EAD58)
+private val PitchHomeMarker = Color(0xFF7A1F45)
+private val PitchAwayMarker = Color(0xFF17324D)
+private val PitchRatingBackground = Color(0xFF176E39)
+private val PitchYellowCard = Color(0xFFFFD43B)
+private val PitchRedCard = Color(0xFFE23D3D)
+private val PitchEventTypes = setOf("G", "PG", "PSG", "OG", "AS", "YC", "RC", "Y2C", "SY", "SI", "SO")

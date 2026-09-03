@@ -8,6 +8,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.ArticleMedia
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.Comment
 import io.github.chos1n11111.dongqiudipure.core.model.CommentAttachment
+import io.github.chos1n11111.dongqiudipure.core.model.CommentBodyPart
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.EntityRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
@@ -88,17 +89,20 @@ internal fun ArticleDetailDto.toDomain(expectedId: ArticleId): ArticleDetail {
 internal fun CommentDto.toDomain(users: Map<String, CommentUserDto>): Comment {
     val rawUserId = userId.scalarString().required()
     val user = users[rawUserId] ?: throw ContractViolation()
-    val plainContent = plainCommentText(content)
+    val parsedContent = parseCommentBody(content)
     val commentAttachments = attachments.orEmpty().map(CommentAttachmentDto::toDomain)
-    if (plainContent.isEmpty() && commentAttachments.isEmpty()) throw ContractViolation()
+    if (parsedContent.plainText.isEmpty() && commentAttachments.isEmpty()) throw ContractViolation()
     return Comment(
         id = id.scalarString().required(),
         authorName = user.username.required(),
-        body = plainContent,
+        body = parsedContent.plainText,
         publishedLabel = createdAt.required(),
         replyCount = replyTotal.scalarIntOrNull(),
         likeCount = up.scalarIntOrNull(),
         attachments = commentAttachments,
+        avatarUrl = safeMediaUrl(user.avatar),
+        teamCrestUrl = safeMediaUrl(user.teamIcon),
+        bodyParts = parsedContent.parts,
     )
 }
 
@@ -125,6 +129,8 @@ private fun parseArticleBody(html: String): List<ArticleBlock> {
                 "p" -> {
                     val image = element.selectFirst("img")
                     if (image != null) add(image.toImageBlock())
+                    val video = element.selectFirst("video, div.video")
+                    if (video != null) add(video.toVideoBlock())
                     val links = element.select("a[href]")
                     val text = element.text().trim()
                     if (text.isNotEmpty()) {
@@ -138,6 +144,15 @@ private fun parseArticleBody(html: String): List<ArticleBlock> {
                 }
 
                 "img" -> add(element.toImageBlock())
+                "video" -> add(element.toVideoBlock())
+                "div" -> {
+                    if (element.hasClass("video")) {
+                        add(element.toVideoBlock())
+                    } else {
+                        val text = element.text().trim()
+                        if (text.isNotEmpty()) add(ArticleBlock.Paragraph(text))
+                    }
+                }
                 "h1", "h2", "h3", "h4", "h5", "h6", "blockquote" -> {
                     val text = element.text().trim()
                     if (text.isNotEmpty()) add(ArticleBlock.Paragraph(text))
@@ -160,6 +175,20 @@ private fun Element.toImageBlock(): ArticleBlock.Image = ArticleBlock.Image(
             .ifBlank { attr("src") },
     ),
     caption = attr("alt").takeIf(String::isNotBlank),
+    aspectRatio = imageAspectRatio(),
+)
+
+private fun Element.toVideoBlock(): ArticleBlock.Video = ArticleBlock.Video(
+    url = safeMediaUrl(
+        attr("src").ifBlank {
+            selectFirst("source[src]")?.attr("src").orEmpty()
+        },
+    ),
+    posterUrl = safeMediaUrl(
+        attr("thumb")
+            .ifBlank { attr("poster") }
+            .ifBlank { attr("data-poster") },
+    ),
     aspectRatio = imageAspectRatio(),
 )
 
@@ -210,14 +239,50 @@ private fun CommentAttachmentDto.toDomain(): CommentAttachment {
     )
 }
 
-private fun plainCommentText(html: String?): String {
+private fun parseCommentBody(html: String?): ParsedCommentBody {
     val body = Jsoup.parseBodyFragment(html.orEmpty()).body()
-    body.select("img").forEach { image ->
-        val fallback = if (image.hasClass("face")) "[表情]" else "[图片]"
-        image.replaceWith(TextNode(image.attr("alt").trim().ifEmpty { fallback }))
+    val inlineImages = mutableMapOf<String, CommentBodyPart.InlineImage>()
+    body.select("img").forEachIndexed { index, image ->
+        val description = image.attr("alt").trim().ifEmpty {
+            if (image.hasClass("face")) "[表情]" else "[图片]"
+        }
+        val marker = "$COMMENT_IMAGE_MARKER_PREFIX$index$COMMENT_IMAGE_MARKER_SUFFIX"
+        safeMediaUrl(
+            image.attr("data-src").ifBlank { image.attr("src") },
+        )?.let { url ->
+            inlineImages[marker] = CommentBodyPart.InlineImage(url, description)
+        }
+        image.replaceWith(TextNode(inlineImages[marker]?.let { marker } ?: description))
     }
-    return body.text().trim()
+    val markedText = body.wholeText().trim()
+    val parts = buildList {
+        var cursor = 0
+        COMMENT_IMAGE_MARKER.findAll(markedText).forEach { match ->
+            if (match.range.first > cursor) {
+                add(CommentBodyPart.Text(markedText.substring(cursor, match.range.first)))
+            }
+            inlineImages[match.value]?.let(::add)
+            cursor = match.range.last + 1
+        }
+        if (cursor < markedText.length) add(CommentBodyPart.Text(markedText.substring(cursor)))
+    }
+    val plainText = buildString {
+        parts.forEach { part ->
+            append(
+                when (part) {
+                    is CommentBodyPart.Text -> part.value
+                    is CommentBodyPart.InlineImage -> part.contentDescription
+                },
+            )
+        }
+    }
+    return ParsedCommentBody(plainText = plainText, parts = parts)
 }
+
+private data class ParsedCommentBody(
+    val plainText: String,
+    val parts: List<CommentBodyPart>,
+)
 
 private fun ArticleChannelDto.toEntityRef(): EntityRef? {
     val match = ENTITY_LINK.matchEntire(href.orEmpty()) ?: return null
@@ -244,7 +309,12 @@ private fun safeMediaUrl(raw: String?): String? {
     val uri = runCatching { java.net.URI(value) }.getOrNull() ?: return null
     return value.takeIf {
         uri.scheme == "https" &&
-            (uri.host == "qunliao.info" || uri.host?.endsWith(".qunliao.info") == true)
+            (
+                uri.host == "qunliao.info" ||
+                    uri.host?.endsWith(".qunliao.info") == true ||
+                    uri.host == "dongqiudi.com" ||
+                    uri.host?.endsWith(".dongqiudi.com") == true
+                )
     }
 }
 
@@ -265,3 +335,6 @@ private val DATA_RANKING_LINK = Regex("^dongqiudi:///?data_ranking/(\\d+)$")
 private val ENTITY_LINK = Regex("^dongqiudi:///?((?:team|player|competition))/(\\d+)$")
 private const val BETTING_TAB_ID = "58"
 private const val FOOTBALL_TAB_ID = "253"
+private const val COMMENT_IMAGE_MARKER_PREFIX = "[[DQP_IMAGE_"
+private const val COMMENT_IMAGE_MARKER_SUFFIX = "]]"
+private val COMMENT_IMAGE_MARKER = Regex("\\[\\[DQP_IMAGE_\\d+]]")

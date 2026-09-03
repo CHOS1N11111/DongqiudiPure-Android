@@ -30,7 +30,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.StatisticRankingTable
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamProfile
 import io.github.chos1n11111.dongqiudipure.core.model.TeamScheduleData
-import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadGroup
+import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
 import io.github.chos1n11111.dongqiudipure.core.network.ApiResult
@@ -288,8 +288,8 @@ class DefaultFootballRepository @Inject constructor(
     override suspend fun loadTeamStatistics(
         teamId: TeamId,
         seasonId: String?,
-    ): DataResult<TeamStatistics?> =
-        when (val result = remote.loadTeamStatistics(teamId, seasonId)) {
+    ): DataResult<TeamStatistics?> {
+        val first = when (val result = remote.loadTeamStatistics(teamId, seasonId)) {
             is ApiResult.Failure -> DataResult.Failure(result.error)
             is ApiResult.Success -> mapContract(TEAM_STATISTICS_ENDPOINT) {
                 result.value.toDomain().let { statistics ->
@@ -301,11 +301,26 @@ class DefaultFootballRepository @Inject constructor(
                 }
             }
         }
+        val initial = (first as? DataResult.Success)?.value ?: return first
+        val resolvedSeasonId = initial.selectedSeasonId
+        if (seasonId != null || resolvedSeasonId == null || initial.rankingTrend.isNotEmpty()) return first
+        return when (val result = remote.loadTeamStatistics(teamId, resolvedSeasonId)) {
+            is ApiResult.Failure -> first
+            is ApiResult.Success -> mapContract(TEAM_STATISTICS_ENDPOINT) {
+                result.value.toDomain().copy(selectedSeasonId = resolvedSeasonId)
+            }
+        }
+    }
 
-    override suspend fun loadTeamSquad(teamId: TeamId): DataResult<List<TeamSquadGroup>> =
-        when (val result = remote.loadTeamMembers(teamId)) {
+    override suspend fun loadTeamSquad(
+        teamId: TeamId,
+        seasonId: String?,
+    ): DataResult<TeamSquadData> =
+        when (val result = remote.loadTeamMembers(teamId, seasonId)) {
             is ApiResult.Failure -> DataResult.Failure(result.error)
-            is ApiResult.Success -> mapContract(TEAM_MEMBERS_ENDPOINT) { result.value.toDomain() }
+            is ApiResult.Success -> mapContract(TEAM_MEMBERS_ENDPOINT) {
+                result.value.toDomain(seasonId)
+            }
         }
 
     override suspend fun loadTeamSchedule(
