@@ -7,6 +7,8 @@
     <string name="account_login_pending">登录功能尚未实现（M9）</string>
 
     <string name="account_row_settings">设置</string>
+    <string name="account_row_app_info">应用信息</string>
+    <string name="account_app_info_title">应用信息</string>
     <string name="account_row_about">关于 DongqiudiPure</string>
     <string name="account_row_source">查看源代码</string>
     <string name="account_repository_url">github.com/CHOS1N11111/DongqiudiPure-Android</string>

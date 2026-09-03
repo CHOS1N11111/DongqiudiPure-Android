@@ -45,6 +45,7 @@ class HomeViewModel @Inject constructor(
             repository.pagedFeed(
                 category = selection.category,
                 fresh = selection.refreshGeneration > 0,
+                footballOnly = selection.footballOnly,
             )
         }
         .cachedIn(viewModelScope)
@@ -55,16 +56,25 @@ class HomeViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedCategory = category)
     }
 
-    fun setEnabledCategoryIds(enabledIds: Set<String>) {
+    fun setPreferences(enabledIds: Set<String>, footballOnly: Boolean) {
         val enabledCategories = categories.filter { it.id in enabledIds }
             .ifEmpty { listOf(defaultCategory) }
         val current = feedSelection.value.category
         val selected = enabledCategories.firstOrNull { it.id == current.id }
             ?: enabledCategories.first()
-        if (_uiState.value.categories == enabledCategories && current == selected) return
+        val filterChanged = feedSelection.value.footballOnly != footballOnly
+        if (
+            _uiState.value.categories == enabledCategories &&
+            current == selected &&
+            !filterChanged
+        ) return
 
         _uiState.value = HomeUiState(enabledCategories, selected)
-        if (selected != current) feedSelection.value = FeedSelection(selected)
+        feedSelection.value = feedSelection.value.copy(
+            category = selected,
+            footballOnly = footballOnly,
+            refreshGeneration = if (filterChanged) 0 else feedSelection.value.refreshGeneration,
+        )
     }
 
     fun refresh() {
@@ -76,6 +86,7 @@ class HomeViewModel @Inject constructor(
 
 private data class FeedSelection(
     val category: NewsCategory,
+    val footballOnly: Boolean = true,
     val refreshGeneration: Long = 0,
 )
 

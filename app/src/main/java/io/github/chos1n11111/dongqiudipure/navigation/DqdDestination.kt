@@ -53,6 +53,7 @@ object DqdRoutes {
     const val SETTINGS_MATCHES = "settings/matches"
     const val SETTINGS_RANKINGS = "settings/rankings"
     const val ABOUT = "about"
+    const val APP_INFO = "app-info"
     const val LICENSE = "license"
 
     fun article(articleId: String) = "article/$articleId"

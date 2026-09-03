@@ -39,6 +39,12 @@ data class LineupPlayer(
     val ratingLabel: String? = null,
     val isMvp: Boolean = false,
     val nationality: String? = null,
+    val events: List<LineupPlayerEvent> = emptyList(),
+)
+
+data class LineupPlayerEvent(
+    val type: String,
+    val minuteLabel: String?,
 )
 
 /** 缺阵球员。[reason] 为 null 表示服务端未说明原因。 */

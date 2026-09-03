@@ -44,6 +44,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.FormBadge
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
@@ -207,6 +208,20 @@ fun TeamProfileScreen(
                     emptyDescription = stringResource(R.string.team_squad_empty_description),
                 ) { SquadList(it, onPlayerClick) }
 
+                TeamTab.Data -> TeamInfoContent(
+                    profileState = uiState.profile,
+                    statisticsState = uiState.statistics,
+                    transfersState = uiState.transfers,
+                    onStatisticsSeasonSelect = onStatisticsSeasonSelect,
+                    onTransferWindowSelect = onTransferWindowSelect,
+                    onPlayerClick = onPlayerClick,
+                    onTeamClick = onTeamClick,
+                    onRetry = onRetry,
+                    showProfile = false,
+                    showStatistics = true,
+                    showTransfers = false,
+                )
+
                 TeamTab.Info -> TeamInfoContent(
                     profileState = uiState.profile,
                     statisticsState = uiState.statistics,
@@ -216,6 +231,23 @@ fun TeamProfileScreen(
                     onPlayerClick = onPlayerClick,
                     onTeamClick = onTeamClick,
                     onRetry = onRetry,
+                    showProfile = true,
+                    showStatistics = false,
+                    showTransfers = false,
+                )
+
+                TeamTab.Transfers -> TeamInfoContent(
+                    profileState = uiState.profile,
+                    statisticsState = uiState.statistics,
+                    transfersState = uiState.transfers,
+                    onStatisticsSeasonSelect = onStatisticsSeasonSelect,
+                    onTransferWindowSelect = onTransferWindowSelect,
+                    onPlayerClick = onPlayerClick,
+                    onTeamClick = onTeamClick,
+                    onRetry = onRetry,
+                    showProfile = false,
+                    showStatistics = false,
+                    showTransfers = true,
                 )
             }
             Box(modifier = Modifier.height(DqdSpacing.xl))
@@ -302,8 +334,11 @@ private fun TeamInfoContent(
     onPlayerClick: (PlayerId) -> Unit,
     onTeamClick: (TeamId) -> Unit,
     onRetry: () -> Unit,
+    showProfile: Boolean,
+    showStatistics: Boolean,
+    showTransfers: Boolean,
 ) {
-    SectionContainer(
+    if (showProfile) SectionContainer(
         state = profileState,
         onRetry = onRetry,
         title = stringResource(R.string.team_details),
@@ -356,7 +391,7 @@ private fun TeamInfoContent(
         }
     }
 
-    SectionContainer(
+    if (showStatistics) SectionContainer(
         state = statisticsState,
         onRetry = onRetry,
         title = stringResource(R.string.team_statistics),
@@ -371,7 +406,7 @@ private fun TeamInfoContent(
         TeamStatisticsContent(statistics, onPlayerClick)
     }
 
-    SectionContainer(
+    if (showTransfers) SectionContainer(
         state = transfersState,
         onRetry = onRetry,
         title = stringResource(R.string.team_transfers),
@@ -385,49 +420,117 @@ private fun TeamInfoContent(
         TeamTransferList(transfers, onPlayerClick, onTeamClick)
     }
 
-    SectionHeader(stringResource(R.string.team_availability))
-    InlineEmpty(stringResource(R.string.team_availability_unavailable))
+    if (showProfile) {
+        SectionHeader(stringResource(R.string.team_availability))
+        InlineEmpty(stringResource(R.string.team_availability_unavailable))
+    }
 }
 
 @Composable
 private fun ProfileHeader(profile: TeamProfile) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = DqdSpacing.lg, vertical = DqdSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(DqdSpacing.md),
     ) {
-        TeamCrest(
-            teamId = profile.id,
-            teamName = profile.name,
-            crestUrl = profile.crestUrl,
-            size = 60.dp,
-        )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(
-                text = profile.name,
-                style = MaterialTheme.typography.headlineSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.lg),
+        ) {
+            TeamCrest(
+                teamId = profile.id,
+                teamName = profile.name,
+                crestUrl = profile.crestUrl,
+                size = 60.dp,
             )
-            profile.englishName?.let {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = profile.name,
+                    style = MaterialTheme.typography.headlineSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
-            val subtitle = listOfNotNull(profile.country, profile.city).joinToString(" · ")
-            if (subtitle.isNotEmpty()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                profile.englishName?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                val subtitle = listOfNotNull(
+                    profile.country,
+                    profile.city,
+                    profile.competitionName,
+                ).joinToString(" · ")
+                if (subtitle.isNotEmpty()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                val ranking = listOfNotNull(
+                    profile.rankLabel,
+                    profile.marketValueLabel?.let {
+                        "${stringResource(R.string.team_fact_value)}$it"
+                    },
                 )
+                    .distinct()
+                    .joinToString(" · ")
+                if (ranking.isNotEmpty()) {
+                    Text(
+                        text = ranking,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                    )
+                }
+            }
+        }
+        val summaries = listOfNotNull(
+            profile.leagueRankLabel?.let {
+                stringResource(R.string.team_stat_rank) to it
+            },
+            profile.leagueRecordLabel?.let {
+                stringResource(R.string.team_stat_record) to it
+            },
+        )
+        if (summaries.isNotEmpty()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                summaries.forEach { (label, value) ->
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(value, style = DqdTheme.dataText.statValue)
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+        if (profile.recentForm.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.team_recent_form),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = DqdSpacing.sm),
+                )
+                profile.recentForm.forEach { result ->
+                    FormBadge(result, Modifier.padding(horizontal = 2.dp))
+                }
             }
         }
     }

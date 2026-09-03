@@ -13,6 +13,13 @@ data class CompetitionRef(
     /** 如「第 4 轮」。服务端未提供时为 null。 */
     val roundLabel: String?,
     val logoUrl: String? = null,
+    /** 懂球帝 data_menu 中用于 data_ranking deep link 的目录 ID。 */
+    val catalogId: String? = null,
+)
+
+data class MatchListEvent(
+    val label: String,
+    val code: String?,
 )
 
 data class MatchSummary(
@@ -40,6 +47,11 @@ data class MatchSummary(
     val awayCorners: Int? = null,
     val liveLabel: String? = null,
     val tipsCount: Int? = null,
+    val kickoffLabel: String? = null,
+    val dateLabel: String? = null,
+    val matchInfoLabel: String? = null,
+    val homeEvents: List<MatchListEvent> = emptyList(),
+    val awayEvents: List<MatchListEvent> = emptyList(),
 )
 
 /**
@@ -172,6 +184,8 @@ data class TeamProfile(
     val foundedLabel: String?,
     val rankLabel: String? = null,
     val marketValueLabel: String? = null,
+    val leagueRankLabel: String? = null,
+    val leagueRecordLabel: String? = null,
     val type: TeamType = TeamType.Unknown,
     val recentForm: List<FormResult>,
     val facts: List<TeamFact> = emptyList(),

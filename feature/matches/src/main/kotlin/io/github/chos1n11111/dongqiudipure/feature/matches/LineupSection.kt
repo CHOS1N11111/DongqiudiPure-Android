@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,6 +42,7 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingVa
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.TeamCrest
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
@@ -59,105 +61,292 @@ enum class LineupSide(@param:StringRes val labelRes: Int) {
 @Composable
 fun LineupContent(
     lineup: MatchLineup,
-    side: LineupSide,
-    onSideChange: (LineupSide) -> Unit,
     onPlayerClick: (PlayerId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val team = when (side) {
-        LineupSide.Home -> lineup.home
-        LineupSide.Away -> lineup.away
-    }
-
     Column(modifier = modifier.fillMaxWidth()) {
-        SideToggle(
-            homeName = lineup.home.team.name,
-            awayName = lineup.away.team.name,
-            selected = side,
-            onSelect = onSideChange,
-        )
+        DualFormationBar(lineup)
 
-        FormationBar(team)
-
-        if (team.hasFormationGrid) {
-            FormationPitch(
-                starters = team.starters,
+        if (lineup.hasCombinedCoordinatePitch()) {
+            CombinedFormationPitch(
+                lineup = lineup,
                 onPlayerClick = onPlayerClick,
             )
         } else {
-            // 服务端没给站位坐标。降级为列表，而不是按位置猜一个阵型画出来 ——
-            // 半张编造的阵型图比一份诚实的名单更容易误导。
             NoGridNotice()
-            PlayerList(
-                players = team.starters,
+            SectionHeader(title = stringResource(R.string.lineup_starters))
+            DualPlayerColumns(
+                home = lineup.home,
+                away = lineup.away,
+                players = { it.starters },
                 onPlayerClick = onPlayerClick,
             )
         }
 
-        if (team.substitutes.isNotEmpty()) {
+        if (lineup.home.substitutes.isNotEmpty() || lineup.away.substitutes.isNotEmpty()) {
             SectionHeader(title = stringResource(R.string.lineup_substitutes))
-            PlayerList(players = team.substitutes, onPlayerClick = onPlayerClick)
+            DualPlayerColumns(
+                home = lineup.home,
+                away = lineup.away,
+                players = { it.substitutes },
+                onPlayerClick = onPlayerClick,
+            )
         }
 
         SectionHeader(title = stringResource(R.string.lineup_coach))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-                .padding(
-                    horizontal = DqdSpacing.listHorizontal,
-                    vertical = DqdSpacing.md,
-                ),
-        ) {
-            val coach = team.coach
-            if (coach != null) {
+        DualCoachRow(lineup.home, lineup.away)
+
+        if (lineup.home.absentees.isNotEmpty() || lineup.away.absentees.isNotEmpty()) {
+            SectionHeader(title = stringResource(R.string.lineup_absentees))
+            DualAbsenteeColumns(lineup.home, lineup.away)
+        }
+    }
+}
+
+private fun MatchLineup.hasCombinedCoordinatePitch(): Boolean {
+    val starters = home.starters + away.starters
+    return home.starters.isNotEmpty() && away.starters.isNotEmpty() && starters.all { player ->
+        val x = player.gridColumn
+        val y = player.gridRow
+        x != null && y != null && x in 0..100 && y in 0..100
+    } && starters.any { (it.gridColumn ?: 0) > 10 || (it.gridRow ?: 0) > 10 }
+}
+
+@Composable
+private fun DualFormationBar(lineup: MatchLineup) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+    ) {
+        TeamFormation(lineup.home, isHome = true, Modifier.weight(1f))
+        TeamFormation(lineup.away, isHome = false, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun TeamFormation(team: TeamLineup, isHome: Boolean, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = if (isHome) Arrangement.End else Arrangement.Start,
+    ) {
+        if (!isHome) {
+            TeamCrest(
+                teamId = team.team.id,
+                teamName = team.team.name,
+                crestUrl = team.team.crestUrl,
+                size = 24.dp,
+            )
+            Box(Modifier.width(DqdSpacing.sm))
+        }
+        Column(horizontalAlignment = if (isHome) Alignment.End else Alignment.Start) {
+            Text(
+                text = team.team.name,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val formation = team.formation
+            if (formation != null) {
                 Text(
-                    text = coach,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    text = formation,
+                    style = DqdTheme.dataText.statValue,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                MissingValue(style = MaterialTheme.typography.bodySmall)
+                MissingValue(style = MaterialTheme.typography.labelSmall)
             }
         }
+        if (isHome) {
+            Box(Modifier.width(DqdSpacing.sm))
+            TeamCrest(
+                teamId = team.team.id,
+                teamName = team.team.name,
+                crestUrl = team.team.crestUrl,
+                size = 24.dp,
+            )
+        }
+    }
+}
 
-        if (team.absentees.isNotEmpty()) {
-            SectionHeader(title = stringResource(R.string.lineup_absentees))
-            Column(
+@Composable
+private fun CombinedFormationPitch(
+    lineup: MatchLineup,
+    onPlayerClick: (PlayerId) -> Unit,
+) {
+    val pitchLine = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+    val pitchFill = MaterialTheme.colorScheme.surfaceContainerHigh
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(DqdSpacing.md)
+            .clip(RoundedCornerShape(8.dp))
+            .background(pitchFill)
+            .aspectRatio(0.68f),
+    ) {
+        val width = maxWidth
+        val height = maxHeight
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val inset = 10.dp.toPx()
+            val stroke = Stroke(width = 1.5.dp.toPx())
+            val fieldWidth = size.width - inset * 2
+            val fieldHeight = size.height - inset * 2
+            drawRect(pitchLine, Offset(inset, inset), Size(fieldWidth, fieldHeight), style = stroke)
+            drawLine(
+                pitchLine,
+                Offset(inset, inset + fieldHeight / 2f),
+                Offset(inset + fieldWidth, inset + fieldHeight / 2f),
+                strokeWidth = stroke.width,
+            )
+            drawCircle(
+                pitchLine,
+                radius = fieldWidth * 0.13f,
+                center = Offset(inset + fieldWidth / 2f, inset + fieldHeight / 2f),
+                style = stroke,
+            )
+            val boxWidth = fieldWidth * 0.52f
+            val boxHeight = fieldHeight * 0.14f
+            drawRect(
+                pitchLine,
+                Offset(inset + (fieldWidth - boxWidth) / 2f, inset),
+                Size(boxWidth, boxHeight),
+                style = stroke,
+            )
+            drawRect(
+                pitchLine,
+                Offset(inset + (fieldWidth - boxWidth) / 2f, inset + fieldHeight - boxHeight),
+                Size(boxWidth, boxHeight),
+                style = stroke,
+            )
+        }
+
+        listOf(true to lineup.home, false to lineup.away).forEach { (isHome, team) ->
+            team.starters.forEach { player ->
+                val sourceX = requireNotNull(player.gridColumn).coerceIn(0, 100) / 100f
+                val sourceY = requireNotNull(player.gridRow).coerceIn(0, 100) / 100f
+                val xFraction = if (isHome) sourceX else 1f - sourceX
+                val yFraction = if (isHome) 1f - sourceY * 0.44f else sourceY * 0.44f
+                PlayerMarker(
+                    player = player,
+                    onClick = { onPlayerClick(player.id) },
+                    modifier = Modifier
+                        .width(64.dp)
+                        .offset(
+                            x = width * xFraction - 32.dp,
+                            y = height * yFraction - 28.dp,
+                        ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DualPlayerColumns(
+    home: TeamLineup,
+    away: TeamLineup,
+    players: (TeamLineup) -> List<LineupPlayer>,
+    onPlayerClick: (PlayerId) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = DqdSpacing.sm, vertical = DqdSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        verticalAlignment = Alignment.Top,
+    ) {
+        CompactTeamPlayers(home, players(home), onPlayerClick, Modifier.weight(1f))
+        CompactTeamPlayers(away, players(away), onPlayerClick, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun CompactTeamPlayers(
+    team: TeamLineup,
+    players: List<LineupPlayer>,
+    onPlayerClick: (PlayerId) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = team.team.name,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = DqdSpacing.sm, vertical = DqdSpacing.xs),
+        )
+        players.forEach { player ->
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                    .clickable { onPlayerClick(player.id) }
+                    .padding(horizontal = DqdSpacing.sm, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
+                PlayerAvatar(player.id, player.name, player.avatarUrl, 28.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = listOfNotNull(player.shirtNumber?.toString(), player.name)
+                            .joinToString(" "),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    PlayerEventText(player)
+                }
+                player.ratingLabel?.let {
+                    Text(it, style = DqdTheme.dataText.statValue, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DualCoachRow(home: TeamLineup, away: TeamLineup) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+    ) {
+        CoachCell(home, Modifier.weight(1f))
+        CoachCell(away, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun CoachCell(team: TeamLineup, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(team.team.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        team.coach?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            ?: MissingValue(style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun DualAbsenteeColumns(home: TeamLineup, away: TeamLineup) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+        verticalAlignment = Alignment.Top,
+    ) {
+        listOf(home, away).forEach { team ->
+            Column(modifier = Modifier.weight(1f)) {
+                Text(team.team.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 team.absentees.forEach { absentee ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = DqdSpacing.listHorizontal,
-                                vertical = DqdSpacing.md,
-                            ),
-                        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = absentee.name,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                        )
-                        // 缺阵原因未提供时显示「—」，不猜「伤病」。
-                        val reason = absentee.reason
-                        if (reason != null) {
-                            Text(
-                                text = reason,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else {
-                            MissingValue(style = MaterialTheme.typography.labelSmall)
-                        }
+                    Text(absentee.name, style = MaterialTheme.typography.bodySmall)
+                    absentee.reason?.let {
+                        Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         }
@@ -354,7 +543,6 @@ private fun PlayerMarker(
             text = listOfNotNull(
                 player.shirtNumber?.toString(),
                 player.name,
-                player.ratingLabel,
             ).joinToString(" "),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface,
@@ -362,7 +550,47 @@ private fun PlayerMarker(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            player.ratingLabel?.let { rating ->
+                Text(
+                    text = rating,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = 3.dp, vertical = 1.dp),
+                )
+            }
+            PlayerEventText(player)
+        }
     }
+}
+
+@Composable
+private fun PlayerEventText(player: LineupPlayer) {
+    val event = player.events.firstOrNull() ?: return
+    val label = when (event.type.uppercase()) {
+        "G" -> stringResource(R.string.match_event_goal)
+        "PG", "PSG" -> stringResource(R.string.match_event_penalty)
+        "OG" -> stringResource(R.string.match_event_own_goal)
+        "YC" -> stringResource(R.string.match_event_yellow_card)
+        "RC" -> stringResource(R.string.match_event_red_card)
+        "Y2C", "SY" -> stringResource(R.string.match_event_second_yellow)
+        "SI", "SO" -> stringResource(R.string.match_event_substitution)
+        else -> event.type
+    }
+    Text(
+        text = listOfNotNull(label, event.minuteLabel).joinToString(" ") +
+            if (player.events.size > 1) " +${player.events.size - 1}" else "",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 @Composable
 private fun NoGridNotice() {

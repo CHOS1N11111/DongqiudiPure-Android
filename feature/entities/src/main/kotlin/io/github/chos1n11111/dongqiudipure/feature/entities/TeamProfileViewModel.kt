@@ -28,8 +28,10 @@ import kotlinx.coroutines.launch
 enum class TeamTab(@param:StringRes val labelRes: Int) {
     Dynamic(R.string.team_tab_dynamic),
     Schedule(R.string.team_tab_fixtures),
+    Data(R.string.team_tab_stats),
     Players(R.string.team_tab_players),
     Info(R.string.team_tab_overview),
+    Transfers(R.string.team_tab_transfers),
 }
 
 enum class TeamScheduleFilter(@param:StringRes val labelRes: Int) {

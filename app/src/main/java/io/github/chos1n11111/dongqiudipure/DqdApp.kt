@@ -36,6 +36,7 @@ fun DqdApp(
     onMatchCompetitionToggle: (String, Boolean) -> Unit,
     onRankingCompetitionToggle: (String, Boolean) -> Unit,
     onNewsCategoryToggle: (String, Boolean) -> Unit,
+    onNewsFootballOnlyChange: (Boolean) -> Unit,
     appVersion: String,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
@@ -83,6 +84,7 @@ fun DqdApp(
             onMatchCompetitionToggle = onMatchCompetitionToggle,
             onRankingCompetitionToggle = onRankingCompetitionToggle,
             onNewsCategoryToggle = onNewsCategoryToggle,
+            onNewsFootballOnlyChange = onNewsFootballOnlyChange,
             appVersion = appVersion,
             navController = navController,
         )

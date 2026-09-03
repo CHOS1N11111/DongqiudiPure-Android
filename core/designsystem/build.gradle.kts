@@ -35,6 +35,7 @@ dependencies {
     api(libs.androidx.compose.ui.tooling.preview)
 
     implementation(libs.coil.compose)
+    implementation(libs.coil.gif)
     implementation(libs.coil.network.okhttp)
 
     debugImplementation(libs.androidx.compose.ui.tooling)

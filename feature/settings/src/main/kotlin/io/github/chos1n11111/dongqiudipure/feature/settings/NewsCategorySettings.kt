@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -12,6 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -22,6 +24,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -45,6 +50,7 @@ class NewsCategorySettingsViewModel @Inject constructor(
 fun NewsCategorySettingsRoute(
     preferences: NewsPreferences,
     onCategoryToggle: (String, Boolean) -> Unit,
+    onFootballOnlyChange: (Boolean) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NewsCategorySettingsViewModel = hiltViewModel(),
@@ -53,6 +59,7 @@ fun NewsCategorySettingsRoute(
         categories = viewModel.categories,
         preferences = preferences,
         onCategoryToggle = onCategoryToggle,
+        onFootballOnlyChange = onFootballOnlyChange,
         onBack = onBack,
         modifier = modifier,
     )
@@ -64,6 +71,7 @@ private fun NewsCategorySettingsScreen(
     categories: List<NewsCategory>,
     preferences: NewsPreferences,
     onCategoryToggle: (String, Boolean) -> Unit,
+    onFootballOnlyChange: (Boolean) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -97,6 +105,37 @@ private fun NewsCategorySettingsScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        role = Role.Switch,
+                        onClick = { onFootballOnlyChange(!preferences.footballOnly) },
+                    )
+                    .padding(horizontal = io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing.listHorizontal),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(vertical = io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing.md),
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_news_football_only),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_news_football_only_description),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = preferences.footballOnly,
+                    onCheckedChange = null,
+                )
+            }
             SettingsSearchField(
                 query = query,
                 onQueryChange = { query = it },

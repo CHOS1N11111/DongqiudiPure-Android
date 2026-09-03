@@ -11,12 +11,14 @@ import io.github.chos1n11111.dongqiudipure.core.model.Absentee
 import io.github.chos1n11111.dongqiudipure.core.model.AnalysisMatch
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.LineupPlayer
+import io.github.chos1n11111.dongqiudipure.core.model.LineupPlayerEvent
 import io.github.chos1n11111.dongqiudipure.core.model.MatchAnalysis
 import io.github.chos1n11111.dongqiudipure.core.model.MatchArticle
 import io.github.chos1n11111.dongqiudipure.core.model.MatchEvent
 import io.github.chos1n11111.dongqiudipure.core.model.MatchEventKind
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.MatchInfo
+import io.github.chos1n11111.dongqiudipure.core.model.MatchListEvent
 import io.github.chos1n11111.dongqiudipure.core.model.MatchLineup
 import io.github.chos1n11111.dongqiudipure.core.model.MatchLineupBundle
 import io.github.chos1n11111.dongqiudipure.core.model.MatchMomentumPoint
@@ -208,6 +210,15 @@ internal fun MatchDto.toDomain(
             awayCorners = awayCorners.optionalFootballInt(),
             liveLabel = liveTag.displayable() ?: tvList.displayable(),
             tipsCount = tipsCount.optionalFootballInt(),
+            kickoffLabel = localKickoff.format(KICKOFF_TIME),
+            dateLabel = localKickoff.format(MATCH_DATE_LABEL),
+            matchInfoLabel = matchTitle.displayable(),
+            homeEvents = homeEvents.orEmpty().mapNotNull { event ->
+                event.title.displayable()?.let { MatchListEvent(it, event.code.displayable()) }
+            },
+            awayEvents = awayEvents.orEmpty().mapNotNull { event ->
+                event.title.displayable()?.let { MatchListEvent(it, event.code.displayable()) }
+            },
         ),
     )
 }
@@ -453,6 +464,17 @@ private fun MatchLineupPlayerDto.toDomainPlayer(): LineupPlayer? {
         ratingLabel = rate.scalarFootball().displayable()?.takeUnless { it == "0" },
         isMvp = isMvp.optionalFootballInt() == 1,
         nationality = nationalityName.displayable(),
+        events = events.orEmpty().mapNotNull { event ->
+            val type = event.type.displayable() ?: return@mapNotNull null
+            val minute = event.minute.scalarFootball().displayable()
+            val extra = event.minuteExtra.scalarFootball().displayable()?.takeUnless { it == "0" }
+            LineupPlayerEvent(
+                type = type,
+                minuteLabel = minute?.let {
+                    if (extra == null) "$it'" else "$it+$extra'"
+                },
+            )
+        },
     )
 }
 
@@ -521,6 +543,7 @@ internal fun DataMenuEnvelopeDto.toDomain(): List<CompetitionCatalogGroup> {
                 name = name,
                 roundLabel = null,
                 logoUrl = safeFootballMediaUrl(item.logo),
+                catalogId = item.id.scalarFootball().displayable(),
             )
         }
         CompetitionCatalogGroup(groupName, competitions).takeIf { competitions.isNotEmpty() }
@@ -613,6 +636,11 @@ internal fun TeamScheduleEnvelopeDto.toDomain(
 internal fun TeamSampleDto.toDomain(): TeamProfile {
     val id = teamId.scalarFootball().requiredFootball().fullDqdId()
     val descriptions = description.orEmpty().associate { it.key.orEmpty() to it.value.orEmpty() }
+    val leagueRank = descriptions.entries.firstOrNull { it.key.endsWith("排名") }
+    val rankOnly = rank.displayable()
+        ?.substringBefore("总身价")
+        ?.trim()
+        ?.takeIf(String::isNotEmpty)
     return TeamProfile(
         id = TeamId(id),
         name = teamName.requiredFootball(),
@@ -620,12 +648,14 @@ internal fun TeamSampleDto.toDomain(): TeamProfile {
         englishName = teamEnglishName.displayable(),
         country = country.displayable(),
         city = city.displayable(),
-        competitionName = descriptions.keys.firstOrNull { it.endsWith("排名") }?.removeSuffix("排名"),
+        competitionName = leagueRank?.key?.removeSuffix("排名"),
         venue = venueName.displayable(),
         venueCapacity = venueCapacity.scalarFootball().displayable(),
         foundedLabel = founded.scalarFootball().displayable(),
-        rankLabel = rank.displayable(),
+        rankLabel = rankOnly,
         marketValueLabel = marketValue.scalarFootball().formatEuroValue(),
+        leagueRankLabel = leagueRank?.value.displayable(),
+        leagueRecordLabel = descriptions["联赛战绩"].displayable(),
         type = when (type?.lowercase()) {
             "club" -> TeamType.Club
             "national", "nation" -> TeamType.National
@@ -880,6 +910,10 @@ internal fun PlayerDetailDto.toDomain(): PlayerOverview {
         footLabel = base.foot.displayable(),
         marketValueLabel = base.marketValue.scalarFootball().formatPlayerMarketValue(),
         contractUntil = base.contract.displayable(),
+        nickname = base.nickname.displayable(),
+        otherNationalities = base.otherNationality.orEmpty().mapNotNull { it.displayable() },
+        weeklySalaryLabel = base.weeklySalary.scalarFootball().displayable()
+            ?.takeUnless { it == "0" },
     )
     val honors = honorInfo.orEmpty().mapNotNull { honor ->
         val name = honor.name.displayable() ?: return@mapNotNull null
@@ -1525,6 +1559,7 @@ private val FOOTBALL_JSON = Json { ignoreUnknownKeys = true }
 
 private val MATCH_DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 private val KICKOFF_TIME = DateTimeFormatter.ofPattern("HH:mm")
+private val MATCH_DATE_LABEL = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 private val ARTICLE_ID_PATTERN = Regex("(?:news|article)/(\\d+)")
 private val MATCH_ID_PATTERN = Regex("(?:game|match)/(\\d+)")
 private val TEAM_ID_PATTERN = Regex("team/(\\d+)")

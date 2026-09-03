@@ -41,7 +41,24 @@ sealed interface ArticleMedia {
 /** 文章正文中的一个块。HTML 富文本与普通 JSON 分开解析（ARCHITECTURE.md §7）。 */
 sealed interface ArticleBlock {
     data class Paragraph(val text: String) : ArticleBlock
-    data class Image(val url: String?, val caption: String?) : ArticleBlock
+    data class Image(
+        val url: String?,
+        val caption: String?,
+        val aspectRatio: Float? = null,
+    ) : ArticleBlock
+
+    data class Link(
+        val text: String,
+        val target: ArticleLinkTarget,
+    ) : ArticleBlock
+}
+
+sealed interface ArticleLinkTarget {
+    data class Match(val id: MatchId) : ArticleLinkTarget
+    data class Competition(val id: CompetitionId) : ArticleLinkTarget
+    data class CompetitionCatalog(val id: String) : ArticleLinkTarget
+    data class Entity(val value: EntityRef) : ArticleLinkTarget
+    data class External(val url: String) : ArticleLinkTarget
 }
 
 data class ArticleDetail(
@@ -58,10 +75,25 @@ data class ArticleDetail(
 /** 指向某个公开实体的引用。只带稳定 ID 与展示所需的最少字段。 */
 sealed interface EntityRef {
     val displayName: String
+    val imageUrl: String?
 
-    data class Team(val id: TeamId, override val displayName: String) : EntityRef
-    data class Player(val id: PlayerId, override val displayName: String) : EntityRef
-    data class Competition(val id: CompetitionId, override val displayName: String) : EntityRef
+    data class Team(
+        val id: TeamId,
+        override val displayName: String,
+        override val imageUrl: String? = null,
+    ) : EntityRef
+
+    data class Player(
+        val id: PlayerId,
+        override val displayName: String,
+        override val imageUrl: String? = null,
+    ) : EntityRef
+
+    data class Competition(
+        val id: CompetitionId,
+        override val displayName: String,
+        override val imageUrl: String? = null,
+    ) : EntityRef
 }
 
 data class Comment(

@@ -15,6 +15,7 @@ interface NewsRepository {
     fun pagedFeed(
         category: NewsCategory,
         fresh: Boolean = false,
+        footballOnly: Boolean = true,
     ): Flow<PagingData<ArticleSummary>>
 }
 

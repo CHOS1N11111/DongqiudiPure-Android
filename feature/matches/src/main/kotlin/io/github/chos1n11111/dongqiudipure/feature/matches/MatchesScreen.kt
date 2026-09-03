@@ -119,26 +119,18 @@ fun MatchesScreen(
             loading = { MatchesSkeleton() },
         ) { groups ->
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-                groups.forEach { group ->
-                    item(key = "hd-${group.competition.id.raw}") {
-                        CompetitionHeader(
-                            name = group.competition.name,
-                            round = group.competition.roundLabel,
-                        )
-                    }
-                    items(
-                        items = group.matches,
-                        key = { it.id.raw },
-                    ) { match ->
-                        MatchRow(
-                            match = match,
-                            onClick = { onMatchClick(match.id) },
-                            modifier = Modifier.background(
-                                MaterialTheme.colorScheme.surfaceContainer,
-                            ),
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    }
+                items(
+                    items = groups.flatMap { it.matches }.sortedBy { it.kickoffLabel },
+                    key = { it.id.raw },
+                ) { match ->
+                    MatchRow(
+                        match = match,
+                        onClick = { onMatchClick(match.id) },
+                        modifier = Modifier.background(
+                            MaterialTheme.colorScheme.surfaceContainer,
+                        ),
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         }
