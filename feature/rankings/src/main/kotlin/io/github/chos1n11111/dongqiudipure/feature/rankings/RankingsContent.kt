@@ -1,11 +1,12 @@
 package io.github.chos1n11111.dongqiudipure.feature.rankings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.Canvas
 import androidx.annotation.StringRes
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -14,10 +15,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -26,14 +27,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchRow
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.TeamCrest
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ValueText
@@ -41,14 +44,18 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.SportsColors
+import io.github.chos1n11111.dongqiudipure.core.model.KnockoutTie
+import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.StandingRow
 import io.github.chos1n11111.dongqiudipure.core.model.StandingZone
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
+import io.github.chos1n11111.dongqiudipure.core.model.TeamRef
 
 @Composable
 fun RankingsContent(
     uiState: RankingsUiState,
     onTeamClick: (TeamId) -> Unit,
+    onMatchClick: (MatchId) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -60,45 +67,86 @@ fun RankingsContent(
         emptyDescription = stringResource(R.string.standings_empty_description),
     ) { table ->
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            item(key = "season") { SeasonBar(uiState.seasonLabel) }
-            item(key = "header") { TableHeader() }
+            if (table.rows.isNotEmpty()) {
+                standingTable(
+                    keyPrefix = "main",
+                    rows = table.rows,
+                    onTeamClick = onTeamClick,
+                )
+            }
 
-            val rows = table.rows
-            rows.forEachIndexed { index, row ->
-                val previous = rows.getOrNull(index - 1)
-                val separatorRes = previous?.let { zoneSeparatorLabelRes(it.zone, row.zone) }
-                if (separatorRes != null) {
-                    item(key = "sep-$index") { ZoneSeparator(stringResource(separatorRes)) }
-                }
-                if (previous != null && row.rank > previous.rank + 1) {
-                    item(key = "gap-$index") {
-                        RankGap(from = previous.rank + 1, to = row.rank - 1)
+            table.groups.forEachIndexed { index, group ->
+                standingTable(
+                    keyPrefix = "group-$index",
+                    title = group.name,
+                    rows = group.rows,
+                    onTeamClick = onTeamClick,
+                )
+            }
+
+            table.matchStages.forEachIndexed { stageIndex, stage ->
+                item(key = "match-stage-title-$stageIndex") { StageHeader(stage.name) }
+                stage.matches.forEachIndexed { matchIndex, match ->
+                    item(key = "stage-$stageIndex-match-$matchIndex-${match.id.raw}") {
+                        MatchRow(match = match, onClick = { onMatchClick(match.id) })
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
-                item(key = "row-${row.team.id.raw}") {
-                    StandingRowItem(
-                        row = row,
-                        onClick = { onTeamClick(row.team.id) },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+
+            table.knockoutStages.forEachIndexed { stageIndex, stage ->
+                item(key = "knockout-stage-title-$stageIndex") { StageHeader(stage.name) }
+                stage.ties.forEachIndexed { tieIndex, tie ->
+                    item(key = "knockout-$stageIndex-$tieIndex") {
+                        KnockoutTieRow(
+                            tie = tie,
+                            onTeamClick = onTeamClick,
+                            onMatchClick = onMatchClick,
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
                 }
             }
-            item(key = "legend") { ZoneLegend(rows.mapNotNull { it.zone }.distinct()) }
         }
     }
 }
 
-/**
- * 分区分界标签。
- *
- * 这是「颜色不是唯一状态提示」的落点：左侧色条之外，
- * 用一行文字明确说出分界在哪里，色觉差异用户同样能读懂。
- */
+private fun LazyListScope.standingTable(
+    keyPrefix: String,
+    rows: List<StandingRow>,
+    onTeamClick: (TeamId) -> Unit,
+    title: String? = null,
+) {
+    if (title != null) item(key = "$keyPrefix-title") { StageHeader(title) }
+    item(key = "$keyPrefix-header") { TableHeader() }
+    rows.forEachIndexed { index, row ->
+        val previous = rows.getOrNull(index - 1)
+        val next = rows.getOrNull(index + 1)
+        if (previous != null && row.rank > previous.rank + 1) {
+            item(key = "$keyPrefix-gap-$index") {
+                RankGap(from = previous.rank + 1, to = row.rank - 1)
+            }
+        }
+        item(key = "$keyPrefix-row-$index-${row.team.id.raw}") {
+            Column {
+                StandingRowItem(row = row, onClick = { onTeamClick(row.team.id) })
+                val separatorRes = zoneSeparatorLabelRes(row.zone, next?.zone)
+                if (separatorRes == null) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                } else {
+                    ZoneSeparator(stringResource(separatorRes))
+                }
+            }
+        }
+    }
+    item(key = "$keyPrefix-legend") {
+        ZoneLegend(rows.mapNotNull { it.zone }.distinct())
+    }
+}
+
 @StringRes
 private fun zoneSeparatorLabelRes(previous: StandingZone?, current: StandingZone?): Int? = when {
     previous == current -> null
-    // 降级区先判断：它上方相邻的行通常没有分区，
-    // 若先按 previous 分支判断会直接落到 else 而漏掉这条分界。
     current == StandingZone.Relegation -> R.string.standings_zone_boundary_relegation
     previous == StandingZone.ChampionsLeague -> R.string.standings_zone_boundary_ucl
     previous == StandingZone.EuropaLeague -> R.string.standings_zone_boundary_uel
@@ -124,29 +172,21 @@ private fun StandingZone.color(sports: SportsColors): Color = when (this) {
     StandingZone.Relegation -> sports.zoneRelegation
 }
 
+private val NumColumnWidth = 30.dp
+private val RankColumnWidth = 30.dp
+
 @Composable
-private fun SeasonBar(seasonLabel: String) {
-    Row(
+private fun StageHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
-    ) {
-        Text(
-            text = seasonLabel,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .padding(horizontal = 7.dp, vertical = 3.dp),
-        )
-    }
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.md),
+    )
 }
-
-private val NumColumnWidth = 30.dp
-private val RankColumnWidth = 30.dp
 
 @Composable
 private fun TableHeader() {
@@ -189,7 +229,6 @@ private fun TableHeader() {
 private fun StandingRowItem(row: StandingRow, onClick: () -> Unit) {
     val sports = DqdTheme.sports
     val zoneColor = row.zone?.color(sports)
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -198,18 +237,14 @@ private fun StandingRowItem(row: StandingRow, onClick: () -> Unit) {
             .defaultMinSize(minHeight = DqdSize.touchTarget),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 左侧色条：分区的第一重编码。
         Box(
-            modifier = Modifier
-                .width(RankColumnWidth)
-                .fillMaxWidth(),
+            modifier = Modifier.width(RankColumnWidth),
             contentAlignment = Alignment.Center,
         ) {
             if (zoneColor != null) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
-                        // 不贴屏幕边缘：紧贴时在圆角屏上会被误读为裁切。
                         .padding(start = 6.dp)
                         .width(3.dp)
                         .height(22.dp)
@@ -248,8 +283,6 @@ private fun StandingRowItem(row: StandingRow, onClick: () -> Unit) {
             )
         }
 
-        // 每个数值都可能缺失。ValueText 会在 null 时渲染虚线破折号，
-        // 与真实的 0 在视觉上可区分。
         NumCell(row.played)
         NumCell(row.won)
         NumCell(row.drawn)
@@ -263,20 +296,13 @@ private fun StandingRowItem(row: StandingRow, onClick: () -> Unit) {
 @Composable
 private fun NumCell(value: Int?, strong: Boolean = false, signed: Boolean = false) {
     val text = value?.let { if (signed && it > 0) "+$it" else it.toString() }
-    Box(
-        modifier = Modifier.width(NumColumnWidth),
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(modifier = Modifier.width(NumColumnWidth), contentAlignment = Alignment.Center) {
         ValueText(
             value = text,
             style = if (strong) {
-                DqdTheme.dataText.tableCellStrong.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                DqdTheme.dataText.tableCellStrong.copy(color = MaterialTheme.colorScheme.onSurface)
             } else {
-                DqdTheme.dataText.tableCell.copy(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                DqdTheme.dataText.tableCell.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
             },
         )
     }
@@ -287,11 +313,11 @@ private fun ZoneSeparator(label: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(24.dp)
+            .height(16.dp)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(horizontal = DqdSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         DashedDivider(modifier = Modifier.weight(1f))
         Text(
@@ -299,7 +325,7 @@ private fun ZoneSeparator(label: String) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(min = 84.dp),
+            modifier = Modifier.widthIn(min = 76.dp),
         )
         DashedDivider(modifier = Modifier.weight(1f))
     }
@@ -322,7 +348,6 @@ private fun DashedDivider(modifier: Modifier = Modifier) {
     }
 }
 
-/** 名次不连续时的省略行。如实说明中间还有多少支球队未展示。 */
 @Composable
 private fun RankGap(from: Int, to: Int) {
     Row(
@@ -349,13 +374,74 @@ private fun RankGap(from: Int, to: Int) {
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
-/** 图例：分区的第三重编码。 */
+@Composable
+private fun KnockoutTieRow(
+    tie: KnockoutTie,
+    onTeamClick: (TeamId) -> Unit,
+    onMatchClick: (MatchId) -> Unit,
+) {
+    val matchId = tie.matchIds.firstOrNull()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .then(
+                if (matchId == null) Modifier else Modifier.clickable { onMatchClick(matchId) },
+            )
+            .defaultMinSize(minHeight = 68.dp)
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        ) {
+            TieTeam(tie.home, onTeamClick)
+            TieTeam(tie.away, onTeamClick)
+        }
+        ValueText(
+            value = tie.scoreLabel,
+            style = DqdTheme.dataText.scoreMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun TieTeam(team: TeamRef?, onTeamClick: (TeamId) -> Unit) {
+    if (team == null) {
+        ValueText(value = null as String?, style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    Row(
+        modifier = Modifier.clickable { onTeamClick(team.id) },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
+        TeamCrest(
+            teamId = team.id,
+            teamName = team.name,
+            crestUrl = team.crestUrl,
+            size = 22.dp,
+        )
+        Text(
+            text = team.name,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ZoneLegend(zones: List<StandingZone>) {
     if (zones.isEmpty()) return
     val sports = DqdTheme.sports
-
     FlowRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -385,4 +471,3 @@ private fun ZoneLegend(zones: List<StandingZone>) {
         }
     }
 }
-

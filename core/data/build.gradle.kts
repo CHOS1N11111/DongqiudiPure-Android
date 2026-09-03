@@ -31,6 +31,7 @@ dependencies {
     implementation(libs.androidx.paging.runtime)
     implementation(libs.hilt.android)
     implementation(libs.jsoup)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.okhttp)
 
     ksp(libs.hilt.compiler)

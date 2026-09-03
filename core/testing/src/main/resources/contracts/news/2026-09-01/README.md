@@ -6,7 +6,7 @@ names, article text, comments, cursors, and media paths are synthetic.
 
 Covered endpoints:
 
-- `GET /app/tabs/web/{tabId}.json`
+- `GET /v3/archive/app/tabs/getlists?id={tabId}&platform=android`
 - `GET /v2/article/detail/{articleId}`
 - `GET /v2/article/{articleId}/comment`
 

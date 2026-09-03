@@ -1,11 +1,13 @@
 package io.github.chos1n11111.dongqiudipure.feature.rankings
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -23,6 +25,7 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
+import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 
 /**
@@ -38,6 +41,7 @@ fun StandingsRoute(
     competitionId: CompetitionId,
     onBack: () -> Unit,
     onTeamClick: (TeamId) -> Unit,
+    onMatchClick: (MatchId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StandingsViewModel = hiltViewModel(),
 ) {
@@ -47,33 +51,42 @@ fun StandingsRoute(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        uiState.competitionName.ifEmpty {
-                            stringResource(R.string.data_title)
-                        },
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            painter = painterResource(DqdIcons.ArrowBack),
-                            contentDescription = stringResource(DesignR.string.ds_action_back),
-                            modifier = Modifier.size(DqdSize.iconMedium),
+            Column {
+                TopAppBar(
+                    title = {
+                        Text(
+                            uiState.competitionName.ifEmpty {
+                                stringResource(R.string.data_title)
+                            },
                         )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                painter = painterResource(DqdIcons.ArrowBack),
+                                contentDescription = stringResource(DesignR.string.ds_action_back),
+                                modifier = Modifier.size(DqdSize.iconMedium),
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                )
+                SeasonSwitcher(
+                    seasons = uiState.seasons,
+                    selected = uiState.selectedSeason,
+                    onSelect = viewModel::selectSeason,
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
         },
         containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
         RankingsContent(
             uiState = uiState,
             onTeamClick = onTeamClick,
+            onMatchClick = onMatchClick,
             onRetry = viewModel::retry,
             modifier = Modifier
                 .fillMaxSize()

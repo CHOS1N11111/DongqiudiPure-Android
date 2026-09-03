@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
@@ -343,26 +344,18 @@ private fun PlayerMarker(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            val number = player.shirtNumber
-            if (number != null) {
-                Text(
-                    text = number.toString(),
-                    style = DqdTheme.dataText.statValue,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            } else {
-                MissingValue(style = DqdTheme.dataText.statValue)
-            }
-        }
+        PlayerAvatar(
+            playerId = player.id,
+            playerName = player.name,
+            avatarUrl = player.avatarUrl,
+            size = 30.dp,
+        )
         Text(
-            text = player.name,
+            text = listOfNotNull(
+                player.shirtNumber?.toString(),
+                player.name,
+                player.ratingLabel,
+            ).joinToString(" "),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
@@ -458,22 +451,21 @@ private fun PlayerChip(player: LineupPlayer, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        val number = player.shirtNumber
-        Box(modifier = Modifier.width(20.dp), contentAlignment = Alignment.Center) {
-            if (number != null) {
+        PlayerAvatar(player.id, player.name, player.avatarUrl, 26.dp)
+        Column {
+            Text(
+                text = listOfNotNull(player.shirtNumber?.toString(), player.name).joinToString(" "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            val detail = listOfNotNull(player.nationality, player.ratingLabel).joinToString(" · ")
+            if (detail.isNotEmpty()) {
                 Text(
-                    text = number.toString(),
-                    style = DqdTheme.dataText.tableCell,
+                    text = detail,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                MissingValue(style = DqdTheme.dataText.tableCell)
             }
         }
-        Text(
-            text = player.name,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
     }
 }

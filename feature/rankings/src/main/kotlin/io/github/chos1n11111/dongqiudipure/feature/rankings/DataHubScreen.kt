@@ -30,9 +30,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
+import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.RankingMetric
 import io.github.chos1n11111.dongqiudipure.core.model.RankingSection
+import io.github.chos1n11111.dongqiudipure.core.model.SeasonOption
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +43,7 @@ fun DataHubRoute(
     selectedCompetitionIds: Set<String>,
     onTeamClick: (TeamId) -> Unit,
     onPlayerClick: (PlayerId) -> Unit,
+    onMatchClick: (MatchId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StandingsViewModel = hiltViewModel(),
 ) {
@@ -61,6 +64,11 @@ fun DataHubRoute(
                     competitions = uiState.competitions,
                     selected = uiState.selectedCompetition,
                     onSelect = viewModel::selectCompetition,
+                )
+                SeasonSwitcher(
+                    seasons = uiState.seasons,
+                    selected = uiState.selectedSeason,
+                    onSelect = viewModel::selectSeason,
                 )
                 RankingSectionSwitcher(
                     selected = uiState.selectedSection,
@@ -84,6 +92,7 @@ fun DataHubRoute(
             RankingSection.Standings -> RankingsContent(
                 uiState = uiState,
                 onTeamClick = onTeamClick,
+                onMatchClick = onMatchClick,
                 onRetry = viewModel::retry,
                 modifier = Modifier
                     .fillMaxSize()
@@ -97,6 +106,30 @@ fun DataHubRoute(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun SeasonSwitcher(
+    seasons: List<SeasonOption>,
+    selected: SeasonOption?,
+    onSelect: (SeasonOption) -> Unit,
+) {
+    if (seasons.isEmpty()) return
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = DqdSpacing.sm, vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        items(seasons, key = { it.id }) { season ->
+            SwitchChip(
+                name = season.label,
+                selected = season.id == selected?.id,
+                onClick = { onSelect(season) },
             )
         }
     }

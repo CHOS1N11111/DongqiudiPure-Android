@@ -91,6 +91,71 @@ data class StatItem(
     val displayOrder: Int,
 )
 
+data class MatchInfo(
+    val venue: String?,
+    val referee: String?,
+    val weather: String?,
+    val temperature: String?,
+    val attendance: String?,
+)
+
+data class MatchArticle(
+    val articleId: ArticleId,
+    val title: String,
+    val thumbnailUrl: String?,
+    val commentCount: Int?,
+    val minuteLabel: String? = null,
+    val scoreLabel: String? = null,
+)
+
+data class MatchMomentumPoint(
+    val minute: Int,
+    val value: Float,
+)
+
+data class MatchRating(
+    val player: PlayerRef,
+    val team: TeamRef,
+    val ratingLabel: String,
+    val isMvp: Boolean,
+)
+
+data class MatchOverview(
+    val events: List<MatchEvent>,
+    val statistics: List<StatItem>,
+    val report: MatchArticle?,
+    val highlights: List<MatchArticle>,
+    val relatedNews: List<MatchArticle>,
+    val momentum: List<MatchMomentumPoint>,
+    val topRatings: List<MatchRating>,
+)
+
+data class AnalysisMatch(
+    val matchId: MatchId?,
+    val dateLabel: String?,
+    val competitionName: String?,
+    val homeTeamId: TeamId?,
+    val homeName: String,
+    val homeLogoUrl: String?,
+    val awayTeamId: TeamId?,
+    val awayName: String,
+    val awayLogoUrl: String?,
+    val scoreLabel: String?,
+)
+
+data class MatchAnalysis(
+    val headToHeadTitle: String?,
+    val headToHead: List<AnalysisMatch>,
+    val recentTitle: String?,
+    val homeRecent: List<AnalysisMatch>,
+    val awayRecent: List<AnalysisMatch>,
+    val futureTitle: String?,
+    val homeFuture: List<AnalysisMatch>,
+    val awayFuture: List<AnalysisMatch>,
+    val homeAbsentees: List<Absentee> = emptyList(),
+    val awayAbsentees: List<Absentee> = emptyList(),
+)
+
 /** 近期战绩的单场结果。 */
 enum class FormResult { Win, Draw, Loss }
 
@@ -109,6 +174,10 @@ data class TeamProfile(
     val marketValueLabel: String? = null,
     val type: TeamType = TeamType.Unknown,
     val recentForm: List<FormResult>,
+    val facts: List<TeamFact> = emptyList(),
+    val honors: List<TeamHonor> = emptyList(),
+    val historicalCoaches: List<HistoricalCoach> = emptyList(),
+    val description: String? = null,
 )
 
 enum class TeamType { Club, National, Unknown }

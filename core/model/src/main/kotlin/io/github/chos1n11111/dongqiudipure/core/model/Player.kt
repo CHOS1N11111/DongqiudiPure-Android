@@ -75,6 +75,8 @@ data class SquadMember(
     val avatarUrl: String? = null,
     val roleLabel: String? = null,
     val stats: List<PlayerSeasonStat> = emptyList(),
+    val salaryLabel: String? = null,
+    val isCaptain: Boolean = false,
 )
 
 data class PlayerHonor(
@@ -111,4 +113,5 @@ data class PlayerOverview(
     val honors: List<PlayerHonor>,
     val transfers: List<PlayerTransfer>,
     val injuries: List<PlayerInjury>,
+    val marketValues: List<MarketValuePoint> = emptyList(),
 )

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -26,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchRow
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
-import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ValueText
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
@@ -36,37 +36,26 @@ import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
-import io.github.chos1n11111.dongqiudipure.core.model.PlayerPosition
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerSeasonStat
 import io.github.chos1n11111.dongqiudipure.core.model.SquadMember
+import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadGroup
 
 /**
  * 阵容名单。
  *
- * 按位置分组，组内保持服务端给的顺序。位置为 [PlayerPosition.Unknown] 的
- * 成员单列一组，不强行塞进某个位置。
+ * 分组和组内顺序都来自服务端。Repository 已将教练、工作人员放在球员之前，
+ * 球员依次为前锋、中场、后卫、门将。
  */
 @Composable
 fun SquadList(
-    squad: List<SquadMember>,
+    squad: List<TeamSquadGroup>,
     onPlayerClick: (PlayerId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val grouped = squad.groupBy { it.position }
-    val order = listOf(
-        PlayerPosition.Goalkeeper,
-        PlayerPosition.Defender,
-        PlayerPosition.Midfielder,
-        PlayerPosition.Forward,
-    )
-
     Column(modifier = modifier.fillMaxWidth()) {
-        order.forEach { position ->
-            val group = grouped[position].orEmpty()
-            if (group.isEmpty()) return@forEach
-
+        squad.forEach { group ->
             Text(
-                text = stringResource(position.labelRes()),
+                text = group.title,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -77,31 +66,11 @@ fun SquadList(
                         vertical = DqdSpacing.sm,
                     ),
             )
-            group.forEach { member ->
+            group.members.forEach { member ->
                 SquadRow(member = member, onClick = { onPlayerClick(member.id) })
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
-        grouped[PlayerPosition.Unknown].orEmpty()
-            .groupBy { it.roleLabel }
-            .forEach { (role, members) ->
-                Text(
-                    text = role ?: stringResource(PlayerPosition.Unknown.labelRes()),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(
-                            horizontal = DqdSpacing.listHorizontal,
-                            vertical = DqdSpacing.sm,
-                        ),
-                )
-                members.forEach { member ->
-                    SquadRow(member = member, onClick = { onPlayerClick(member.id) })
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                }
-            }
     }
 }
 
@@ -134,31 +103,65 @@ private fun SquadRow(member: SquadMember, onClick: () -> Unit) {
             size = 32.dp,
         )
 
-        Text(
-            text = member.name,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-
-        Text(
-            text = member.nationality.orEmpty(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        Box(modifier = Modifier.width(48.dp), contentAlignment = Alignment.CenterEnd) {
-            val age = member.ageLabel
-            if (age != null) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(
-                    text = age,
+                    text = member.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (member.isCaptain) {
+                    Text(
+                        text = stringResource(R.string.team_captain),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            val detail = listOfNotNull(
+                member.roleLabel,
+                member.ageLabel,
+                member.nationality,
+            ).joinToString(" · ")
+            if (detail.isNotEmpty()) {
+                Text(
+                    text = detail,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-            } else {
-                MissingValue(style = MaterialTheme.typography.labelSmall)
+            }
+        }
+
+        val value = member.stats.firstOrNull { it.label.contains("身价") }?.value
+        val performance = member.stats
+            .filterNot { it.label.contains("身价") }
+            .take(3)
+            .joinToString("  ") { stat -> "${stat.label}${stat.value ?: "—"}" }
+        Column(
+            modifier = Modifier.widthIn(max = 148.dp),
+            horizontalAlignment = Alignment.End,
+        ) {
+            if (performance.isNotEmpty()) {
+                Text(
+                    text = performance,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            val trailing = value ?: member.salaryLabel
+            if (trailing != null) {
+                Text(
+                    text = trailing,
+                    style = DqdTheme.dataText.tableCellStrong,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                )
             }
         }
     }
@@ -267,16 +270,20 @@ fun TeamNewsList(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm)) {
-                    Text(
-                        text = article.source,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = article.publishedLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    article.tag?.let { tag ->
+                        Text(
+                            text = tag,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    article.commentCount?.let { count ->
+                        Text(
+                            text = stringResource(R.string.entity_news_comments, count),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

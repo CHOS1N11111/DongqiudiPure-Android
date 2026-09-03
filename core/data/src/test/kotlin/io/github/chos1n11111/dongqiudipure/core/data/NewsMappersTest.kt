@@ -71,6 +71,21 @@ class NewsMappersTest {
     }
 
     @Test
+    fun `feed mapper does not treat content layout type as pinned`() {
+        val article = FeedArticleDto(
+            id = JsonPrimitive(1002),
+            title = "Popular fixture",
+            commentsTotal = JsonPrimitive(800),
+            createdAt = "2026-09-01 11:00:00",
+            authorName = "Fixture Desk",
+            top = false,
+            topnew = JsonPrimitive(4),
+        ).toDomain()
+
+        assertEquals(null, article.tag)
+    }
+
+    @Test
     fun `comment mapper strips markup and resolves author from user list`() {
         val users = listOf(
             CommentUserDto(id = JsonPrimitive(901), username = "Fixture Reader"),

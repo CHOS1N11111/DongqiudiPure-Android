@@ -10,6 +10,14 @@ data class FeedResponseDto(
     val label: String? = null,
     val page: JsonElement? = null,
     val next: String? = null,
+    val recommend: List<FeedArticleDto>? = null,
+    val articles: List<FeedArticleDto>? = null,
+    val contents: List<FeedContentGroupDto>? = null,
+)
+
+@Serializable
+data class FeedContentGroupDto(
+    val day: String? = null,
     val articles: List<FeedArticleDto>? = null,
 )
 
@@ -19,9 +27,20 @@ data class FeedArticleDto(
     val title: String? = null,
     @SerialName("comments_total") val commentsTotal: JsonElement? = null,
     @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("published_at") val publishedAt: String? = null,
     @SerialName("author_name") val authorName: String? = null,
+    val author: FeedAuthorDto? = null,
+    val thumb: String? = null,
     @SerialName("match_image_list") val matchImageList: List<FeedImageDto>? = null,
     @SerialName("showcontent") val showContent: String? = null,
+    val top: Boolean? = null,
+    val topnew: JsonElement? = null,
+    @SerialName("tab_ids") val tabIds: List<JsonElement>? = null,
+)
+
+@Serializable
+data class FeedAuthorDto(
+    val name: String? = null,
 )
 
 @Serializable

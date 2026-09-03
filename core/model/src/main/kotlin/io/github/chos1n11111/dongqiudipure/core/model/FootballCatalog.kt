@@ -19,6 +19,7 @@ data class RankingRow(
     val value: String?,
     val playerId: PlayerId? = null,
     val team: TeamRef? = null,
+    val columns: List<String?> = emptyList(),
 )
 
 data class StatisticRankingTable(
@@ -26,6 +27,7 @@ data class StatisticRankingTable(
     val seasonLabel: String,
     val valueColumnLabel: String,
     val rows: List<RankingRow>,
+    val headers: List<String> = emptyList(),
 )
 
 data class TeamStatistics(
@@ -35,6 +37,8 @@ data class TeamStatistics(
     val recentForm: List<FormResult>,
     val categories: List<TeamStatisticCategory>,
     val keyPlayers: List<TeamKeyPlayer>,
+    val seasons: List<SeasonOption> = emptyList(),
+    val selectedSeasonId: String? = null,
 )
 
 data class TeamStatisticCategory(
