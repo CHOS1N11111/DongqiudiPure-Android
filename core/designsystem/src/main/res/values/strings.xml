@@ -74,7 +74,7 @@
     <!-- 非官方客户端特有：服务端改了结构。用户需要知道这不是自己的网络问题，
          而且重试不会成功。 -->
     <string name="ds_error_contract_title">该板块暂时无法显示</string>
-    <string name="ds_error_contract_description">数据格式与当前版本不兼容。其余内容不受影响，可尝试更新应用。</string>
+    <string name="ds_error_contract_description">数据暂时无法解析。其余内容不受影响，可重试；若持续出现请检查应用更新。</string>
 
     <string name="ds_error_server_title">加载失败</string>
     <string name="ds_error_server_description">服务端暂时无法返回该内容，请稍后重试。</string>

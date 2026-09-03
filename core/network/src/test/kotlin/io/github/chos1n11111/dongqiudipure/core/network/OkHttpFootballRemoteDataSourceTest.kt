@@ -3,6 +3,7 @@ package io.github.chos1n11111.dongqiudipure.core.network
 import io.github.chos1n11111.dongqiudipure.core.model.AppError
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.EndpointId
+import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.SeasonId
 import io.github.chos1n11111.dongqiudipure.core.network.di.NewsNetworkModule
 import io.github.chos1n11111.dongqiudipure.core.testing.FixtureLoader
@@ -95,6 +96,60 @@ class OkHttpFootballRemoteDataSourceTest {
 
         assertEquals("6271098", (result as ApiResult.Success).value.data?.single()?.id.scalarString())
         assertEquals("/data/news/match/54470956", server.takeRequest().target)
+    }
+
+    @Test
+    fun `entity feed follows the android cursor contract`() = runBlocking {
+        server.enqueue(jsonResponse("""{"code":0,"data":{"articles":[],"next":null}}"""))
+
+        remote.loadEntityFeed(
+            EntityFeedRequest(
+                entityId = "513",
+                type = "team",
+                after = "1788417307",
+                page = 2,
+                offset = 1,
+            ),
+        )
+
+        assertEquals(
+            "/v3/archive/app/channel/feeds?id=50000513&type=team&platform=android&size=20" +
+                "&after=1788417307&page=2&offset=1",
+            server.takeRequest().target,
+        )
+    }
+
+    @Test
+    fun `lineup accepts both event arrays and official empty strings`() = runBlocking {
+        server.enqueue(
+            jsonResponse(
+                """
+                {
+                  "persons": {
+                    "team_A": {
+                      "team_id": 50000518,
+                      "team_name": "主队",
+                      "lineups": [
+                        {"person_id": 1, "person": "甲", "events": ""},
+                        {"person_id": 2, "person": "乙", "events": [
+                          {"type": "YC", "minute": "81", "event_pic": "https://sd.qunliao.info/card.png"}
+                        ]}
+                      ]
+                    }
+                  }
+                }
+                """.trimIndent(),
+            ),
+        )
+
+        val result = remote.loadMatchLineup(MatchId("54483572")) as ApiResult.Success
+
+        assertEquals(0, result.value.persons?.home?.lineups?.first()?.events?.size)
+        assertEquals("YC", result.value.persons?.home?.lineups?.last()?.events?.single()?.type)
+        assertEquals(
+            "/soccer/biz/dqd/v1/match/lineup/54483572?app=dqd&lang=zh-cn",
+            server.takeRequest().target,
+        )
     }
 
     private fun fixture(name: String): String = FixtureLoader.read(

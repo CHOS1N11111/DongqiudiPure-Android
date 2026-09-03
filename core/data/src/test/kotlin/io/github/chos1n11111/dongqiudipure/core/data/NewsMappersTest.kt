@@ -152,6 +152,33 @@ class NewsMappersTest {
     }
 
     @Test
+    fun `entity feed mapper preserves observed video and gallery media types`() {
+        val video = FeedArticleDto(
+            id = JsonPrimitive(1003),
+            title = "Video fixture",
+            slideThumb = "https://bdimg7.qunliao.info/video.png",
+            isVideo = true,
+        ).toDomain()
+        val gallery = FeedArticleDto(
+            id = JsonPrimitive(1004),
+            title = "Gallery fixture",
+            matchImageList = listOf(
+                FeedImageDto(apiUrl = "https://img1.qunliao.info/one.png"),
+                FeedImageDto(apiUrl = "https://img1.qunliao.info/two.png"),
+            ),
+        ).toDomain()
+
+        assertEquals(
+            ArticleMedia.Video("https://bdimg7.qunliao.info/video.png", null),
+            video.media,
+        )
+        assertEquals(
+            ArticleMedia.Gallery("https://img1.qunliao.info/one.png", 2),
+            gallery.media,
+        )
+    }
+
+    @Test
     fun `comment mapper strips markup and resolves author from user list`() {
         val users = listOf(
             CommentUserDto(

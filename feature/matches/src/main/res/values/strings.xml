@@ -76,6 +76,9 @@
     <string name="lineup_absentees">伤停信息</string>
     <string name="lineup_team_market_value">身价%1$s</string>
     <string name="lineup_team_average_age">平均%1$s</string>
+    <string name="lineup_mvp">全场最佳</string>
+    <string name="lineup_referee">裁判 %1$s</string>
+    <string name="lineup_venue">球场 %1$s</string>
     <!-- 服务端没给站位时的说明。不能按位置猜一个阵型画出来。 -->
     <string name="lineup_no_grid_notice">该场比赛未提供球员站位，按名单展示。</string>
 </resources>

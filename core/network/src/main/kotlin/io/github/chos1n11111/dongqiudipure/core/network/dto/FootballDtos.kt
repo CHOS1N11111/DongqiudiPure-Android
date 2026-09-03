@@ -1,9 +1,20 @@
 package io.github.chos1n11111.dongqiudipure.core.network.dto
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.decodeFromJsonElement
 
 @Serializable
 data class MatchListEnvelopeDto(
@@ -241,12 +252,14 @@ data class MatchLineupPlayerDto(
     val logo: String? = null,
     val rate: JsonElement? = null,
     @SerialName("is_mvp") val isMvp: JsonElement? = null,
+    val captain: JsonElement? = null,
     val shirtnumber: JsonElement? = null,
     val position: String? = null,
     @SerialName("position_x") val positionX: JsonElement? = null,
     @SerialName("position_y") val positionY: JsonElement? = null,
     @SerialName("nationality_name") val nationalityName: String? = null,
-    val events: List<MatchLineupPlayerEventDto>? = null,
+    @Serializable(with = MatchLineupEventsSerializer::class)
+    val events: List<MatchLineupPlayerEventDto> = emptyList(),
 )
 
 @Serializable
@@ -254,7 +267,32 @@ data class MatchLineupPlayerEventDto(
     val type: String? = null,
     val minute: JsonElement? = null,
     @SerialName("minute_extra") val minuteExtra: JsonElement? = null,
+    @SerialName("event_pic") val eventPic: String? = null,
 )
+
+private object MatchLineupEventsSerializer : KSerializer<List<MatchLineupPlayerEventDto>> {
+    private val delegate = ListSerializer(MatchLineupPlayerEventDto.serializer())
+    override val descriptor: SerialDescriptor = delegate.descriptor
+
+    override fun deserialize(decoder: Decoder): List<MatchLineupPlayerEventDto> {
+        val jsonDecoder = decoder as? JsonDecoder
+            ?: throw SerializationException("Match lineup events require JSON")
+        return when (val element = jsonDecoder.decodeJsonElement()) {
+            is JsonArray -> jsonDecoder.json.decodeFromJsonElement(delegate, element)
+            JsonNull -> emptyList()
+            is JsonPrimitive -> if (element.content.isBlank()) {
+                emptyList()
+            } else {
+                throw SerializationException("Unexpected match lineup events value")
+            }
+            else -> throw SerializationException("Unexpected match lineup events value")
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: List<MatchLineupPlayerEventDto>) {
+        encoder.encodeSerializableValue(delegate, value)
+    }
+}
 
 @Serializable
 data class MatchSidelineDto(
@@ -266,6 +304,7 @@ data class MatchSidelineDto(
 data class MatchSidelinePlayerDto(
     val person: String? = null,
     @SerialName("person_name") val personName: String? = null,
+    val name: String? = null,
     val reason: String? = null,
     val injury: String? = null,
 )

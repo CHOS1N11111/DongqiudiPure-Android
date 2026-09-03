@@ -1,5 +1,6 @@
 package io.github.chos1n11111.dongqiudipure.feature.entities
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,11 +36,13 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -48,8 +51,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ImagePlaceholder
@@ -84,7 +91,10 @@ import io.github.chos1n11111.dongqiudipure.core.model.PlayerTransfer
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamRef
+import kotlin.math.exp
 import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 @Composable
 fun PlayerProfileRoute(
@@ -98,8 +108,10 @@ fun PlayerProfileRoute(
 ) {
     LaunchedEffect(playerId) { viewModel.load(playerId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val news = viewModel.news.collectAsLazyPagingItems()
     PlayerProfileScreen(
         uiState = uiState,
+        news = news,
         onBack = onBack,
         onArticleClick = onArticleClick,
         onMatchClick = onMatchClick,
@@ -117,6 +129,7 @@ fun PlayerProfileRoute(
 @Composable
 fun PlayerProfileScreen(
     uiState: PlayerProfileUiState,
+    news: LazyPagingItems<io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary>,
     onBack: () -> Unit,
     onArticleClick: (ArticleId) -> Unit,
     onMatchClick: (MatchId) -> Unit,
@@ -152,8 +165,7 @@ fun PlayerProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState()),
+                .padding(padding),
         ) {
             SectionContainer(
                 state = uiState.profile,
@@ -182,44 +194,54 @@ fun PlayerProfileScreen(
                 }
             }
 
-            when (uiState.selectedTab) {
-                PlayerTab.Dynamic -> SectionContainer(
-                    state = uiState.news,
-                    onRetry = onRetry,
+            if (uiState.selectedTab == PlayerTab.Dynamic) {
+                EntityNewsFeed(
+                    articles = news,
+                    onArticleClick = onArticleClick,
                     emptyTitle = stringResource(R.string.player_news_empty_title),
                     emptyDescription = stringResource(R.string.player_news_empty_description),
-                ) { TeamNewsList(it, onArticleClick) }
-
-                PlayerTab.Data -> PlayerDataTab(
-                    uiState,
-                    onScopeSelect,
-                    onStatisticToggle,
-                    onRetry,
+                    modifier = Modifier.weight(1f),
                 )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    when (uiState.selectedTab) {
+                        PlayerTab.Dynamic -> Unit
+                        PlayerTab.Data -> PlayerDataTab(
+                            uiState,
+                            onScopeSelect,
+                            onStatisticToggle,
+                            onRetry,
+                        )
 
-                PlayerTab.Matches -> PlayerMatchesTab(
-                    uiState,
-                    onMatchClick,
-                    onMatchesPageSelect,
-                    onRetry,
-                )
+                        PlayerTab.Matches -> PlayerMatchesTab(
+                            uiState,
+                            onMatchClick,
+                            onMatchesPageSelect,
+                            onRetry,
+                        )
 
-                PlayerTab.Ability -> SectionContainer(
-                    state = uiState.ability,
-                    onRetry = onRetry,
-                    title = stringResource(R.string.player_ability),
-                    emptyTitle = stringResource(R.string.player_ability_empty_title),
-                    emptyDescription = stringResource(R.string.player_ability_empty_description),
-                ) { AbilityContent(it) }
+                        PlayerTab.Ability -> SectionContainer(
+                            state = uiState.ability,
+                            onRetry = onRetry,
+                            title = stringResource(R.string.player_ability),
+                            emptyTitle = stringResource(R.string.player_ability_empty_title),
+                            emptyDescription = stringResource(R.string.player_ability_empty_description),
+                        ) { AbilityContent(it) }
 
-                PlayerTab.Info -> SectionContainer(
-                    state = uiState.overview,
-                    onRetry = onRetry,
-                    emptyTitle = stringResource(R.string.player_profile_empty_title),
-                    emptyDescription = stringResource(R.string.player_profile_empty_description),
-                ) { PlayerInfoContent(it, onTeamClick) }
+                        PlayerTab.Info -> SectionContainer(
+                            state = uiState.overview,
+                            onRetry = onRetry,
+                            emptyTitle = stringResource(R.string.player_profile_empty_title),
+                            emptyDescription = stringResource(R.string.player_profile_empty_description),
+                        ) { PlayerInfoContent(it, onTeamClick) }
+                    }
+                    Box(Modifier.height(DqdSpacing.xl))
+                }
             }
-            Box(Modifier.height(DqdSpacing.xl))
         }
     }
 }
@@ -379,34 +401,130 @@ private fun PerformanceRow(performance: PlayerMatchPerformance) {
 
 @Composable
 private fun HeatMap(data: PlayerHeatMap) {
-    val lineColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.32f)
-    val pointColor = MaterialTheme.colorScheme.primary
+    val heatImage = remember(data.points, data.direction) { buildHeatMapImage(data) }
+    val lineColor = androidx.compose.ui.graphics.Color(0xFFDDE2E6)
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
             .padding(DqdSpacing.md)
-            .clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .aspectRatio(1.55f),
+            .background(androidx.compose.ui.graphics.Color(0xFFF6F8F9))
+            .aspectRatio(1.6f),
     ) {
-        val stroke = Stroke(1.dp.toPx())
+        drawImage(
+            image = heatImage,
+            dstOffset = IntOffset.Zero,
+            dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+        )
+
+        val strokeWidth = 1.2.dp.toPx()
+        val stroke = Stroke(strokeWidth)
+        val fieldWidth = size.width
+        val fieldHeight = size.height
         drawRect(lineColor, style = stroke)
-        drawLine(lineColor, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), 1.dp.toPx())
-        drawCircle(lineColor, size.height * 0.14f, center, style = stroke)
-        data.points.forEach { point ->
-            drawCircle(
-                color = pointColor.copy(alpha = 0.10f),
-                radius = 9.dp.toPx(),
-                center = Offset(size.width * point.x / 100f, size.height * point.y / 100f),
-            )
-            drawCircle(
-                color = pointColor.copy(alpha = 0.26f),
-                radius = 3.dp.toPx(),
-                center = Offset(size.width * point.x / 100f, size.height * point.y / 100f),
-            )
-        }
+        drawLine(
+            lineColor,
+            Offset(fieldWidth / 2f, 0f),
+            Offset(fieldWidth / 2f, fieldHeight),
+            strokeWidth,
+        )
+        drawCircle(lineColor, fieldHeight * 0.125f, center, style = stroke)
+        drawCircle(lineColor, 1.5.dp.toPx(), center)
+
+        val penaltyHeight = fieldHeight * 0.50f
+        val penaltyTop = (fieldHeight - penaltyHeight) / 2f
+        val penaltyDepth = fieldWidth * 0.19f
+        val goalAreaHeight = fieldHeight * 0.24f
+        val goalAreaTop = (fieldHeight - goalAreaHeight) / 2f
+        val goalAreaDepth = fieldWidth * 0.08f
+        drawRect(lineColor, Offset(0f, penaltyTop), androidx.compose.ui.geometry.Size(penaltyDepth, penaltyHeight), style = stroke)
+        drawRect(
+            lineColor,
+            Offset(fieldWidth - penaltyDepth, penaltyTop),
+            androidx.compose.ui.geometry.Size(penaltyDepth, penaltyHeight),
+            style = stroke,
+        )
+        drawRect(lineColor, Offset(0f, goalAreaTop), androidx.compose.ui.geometry.Size(goalAreaDepth, goalAreaHeight), style = stroke)
+        drawRect(
+            lineColor,
+            Offset(fieldWidth - goalAreaDepth, goalAreaTop),
+            androidx.compose.ui.geometry.Size(goalAreaDepth, goalAreaHeight),
+            style = stroke,
+        )
+        drawCircle(lineColor, 1.5.dp.toPx(), Offset(fieldWidth * 0.12f, fieldHeight / 2f))
+        drawCircle(lineColor, 1.5.dp.toPx(), Offset(fieldWidth * 0.88f, fieldHeight / 2f))
     }
 }
+
+private fun buildHeatMapImage(data: PlayerHeatMap): androidx.compose.ui.graphics.ImageBitmap {
+    val density = FloatArray(HEAT_MAP_WIDTH * HEAT_MAP_HEIGHT)
+    val mirrorX = data.direction.equals("left", ignoreCase = true)
+    val sigma = 11f
+    val radius = (sigma * 3f).roundToInt()
+    val denominator = 2f * sigma * sigma
+
+    data.points.forEach { point ->
+        val normalizedX = if (mirrorX) 1f - point.x / 100f else point.x / 100f
+        val normalizedY = 1f - point.y / 100f
+        val centerX = (normalizedX * (HEAT_MAP_WIDTH - 1)).roundToInt()
+        val centerY = (normalizedY * (HEAT_MAP_HEIGHT - 1)).roundToInt()
+        val minX = (centerX - radius).coerceAtLeast(0)
+        val maxX = (centerX + radius).coerceAtMost(HEAT_MAP_WIDTH - 1)
+        val minY = (centerY - radius).coerceAtLeast(0)
+        val maxY = (centerY + radius).coerceAtMost(HEAT_MAP_HEIGHT - 1)
+        for (y in minY..maxY) {
+            for (x in minX..maxX) {
+                val dx = (x - centerX).toFloat()
+                val dy = (y - centerY).toFloat()
+                density[y * HEAT_MAP_WIDTH + x] += exp(-(dx * dx + dy * dy) / denominator)
+            }
+        }
+    }
+
+    val maximum = density.maxOrNull()?.takeIf { it > 0f } ?: 1f
+    val pixels = IntArray(density.size) { index ->
+        val intensity = (density[index] / maximum).coerceIn(0f, 1f).pow(0.58f)
+        heatColor(intensity)
+    }
+    return Bitmap.createBitmap(
+        pixels,
+        HEAT_MAP_WIDTH,
+        HEAT_MAP_HEIGHT,
+        Bitmap.Config.ARGB_8888,
+    ).asImageBitmap()
+}
+
+private fun heatColor(value: Float): Int {
+    if (value < 0.045f) return 0
+    val alpha = (70f + value * 175f).roundToInt().coerceIn(0, 225)
+    val (red, green, blue) = when {
+        value < 0.42f -> interpolateHeatColor(value / 0.42f, 35, 218, 108, 96, 232, 88)
+        value < 0.68f -> interpolateHeatColor((value - 0.42f) / 0.26f, 96, 232, 88, 255, 224, 54)
+        value < 0.84f -> interpolateHeatColor((value - 0.68f) / 0.16f, 255, 224, 54, 255, 137, 31)
+        else -> interpolateHeatColor((value - 0.84f) / 0.16f, 255, 137, 31, 239, 53, 32)
+    }
+    return (alpha shl 24) or (red shl 16) or (green shl 8) or blue
+}
+
+private fun interpolateHeatColor(
+    fraction: Float,
+    startRed: Int,
+    startGreen: Int,
+    startBlue: Int,
+    endRed: Int,
+    endGreen: Int,
+    endBlue: Int,
+): Triple<Int, Int, Int> {
+    val amount = fraction.coerceIn(0f, 1f)
+    fun channel(start: Int, end: Int): Int = (start + (end - start) * amount).roundToInt()
+    return Triple(
+        channel(startRed, endRed),
+        channel(startGreen, endGreen),
+        channel(startBlue, endBlue),
+    )
+}
+
+private const val HEAT_MAP_WIDTH = 320
+private const val HEAT_MAP_HEIGHT = 200
 
 @Composable
 private fun ShotMap(data: PlayerShotMap) {

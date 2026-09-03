@@ -36,8 +36,6 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.component.TeamCrest
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
-import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
-import io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.MatchStatus
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
@@ -96,7 +94,6 @@ fun SquadList(
         }
     }
 }
-
 @Composable
 private fun StaffGrid(members: List<SquadMember>, onPlayerClick: (PlayerId) -> Unit) {
     var expanded by remember(members) { mutableStateOf(false) }
@@ -139,7 +136,6 @@ private fun StaffGrid(members: List<SquadMember>, onPlayerClick: (PlayerId) -> U
         }
     }
 }
-
 @Composable
 private fun StaffCell(
     member: SquadMember,
@@ -465,60 +461,6 @@ fun TeamStatsGrid(
                 }
                 // 奇数项时补一个空格子，保持两列对齐。
                 repeat(columns - pair.size) { Box(modifier = Modifier.weight(1f)) }
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        }
-    }
-}
-
-/**
- * 球队关联资讯。
- *
- * 这里用紧凑版式而不是复用资讯流的四种条目形态 ——
- * 在球队页里图片会喧宾夺主，读者要的是「最近发生了什么」。
- */
-@Composable
-fun TeamNewsList(
-    news: List<ArticleSummary>,
-    onArticleClick: (ArticleId) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        news.forEach { article ->
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
-                    .clickable { onArticleClick(article.id) }
-                    .padding(
-                        horizontal = DqdSpacing.listHorizontal,
-                        vertical = DqdSpacing.md,
-                    ),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = article.title,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm)) {
-                    article.tag?.let { tag ->
-                        Text(
-                            text = tag,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    article.commentCount?.let { count ->
-                        Text(
-                            text = stringResource(R.string.entity_news_comments, count),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }

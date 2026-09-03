@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ImagePlaceholder
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.RemoteIcon
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.labelRes
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.TeamCrest
@@ -77,7 +80,7 @@ fun LineupContent(
                     .background(PitchGreen),
             ) {
                 LineupMetaHeader(info = info, onPitch = true)
-                LineupVenue(info?.venue, onPitch = true)
+                LineupVenue(info?.referee, info?.venue, onPitch = true)
                 CombinedFormationPitch(
                     lineup = lineup,
                     onPlayerClick = onPlayerClick,
@@ -85,7 +88,7 @@ fun LineupContent(
             }
         } else {
             LineupMetaHeader(info = info, onPitch = false)
-            LineupVenue(info?.venue, onPitch = false)
+            LineupVenue(info?.referee, info?.venue, onPitch = false)
             DualFormationBar(lineup)
             NoGridNotice()
             SectionHeader(title = stringResource(R.string.lineup_starters))
@@ -150,14 +153,13 @@ private fun LineupMetaHeader(info: MatchInfo?, onPitch: Boolean) {
 }
 
 @Composable
-private fun LineupVenue(venue: String?, onPitch: Boolean) {
-    if (venue == null) return
-    Text(
-        text = venue,
-        style = MaterialTheme.typography.labelMedium,
-        color = if (onPitch) Color.White else MaterialTheme.colorScheme.onSurface,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+private fun LineupVenue(referee: String?, venue: String?, onPitch: Boolean) {
+    val details = listOfNotNull(
+        referee?.let { stringResource(R.string.lineup_referee, it) },
+        venue?.let { stringResource(R.string.lineup_venue, it) },
+    )
+    if (details.isEmpty()) return
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = DqdSpacing.listHorizontal)
@@ -168,7 +170,19 @@ private fun LineupVenue(venue: String?, onPitch: Boolean) {
                 },
             )
             .padding(horizontal = DqdSpacing.md, vertical = DqdSpacing.sm),
-    )
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+    ) {
+        details.forEach { detail ->
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (onPitch) Color.White else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
 }
 
 private fun MatchLineup.hasCombinedCoordinatePitch(): Boolean {
@@ -442,10 +456,29 @@ private fun CompactTeamPlayers(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (player.position != PlayerPosition.Unknown) {
+                        Text(
+                            text = stringResource(player.position.labelRes()),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     PlayerEventText(player)
                 }
-                player.ratingLabel?.let {
-                    Text(it, style = DqdTheme.dataText.statValue, color = MaterialTheme.colorScheme.primary)
+                if (player.isMvp || player.ratingLabel != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (player.isMvp) MvpStar()
+                        player.ratingLabel?.let {
+                            Text(
+                                it,
+                                style = DqdTheme.dataText.statValue,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -724,9 +757,22 @@ private fun PlayerMarker(
             PitchEventBadges(
                 events = player.events,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 5.dp, y = (-3).dp),
+                    .align(Alignment.TopCenter)
+                    .offset(x = 18.dp, y = (-3).dp),
             )
+            if (player.isCaptain) {
+                Text(
+                    text = "C",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
+                    color = Color.Black,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .offset(x = (-16).dp, y = 2.dp)
+                        .clip(CircleShape)
+                        .background(PitchCaptain)
+                        .padding(horizontal = 3.dp, vertical = 1.dp),
+                )
+            }
         }
         Text(
             text = player.name,
@@ -736,18 +782,37 @@ private fun PlayerMarker(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        player.ratingLabel?.let { rating ->
-            Text(
-                text = rating,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                color = Color.White,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(PitchRatingBackground)
-                    .padding(horizontal = 3.dp, vertical = 1.dp),
-            )
+        if (player.isMvp || player.ratingLabel != null) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (player.isMvp) MvpStar(onPitch = true)
+                player.ratingLabel?.let { rating ->
+                    Text(
+                        text = rating,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        color = Color.White,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(PitchRatingBackground)
+                            .padding(horizontal = 3.dp, vertical = 1.dp),
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun MvpStar(onPitch: Boolean = false) {
+    val description = stringResource(R.string.lineup_mvp)
+    Text(
+        text = "★",
+        style = MaterialTheme.typography.labelSmall.copy(fontSize = if (onPitch) 9.sp else 11.sp),
+        color = PitchMvp,
+        modifier = Modifier.semantics { contentDescription = description },
+    )
 }
 
 @Composable
@@ -760,12 +825,14 @@ private fun PitchEventBadges(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-    events.filter { it.type.uppercase() in PitchEventTypes }.take(2).forEach { event ->
+    events.filter { it.type.uppercase() in PitchEventTypes }.forEach { event ->
         Row(
             horizontalArrangement = Arrangement.spacedBy(1.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            when (event.type.uppercase()) {
+            if (event.iconUrl != null) {
+                RemoteIcon(event.iconUrl, modifier = Modifier.size(11.dp))
+            } else when (event.type.uppercase()) {
                 "G", "PG", "PSG", "OG", "AS" -> Icon(
                     painter = painterResource(DqdIcons.Ball),
                     contentDescription = null,
@@ -779,6 +846,15 @@ private fun PitchEventBadges(
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(10.dp),
+                )
+                "VAR" -> Text(
+                    text = "VAR",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 6.sp),
+                    color = Color.White,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(PitchVar)
+                        .padding(horizontal = 2.dp, vertical = 1.dp),
                 )
                 else -> Unit
             }
@@ -796,20 +872,23 @@ private fun PitchEventBadges(
 
 @Composable
 private fun PlayerEventText(player: LineupPlayer) {
-    val event = player.events.firstOrNull() ?: return
-    val label = when (event.type.uppercase()) {
-        "G" -> stringResource(R.string.match_event_goal)
-        "PG", "PSG" -> stringResource(R.string.match_event_penalty)
-        "OG" -> stringResource(R.string.match_event_own_goal)
-        "YC" -> stringResource(R.string.match_event_yellow_card)
-        "RC" -> stringResource(R.string.match_event_red_card)
-        "Y2C", "SY" -> stringResource(R.string.match_event_second_yellow)
-        "SI", "SO" -> stringResource(R.string.match_event_substitution)
-        else -> event.type
+    if (player.events.isEmpty()) return
+    val labels = player.events.map { event ->
+        val label = when (event.type.uppercase()) {
+            "G" -> stringResource(R.string.match_event_goal)
+            "PG", "PSG" -> stringResource(R.string.match_event_penalty)
+            "OG" -> stringResource(R.string.match_event_own_goal)
+            "YC" -> stringResource(R.string.match_event_yellow_card)
+            "RC" -> stringResource(R.string.match_event_red_card)
+            "Y2C", "SY" -> stringResource(R.string.match_event_second_yellow)
+            "SI", "SO" -> stringResource(R.string.match_event_substitution)
+            "VAR" -> "VAR"
+            else -> event.type
+        }
+        listOfNotNull(label, event.minuteLabel).joinToString(" ")
     }
     Text(
-        text = listOfNotNull(label, event.minuteLabel).joinToString(" ") +
-            if (player.events.size > 1) " +${player.events.size - 1}" else "",
+        text = labels.joinToString(" · "),
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
@@ -911,12 +990,20 @@ private fun PlayerChip(player: LineupPlayer, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurface,
             )
             val detail = listOfNotNull(player.nationality, player.ratingLabel).joinToString(" · ")
-            if (detail.isNotEmpty()) {
-                Text(
-                    text = detail,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            if (detail.isNotEmpty() || player.isMvp) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (player.isMvp) MvpStar()
+                    if (detail.isNotEmpty()) {
+                        Text(
+                            text = detail,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
     }
@@ -928,4 +1015,7 @@ private val PitchAwayMarker = Color(0xFF17324D)
 private val PitchRatingBackground = Color(0xFF176E39)
 private val PitchYellowCard = Color(0xFFFFD43B)
 private val PitchRedCard = Color(0xFFE23D3D)
-private val PitchEventTypes = setOf("G", "PG", "PSG", "OG", "AS", "YC", "RC", "Y2C", "SY", "SI", "SO")
+private val PitchCaptain = Color(0xFFFFD43B)
+private val PitchMvp = Color(0xFFFFB300)
+private val PitchVar = Color(0xFFE23D3D)
+private val PitchEventTypes = setOf("G", "PG", "PSG", "OG", "AS", "YC", "RC", "Y2C", "SY", "SI", "SO", "VAR")

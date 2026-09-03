@@ -44,6 +44,7 @@ fun <T> SectionContainer(
     emptyTitle: String = stringResource(R.string.ds_section_empty_title),
     emptyDescription: String = stringResource(R.string.ds_section_empty_description),
     @DrawableRes emptyIcon: Int = DqdIcons.Inbox,
+    forceRetry: Boolean = false,
     loading: @Composable () -> Unit = { DefaultSectionSkeleton() },
     content: @Composable (T) -> Unit,
 ) {
@@ -70,6 +71,7 @@ fun <T> SectionContainer(
             is SectionState.Failed -> DqdErrorState(
                 error = state.error,
                 onRetry = onRetry,
+                forceRetry = forceRetry,
             )
         }
     }
