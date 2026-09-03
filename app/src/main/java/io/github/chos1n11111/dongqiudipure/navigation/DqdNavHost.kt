@@ -73,6 +73,7 @@ fun DqdNavHost(
                 selectedCompetitionIds = footballPreferences.rankingCompetitionIds,
                 onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
                 onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
+                onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
             )
         }
 
@@ -141,6 +142,8 @@ fun DqdNavHost(
                 onBack = navController::popBackStack,
                 onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
                 onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
+                onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
+                onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
             )
         }
 
@@ -152,7 +155,9 @@ fun DqdNavHost(
             TeamProfileRoute(
                 teamId = TeamId(id),
                 onBack = navController::popBackStack,
+                onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
                 onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
+                onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
                 onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
             )
         }
@@ -165,6 +170,8 @@ fun DqdNavHost(
             PlayerProfileRoute(
                 playerId = PlayerId(id),
                 onBack = navController::popBackStack,
+                onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
+                onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
                 onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
             )
         }
@@ -178,6 +185,7 @@ fun DqdNavHost(
                 competitionId = CompetitionId(id),
                 onBack = navController::popBackStack,
                 onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
+                onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
             )
         }
 

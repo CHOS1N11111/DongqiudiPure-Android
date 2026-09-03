@@ -23,7 +23,7 @@
     <string name="ds_match_halftime">中场</string>
     <string name="ds_match_halftime_secondary">休息</string>
     <string name="ds_match_not_started">未开始</string>
-    <string name="ds_match_finished">完场</string>
+    <string name="ds_match_finished">已结束</string>
     <string name="ds_match_postponed">延期</string>
     <string name="ds_match_postponed_secondary">待定</string>
     <string name="ds_match_cancelled">取消</string>

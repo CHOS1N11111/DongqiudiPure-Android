@@ -37,4 +37,30 @@ data class StandingTable(
     val competition: CompetitionRef,
     val seasonLabel: String,
     val rows: List<StandingRow>,
+    val groups: List<StandingGroup> = emptyList(),
+    val knockoutStages: List<KnockoutStage> = emptyList(),
+    val matchStages: List<CompetitionMatchStage> = emptyList(),
+)
+
+data class StandingGroup(
+    val name: String,
+    val rows: List<StandingRow>,
+)
+
+data class KnockoutTie(
+    val home: TeamRef?,
+    val away: TeamRef?,
+    val scoreLabel: String?,
+    val winner: String?,
+    val matchIds: List<MatchId>,
+)
+
+data class KnockoutStage(
+    val name: String,
+    val ties: List<KnockoutTie>,
+)
+
+data class CompetitionMatchStage(
+    val name: String,
+    val matches: List<MatchSummary>,
 )

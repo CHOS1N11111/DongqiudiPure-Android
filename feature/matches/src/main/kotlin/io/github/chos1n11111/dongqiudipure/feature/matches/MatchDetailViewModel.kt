@@ -1,50 +1,46 @@
 package io.github.chos1n11111.dongqiudipure.feature.matches
 
-import androidx.lifecycle.ViewModel
 import androidx.annotation.StringRes
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.data.MatchRepository
 import io.github.chos1n11111.dongqiudipure.core.model.DataResult
-import io.github.chos1n11111.dongqiudipure.core.model.MatchEvent
-import io.github.chos1n11111.dongqiudipure.core.model.MatchLineup
+import io.github.chos1n11111.dongqiudipure.core.model.MatchAnalysis
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
+import io.github.chos1n11111.dongqiudipure.core.model.MatchLineupBundle
+import io.github.chos1n11111.dongqiudipure.core.model.MatchOverview
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
+import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
-import io.github.chos1n11111.dongqiudipure.core.model.StatItem
+import io.github.chos1n11111.dongqiudipure.core.model.contentOrNull
+import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 enum class MatchTab(@param:StringRes val labelRes: Int) {
-    Events(R.string.match_tab_events),
+    Ratings(R.string.match_tab_ratings),
+    Situation(R.string.match_tab_situation),
     Lineup(R.string.match_tab_lineup),
-    Stats(R.string.match_tab_stats),
+    Intelligence(R.string.match_tab_intelligence),
+    Analysis(R.string.match_tab_analysis),
 }
 
-/**
- * 比赛详情状态。
- *
- * **每个 section 一个独立的 [SectionState]** —— 这是失败隔离的结构前提。
- * 事件接口失效时统计照常显示，反之亦然
- * （PLAN.md M5：「每个详情 section 独立加载、刷新、缓存和失败」）。
- */
 data class MatchDetailUiState(
     val header: SectionState<MatchSummary> = SectionState.Loading,
-    val events: SectionState<List<MatchEvent>> = SectionState.Loading,
-    val stats: SectionState<List<StatItem>> = SectionState.Loading,
-    val lineup: SectionState<MatchLineup> = SectionState.Loading,
+    val overview: SectionState<MatchOverview> = SectionState.Loading,
+    val lineup: SectionState<MatchLineupBundle> = SectionState.Loading,
+    val analysis: SectionState<MatchAnalysis> = SectionState.Loading,
+    val userRatings: Map<PlayerId, String> = emptyMap(),
     val lineupSide: LineupSide = LineupSide.Home,
-    val selectedTab: MatchTab = MatchTab.Events,
+    val selectedTab: MatchTab = MatchTab.Situation,
 )
 
-/**
- * 比分头复用比赛列表的真实数据；尚未验证 contract 的事件、阵容和统计
- * 明确显示为空，不以样例内容填充。
- */
+/** Each upstream section is isolated so one unsupported contract cannot blank the page. */
 @HiltViewModel
 class MatchDetailViewModel @Inject constructor(
     private val repository: MatchRepository,
@@ -54,36 +50,28 @@ class MatchDetailViewModel @Inject constructor(
     val uiState: StateFlow<MatchDetailUiState> = _uiState.asStateFlow()
 
     private var matchId: MatchId? = null
+    private var userRatingsJob: Job? = null
+    private var userRatingsRequestedFor: MatchId? = null
 
     fun load(id: MatchId) {
         if (matchId == id) return
+        userRatingsJob?.cancel()
         matchId = id
-        _uiState.value = MatchDetailUiState(
-            events = SectionState.Empty,
-            stats = SectionState.Empty,
-            lineup = SectionState.Empty,
-        )
+        userRatingsRequestedFor = null
+        _uiState.value = MatchDetailUiState()
         loadHeader()
+        loadOverview()
+        loadLineup()
+        loadAnalysis()
     }
 
     fun selectLineupSide(side: LineupSide) {
         _uiState.update { it.copy(lineupSide = side) }
     }
 
-    fun retryLineup() {
-        _uiState.update { it.copy(lineup = SectionState.Empty) }
-    }
-
     fun selectTab(tab: MatchTab) {
         _uiState.update { it.copy(selectedTab = tab) }
-    }
-
-    fun retryEvents() {
-        _uiState.update { it.copy(events = SectionState.Empty) }
-    }
-
-    fun retryStats() {
-        _uiState.update { it.copy(stats = SectionState.Empty) }
+        if (tab == MatchTab.Ratings) loadUserRatingsIfReady()
     }
 
     fun retryHeader() {
@@ -91,20 +79,118 @@ class MatchDetailViewModel @Inject constructor(
         loadHeader()
     }
 
+    fun retryOverview() {
+        _uiState.update { it.copy(overview = SectionState.Loading) }
+        loadOverview()
+    }
+
+    fun retryLineup() {
+        _uiState.update { it.copy(lineup = SectionState.Loading) }
+        loadLineup()
+    }
+
+    fun retryAnalysis() {
+        _uiState.update { it.copy(analysis = SectionState.Loading) }
+        loadAnalysis()
+    }
+
     private fun loadHeader() {
         val id = matchId ?: return
         viewModelScope.launch {
             when (val result = repository.loadMatch(id)) {
-                is DataResult.Failure -> _uiState.update {
-                    if (matchId == id) it.copy(header = SectionState.Failed(result.error)) else it
+                is DataResult.Failure -> updateFor(id) {
+                    it.copy(header = SectionState.Failed(result.error))
                 }
-                is DataResult.Success -> _uiState.update {
-                    if (matchId != id) return@update it
+                is DataResult.Success -> updateFor(id) {
                     it.copy(
-                        header = result.value?.let { SectionState.Content(it) } ?: SectionState.Empty,
+                        header = result.value?.let { value -> SectionState.Content(value) }
+                            ?: SectionState.Empty,
                     )
                 }
             }
         }
+    }
+
+    private fun loadOverview() {
+        val id = matchId ?: return
+        viewModelScope.launch {
+            when (val result = repository.loadMatchOverview(id)) {
+                is DataResult.Failure -> updateFor(id) {
+                    it.copy(overview = SectionState.Failed(result.error))
+                }
+                is DataResult.Success -> updateFor(id) {
+                    it.copy(overview = SectionState.Content(result.value))
+                }
+            }
+        }
+    }
+
+    private fun loadLineup() {
+        val id = matchId ?: return
+        viewModelScope.launch {
+            when (val result = repository.loadMatchLineup(id)) {
+                is DataResult.Failure -> updateFor(id) {
+                    it.copy(lineup = SectionState.Failed(result.error))
+                }
+                is DataResult.Success -> updateFor(id) {
+                    it.copy(
+                        lineup = result.value?.let { value -> SectionState.Content(value) }
+                            ?: SectionState.Empty,
+                    )
+                }
+            }
+            if (_uiState.value.selectedTab == MatchTab.Ratings) loadUserRatingsIfReady()
+        }
+    }
+
+    private fun loadUserRatingsIfReady() {
+        val id = matchId ?: return
+        if (userRatingsRequestedFor == id || userRatingsJob?.isActive == true) return
+        val lineup = _uiState.value.lineup.contentOrNull()?.actual ?: return
+        val playerIds = listOf(lineup.home, lineup.away).flatMap { team ->
+            (team.starters + team.substitutes)
+                .filter { it.ratingLabel != null }
+                .map { it.id }
+        }.distinct()
+        if (playerIds.isEmpty()) return
+        userRatingsRequestedFor = id
+        userRatingsJob = viewModelScope.launch {
+            when (val result = repository.loadMatchUserRatings(id, playerIds)) {
+                is DataResult.Failure -> if (matchId == id) {
+                    userRatingsRequestedFor = null
+                }
+                is DataResult.Success -> updateFor(id) {
+                    it.copy(userRatings = result.value)
+                }
+            }
+        }
+    }
+
+    private fun loadAnalysis() {
+        val id = matchId ?: return
+        viewModelScope.launch {
+            when (val result = repository.loadMatchAnalysis(id)) {
+                is DataResult.Failure -> updateFor(id) {
+                    it.copy(analysis = SectionState.Failed(result.error))
+                }
+                is DataResult.Success -> updateFor(id) {
+                    val value = result.value
+                    val hasContent = value.headToHead.isNotEmpty() || value.homeRecent.isNotEmpty() ||
+                        value.awayRecent.isNotEmpty() || value.homeFuture.isNotEmpty() ||
+                        value.awayFuture.isNotEmpty() || value.homeAbsentees.isNotEmpty() ||
+                        value.awayAbsentees.isNotEmpty()
+                    it.copy(
+                        analysis = if (hasContent) SectionState.Content(value) else SectionState.Empty,
+                    )
+                }
+            }
+        }
+    }
+
+    private inline fun updateFor(
+        id: MatchId,
+        transform: (MatchDetailUiState) -> MatchDetailUiState,
+    ) {
+        _uiState.update { if (matchId == id) transform(it) else it }
     }
 }

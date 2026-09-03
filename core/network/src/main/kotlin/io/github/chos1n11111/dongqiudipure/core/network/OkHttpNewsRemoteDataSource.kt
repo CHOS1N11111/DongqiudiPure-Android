@@ -38,8 +38,10 @@ class OkHttpNewsRemoteDataSource @Inject constructor(
         require(request.page == null || request.page > 0)
         require(!request.fresh || request.after == null)
         val url = baseUrl.newBuilder()
-            .addPathSegments("app/tabs/web")
-            .addPathSegment("${request.tabId}.json")
+            .addPathSegments("v3/archive/app/tabs/getlists")
+            .addQueryParameter("id", request.tabId)
+            .addQueryParameter("platform", "android")
+            .addQueryParameter("version", NEWS_API_VERSION)
             .apply {
                 if (request.after != null && request.page != null) {
                     addQueryParameter("after", request.after)
@@ -200,6 +202,7 @@ class OkHttpNewsRemoteDataSource @Inject constructor(
         val ARTICLE_ENDPOINT = EndpointId("news.article")
         val COMMENTS_ENDPOINT = EndpointId("news.comments")
         val COMMENT_THREAD_ENDPOINT = EndpointId("news.comment-thread")
+        const val NEWS_API_VERSION = "429"
     }
 }
 

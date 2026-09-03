@@ -140,8 +140,17 @@ private fun ArticleTitle(title: String) {
 private fun ArticleMeta(article: ArticleSummary) {
     Row(
         modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        article.tag?.let { tag ->
+            Text(
+                text = tag,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+            )
+        }
         if (article.commentCount != null) {
             Text(
                 text = stringResource(R.string.home_comment_count, article.commentCount!!),

@@ -12,6 +12,8 @@ import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleDetailEnvelop
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentsEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedResponseDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedArticleDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedContentGroupDto
 import io.github.chos1n11111.dongqiudipure.core.testing.FixtureLoader
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -40,11 +42,78 @@ class NewsPagingSourcesTest {
     }
 
     @Test
+    fun `hot feed maps contents and preserves pinned state`() = runBlocking {
+        val remote = FakeNewsRemoteDataSource().apply {
+            feedResult = ApiResult.Success(
+                FeedResponseDto(
+                    articles = emptyList(),
+                    contents = listOf(
+                        FeedContentGroupDto(
+                            day = "2026-09-02",
+                            articles = listOf(
+                                FeedArticleDto(
+                                    id = JsonPrimitive(1041),
+                                    title = "Hot fixture",
+                                    commentsTotal = JsonPrimitive(918),
+                                    createdAt = "2026-09-02 10:00:00",
+                                    authorName = "Fixture Desk",
+                                    thumb = "https://img1.qunliao.info/hot.jpg",
+                                    top = true,
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        val result = FeedPagingSource(remote, tabId = "104").load(refresh())
+
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals("1041", page.data.single().id.raw)
+        assertEquals(918, page.data.single().commentCount)
+        assertEquals("置顶", page.data.single().tag)
+        assertTrue(page.data.single().media is io.github.chos1n11111.dongqiudipure.core.model.ArticleMedia.Thumbnail)
+    }
+
+    @Test
+    fun `headline feed places upstream recommendations before the time ordered stream`() = runBlocking {
+        val recommended = FeedArticleDto(
+            id = JsonPrimitive(2001),
+            title = "Recommended fixture",
+            commentsTotal = JsonPrimitive(900),
+        )
+        val recent = FeedArticleDto(
+            id = JsonPrimitive(2002),
+            title = "Recent fixture",
+            commentsTotal = JsonPrimitive(2),
+        )
+        val betting = FeedArticleDto(
+            id = JsonPrimitive(2003),
+            title = "Betting fixture",
+            tabIds = listOf(JsonPrimitive(58)),
+        )
+        val remote = FakeNewsRemoteDataSource().apply {
+            feedResult = ApiResult.Success(
+                FeedResponseDto(
+                    recommend = listOf(recommended),
+                    articles = listOf(recommended, recent, betting),
+                ),
+            )
+        }
+
+        val result = FeedPagingSource(remote, tabId = "1").load(refresh())
+
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals(listOf("2001", "2002"), page.data.map { it.id.raw })
+    }
+
+    @Test
     fun `feed rejects next cursor outside the public API host`() = runBlocking {
         val remote = FakeNewsRemoteDataSource().apply {
             feedResult = ApiResult.Success(
                 feedFixture("feed-success.json").copy(
-                    next = "https://tracker.example/app/tabs/web/1.json?after=x&page=2",
+                    next = "https://tracker.example/v3/archive/app/tabs/getlists?id=1&after=x&page=2",
                 ),
             )
         }
@@ -59,7 +128,7 @@ class NewsPagingSourcesTest {
         val remote = FakeNewsRemoteDataSource().apply {
             feedResult = ApiResult.Success(
                 feedFixture("feed-success.json").copy(
-                    next = "https://api.dongqiudi.com/app/tabs/web/1.json?after=x&page=0",
+                    next = "https://api.dongqiudi.com/v3/archive/app/tabs/getlists?id=1&after=x&page=0",
                 ),
             )
         }

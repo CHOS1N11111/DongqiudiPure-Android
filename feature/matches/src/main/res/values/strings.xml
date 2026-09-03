@@ -18,14 +18,43 @@
     <string name="matches_date_a11y_has_live">%1$s %2$d 日，有进行中的比赛</string>
 
     <!-- 比赛详情分栏 -->
-    <string name="match_tab_events">事件</string>
+    <string name="match_tab_ratings">评分</string>
+    <string name="match_tab_situation">赛况</string>
     <string name="match_tab_lineup">阵容</string>
-    <string name="match_tab_stats">统计</string>
+    <string name="match_tab_intelligence">情报</string>
+    <string name="match_tab_analysis">分析</string>
 
-    <string name="match_events_empty_title">暂无事件</string>
-    <string name="match_events_empty_description">这场比赛还没有已收录的事件记录。</string>
-    <string name="match_stats_empty_title">暂无技术统计</string>
-    <string name="match_stats_empty_description">该赛事未提供这场比赛的技术统计。</string>
+    <string name="match_ratings_title">球员评分</string>
+    <string name="match_ratings_read_only">评分来自比赛数据，仅供查看</string>
+    <string name="match_ratings_empty_title">暂无球员评分</string>
+    <string name="match_ratings_empty_description">该场比赛还没有可用的球员评分。</string>
+    <string name="match_rating_mvp">全场最佳</string>
+    <string name="match_data_rating_value">数据 %1$s</string>
+    <string name="match_user_rating_value">用户 %1$s</string>
+    <string name="match_situation_empty_title">暂无赛况</string>
+    <string name="match_situation_empty_description">该场比赛还没有已收录的赛况数据。</string>
+    <string name="match_events_title">关键事件</string>
+    <string name="match_stats_title">技术统计</string>
+    <string name="match_momentum_title">比赛走势</string>
+    <string name="match_report_title">战报</string>
+    <string name="match_highlights_title">集锦</string>
+    <string name="match_related_news_title">相关资讯</string>
+    <string name="match_comments_count">%1$d 评论</string>
+    <string name="match_info_title">比赛信息</string>
+    <string name="match_info_venue">场地</string>
+    <string name="match_info_referee">裁判</string>
+    <string name="match_info_weather">天气</string>
+    <string name="match_info_attendance">现场人数</string>
+    <string name="match_forecast_title">预计阵容</string>
+    <string name="match_forecast_empty_title">暂无预计阵容</string>
+    <string name="match_forecast_empty_description">该场比赛尚未提供预计阵容。</string>
+    <string name="match_absences_title">伤停和缺席</string>
+    <string name="match_analysis_empty_title">暂无分析数据</string>
+    <string name="match_analysis_empty_description">该场比赛尚未提供交锋和近期状态。</string>
+    <string name="match_head_to_head_title">交锋历史</string>
+    <string name="match_recent_title">近期战绩</string>
+    <string name="match_future_title">未来赛程</string>
+
     <string name="match_lineup_empty_title">暂无阵容</string>
     <string name="match_lineup_empty_description">该场比赛还没有公布首发名单。</string>
 

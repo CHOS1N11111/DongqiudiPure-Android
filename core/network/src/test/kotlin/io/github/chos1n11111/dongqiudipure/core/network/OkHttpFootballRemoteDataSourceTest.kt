@@ -83,6 +83,20 @@ class OkHttpFootballRemoteDataSourceTest {
         )
     }
 
+    @Test
+    fun `match related news uses the endpoint exposed by the official detail page`() = runBlocking {
+        server.enqueue(
+            jsonResponse(
+                """{"code":0,"message":"","data":[{"id":"6271098","title":"Fixture report"}]}""",
+            ),
+        )
+
+        val result = remote.loadMatchNews(io.github.chos1n11111.dongqiudipure.core.model.MatchId("54470956"))
+
+        assertEquals("6271098", (result as ApiResult.Success).value.data?.single()?.id.scalarString())
+        assertEquals("/data/news/match/54470956", server.takeRequest().target)
+    }
+
     private fun fixture(name: String): String = FixtureLoader.read(
         path = "$FIXTURE_ROOT/$name",
         classLoader = requireNotNull(javaClass.classLoader),

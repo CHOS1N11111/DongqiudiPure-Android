@@ -46,7 +46,10 @@ class OkHttpNewsRemoteDataSourceTest {
         assertEquals(1, response.articles?.size)
         val request = server.takeRequest()
         assertEquals("GET", request.method)
-        assertEquals("/app/tabs/web/1.json", request.target)
+        assertEquals(
+            "/v3/archive/app/tabs/getlists?id=1&platform=android&version=429",
+            request.target,
+        )
         assertEquals("application/json", request.headers["Accept"])
         assertEquals("DongqiudiPure-Android/0.1", request.headers["User-Agent"])
         assertEquals(null, request.headers["Authorization"])
@@ -60,7 +63,8 @@ class OkHttpNewsRemoteDataSourceTest {
         remote.loadFeed(FeedRequest(tabId = "1", after = "fixture-feed-cursor", page = 2))
 
         assertEquals(
-            "/app/tabs/web/1.json?after=fixture-feed-cursor&page=2&child_tab_id=0&user_pay_type=",
+            "/v3/archive/app/tabs/getlists?id=1&platform=android&version=429" +
+                "&after=fixture-feed-cursor&page=2&child_tab_id=0&user_pay_type=",
             server.takeRequest().target,
         )
     }
@@ -71,7 +75,10 @@ class OkHttpNewsRemoteDataSourceTest {
 
         remote.loadFeed(FeedRequest(tabId = "1", fresh = true))
 
-        assertEquals("/app/tabs/web/1.json?action=fresh", server.takeRequest().target)
+        assertEquals(
+            "/v3/archive/app/tabs/getlists?id=1&platform=android&version=429&action=fresh",
+            server.takeRequest().target,
+        )
     }
 
     @Test

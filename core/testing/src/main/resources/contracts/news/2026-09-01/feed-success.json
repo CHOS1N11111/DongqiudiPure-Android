@@ -2,7 +2,7 @@
   "id": 1,
   "label": "Fixture headlines",
   "page": 1,
-  "next": "https://api.dongqiudi.com/app/tabs/web/1.json?after=fixture-feed-cursor&page=2&child_tab_id=0&user_pay_type=",
+  "next": "https://api.dongqiudi.com/v3/archive/app/tabs/getlists?id=1&platform=android&after=fixture-feed-cursor&page=2&child_tab_id=0&user_pay_type=&version=429",
   "articles": [
     {
       "id": 1001,

@@ -17,6 +17,7 @@ import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentAttachmentDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentUserDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedArticleDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedResponseDto
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -26,18 +27,32 @@ import org.jsoup.nodes.TextNode
 
 internal class ContractViolation : Exception()
 
+internal fun FeedResponseDto.flattenedArticles(): List<FeedArticleDto> =
+    (recommend.orEmpty() + articles.orEmpty() +
+        contents.orEmpty().flatMap { it.articles.orEmpty() })
+        .filterNot { article ->
+            article.tabIds.orEmpty().any { it.scalarString() == BETTING_TAB_ID }
+        }
+
 internal fun FeedArticleDto.toDomain(): ArticleSummary {
     val rawId = id.scalarString().required()
     val image = matchImageList.orEmpty().firstOrNull()
-    val imageUrl = safeMediaUrl(image?.apiUrl ?: image?.apithumb ?: image?.thumb ?: image?.url)
+    val imageUrl = safeMediaUrl(
+        image?.apiUrl ?: image?.apithumb ?: image?.thumb ?: image?.url ?: thumb,
+    )
     return ArticleSummary(
         id = ArticleId(rawId),
         title = title.required(),
-        source = authorName.required(),
-        publishedLabel = createdAt.required(),
+        source = authorName?.trim()?.takeIf(String::isNotEmpty)
+            ?: author?.name?.trim()?.takeIf(String::isNotEmpty)
+            ?: "",
+        publishedLabel = createdAt?.trim()?.takeIf(String::isNotEmpty)
+            ?: publishedAt?.trim()?.takeIf(String::isNotEmpty)
+            ?: "",
         commentCount = commentsTotal.scalarIntOrNull(),
         media = imageUrl?.let { ArticleMedia.Thumbnail(it) } ?: ArticleMedia.None,
-        tag = showContent?.trim()?.takeIf(String::isNotEmpty),
+        tag = showContent?.trim()?.takeIf(String::isNotEmpty)
+            ?: if (top == true) "置顶" else null,
     )
 }
 
@@ -177,3 +192,4 @@ private fun String?.required(): String =
     this?.trim()?.takeIf(String::isNotEmpty) ?: throw ContractViolation()
 
 private val ENTITY_LINK = Regex("^dongqiudi:///((?:team|player|competition))/(\\d+)$")
+private const val BETTING_TAB_ID = "58"

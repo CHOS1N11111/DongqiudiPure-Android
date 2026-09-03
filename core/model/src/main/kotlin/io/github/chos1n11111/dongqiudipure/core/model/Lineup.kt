@@ -35,6 +35,10 @@ data class LineupPlayer(
     val position: PlayerPosition,
     val gridRow: Int?,
     val gridColumn: Int?,
+    val avatarUrl: String? = null,
+    val ratingLabel: String? = null,
+    val isMvp: Boolean = false,
+    val nationality: String? = null,
 )
 
 /** 缺阵球员。[reason] 为 null 表示服务端未说明原因。 */
@@ -65,4 +69,10 @@ data class TeamLineup(
 data class MatchLineup(
     val home: TeamLineup,
     val away: TeamLineup,
+)
+
+data class MatchLineupBundle(
+    val actual: MatchLineup?,
+    val forecast: MatchLineup?,
+    val info: MatchInfo,
 )

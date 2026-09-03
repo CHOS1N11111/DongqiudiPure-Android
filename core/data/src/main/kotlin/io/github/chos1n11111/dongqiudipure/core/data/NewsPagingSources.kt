@@ -41,11 +41,18 @@ internal class FeedPagingSource(
         ) {
             is ApiResult.Failure -> LoadResult.Error(AppErrorException(result.error))
             is ApiResult.Success -> try {
-                val articles = result.value.articles ?: throw ContractViolation()
+                val response = result.value
+                if (
+                    response.recommend == null &&
+                    response.articles == null &&
+                    response.contents == null
+                ) {
+                    throw ContractViolation()
+                }
                 LoadResult.Page(
-                    data = articles.map { it.toDomain() }.distinctBy { it.id },
+                    data = response.flattenedArticles().map { it.toDomain() }.distinctBy { it.id },
                     prevKey = null,
-                    nextKey = parseFeedNext(result.value.next, tabId),
+                    nextKey = parseFeedNext(response.next, tabId),
                 )
             } catch (_: ContractViolation) {
                 LoadResult.Error(
@@ -139,7 +146,11 @@ internal class ReplyPagingSource(
 private fun parseFeedNext(raw: String?, tabId: String): FeedPageKey? {
     if (raw.isNullOrBlank()) return null
     val url = raw.toHttpUrlOrNull() ?: throw ContractViolation()
-    if (url.host != API_HOST || url.encodedPath != "/app/tabs/web/$tabId.json") {
+    if (
+        url.host != API_HOST ||
+        url.encodedPath != "/v3/archive/app/tabs/getlists" ||
+        url.queryParameter("id") != tabId
+    ) {
         throw ContractViolation()
     }
     return FeedPageKey(
