@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +55,7 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.DqdEmptyState
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.DqdErrorState
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ImagePlaceholder
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.OriginalAspectImage
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MissingValue
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionAction
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
@@ -65,8 +67,11 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleBlock
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleDetail
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
+import io.github.chos1n11111.dongqiudipure.core.model.ArticleLinkTarget
+import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.Comment
 import io.github.chos1n11111.dongqiudipure.core.model.EntityRef
+import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
 import io.github.chos1n11111.dongqiudipure.core.model.toAppError
 import kotlinx.coroutines.flow.flowOf
@@ -76,6 +81,8 @@ fun ArticleRoute(
     articleId: ArticleId,
     onBack: () -> Unit,
     onEntityClick: (EntityRef) -> Unit,
+    onMatchClick: (MatchId) -> Unit,
+    onCompetitionClick: (CompetitionId) -> Unit,
     onCommentClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ArticleViewModel = hiltViewModel(),
@@ -84,6 +91,7 @@ fun ArticleRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val comments = viewModel.comments.collectAsLazyPagingItems()
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val shareTitle = stringResource(R.string.article_share_title)
 
     ArticleScreen(
@@ -102,6 +110,15 @@ fun ArticleRoute(
             )
         },
         onEntityClick = onEntityClick,
+        onLinkClick = { target ->
+            when (target) {
+                is ArticleLinkTarget.Match -> onMatchClick(target.id)
+                is ArticleLinkTarget.Competition -> onCompetitionClick(target.id)
+                is ArticleLinkTarget.Entity -> onEntityClick(target.value)
+                is ArticleLinkTarget.External -> runCatching { uriHandler.openUri(target.url) }
+                is ArticleLinkTarget.CompetitionCatalog -> Unit
+            }
+        },
         onCommentClick = onCommentClick,
         onRetryDetail = viewModel::retryDetail,
         onRetryComments = comments::retry,
@@ -126,6 +143,7 @@ fun ArticleScreen(
     onBack: () -> Unit,
     onShare: () -> Unit,
     onEntityClick: (EntityRef) -> Unit,
+    onLinkClick: (ArticleLinkTarget) -> Unit,
     onCommentClick: (String) -> Unit,
     onRetryDetail: () -> Unit,
     onRetryComments: () -> Unit,
@@ -174,7 +192,11 @@ fun ArticleScreen(
                     modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                     loading = { ArticleSkeleton() },
                 ) { detail ->
-                    ArticleBody(detail = detail, onEntityClick = onEntityClick)
+                    ArticleBody(
+                        detail = detail,
+                        onEntityClick = onEntityClick,
+                        onLinkClick = onLinkClick,
+                    )
                 }
             }
 
@@ -282,6 +304,7 @@ private fun CommentsHeader(
 private fun ArticleBody(
     detail: ArticleDetail,
     onEntityClick: (EntityRef) -> Unit,
+    onLinkClick: (ArticleLinkTarget) -> Unit,
 ) {
     Column {
         Column(
@@ -324,12 +347,9 @@ private fun ArticleBody(
                 )
 
                 is ArticleBlock.Image -> Column {
-                    ImagePlaceholder(
+                    OriginalAspectImage(
                         url = block.url,
-                        cornerRadius = 0.dp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f),
+                        aspectRatio = block.aspectRatio,
                     )
                     block.caption?.let { caption ->
                         Text(
@@ -343,6 +363,16 @@ private fun ArticleBody(
                         )
                     }
                 }
+
+                is ArticleBlock.Link -> Text(
+                    text = block.text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onLinkClick(block.target) }
+                        .padding(horizontal = DqdSpacing.lg, vertical = DqdSpacing.sm),
+                )
             }
         }
 
@@ -398,6 +428,11 @@ private fun EntityChip(entity: EntityRef, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
+        ImagePlaceholder(
+            url = entity.imageUrl,
+            cornerRadius = if (entity is EntityRef.Player) 18.dp else 4.dp,
+            modifier = Modifier.size(36.dp),
+        )
         Text(
             text = typeLabel,
             style = MaterialTheme.typography.labelSmall,
@@ -561,6 +596,7 @@ private fun ArticleDarkPreview() {
             onBack = {},
             onShare = {},
             onEntityClick = {},
+            onLinkClick = {},
             onCommentClick = {},
             onRetryDetail = {},
             onRetryComments = {},

@@ -10,25 +10,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R
-import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSpacing
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 import io.github.chos1n11111.dongqiudipure.core.model.MatchStatus
 import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
+import io.github.chos1n11111.dongqiudipure.core.model.MatchListEvent
 import io.github.chos1n11111.dongqiudipure.core.model.TeamRef
 import io.github.chos1n11111.dongqiudipure.core.model.hasScore
 
@@ -43,75 +40,105 @@ fun MatchRow(
     match: MatchSummary,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    showDate: Boolean = false,
 ) {
     val isLive = match.status is MatchStatus.Live || match.status == MatchStatus.HalfTime
     val homeWon = (match.homeScore ?: 0) > (match.awayScore ?: 0)
     val awayWon = (match.awayScore ?: 0) > (match.homeScore ?: 0)
 
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .defaultMinSize(minHeight = DqdSize.touchTarget)
             .padding(horizontal = DqdSpacing.md, vertical = DqdSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
     ) {
-        MatchStatusBadge(
-            status = match.status,
-            modifier = Modifier.width(48.dp),
-        )
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(7.dp),
+        MatchHeaderLine(match, showDate)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
         ) {
-            TeamScoreRow(
+            TeamMatchSide(
                 team = match.home,
-                score = match.homeScore,
                 rank = match.homeRank,
                 yellowCards = match.homeYellowCards,
                 redCards = match.homeRedCards,
-                showScore = match.status.hasScore,
-                isLive = isLive,
-                // 完场后败方降一级，胜方保持正文色 —— 但胜负本身由比分表达，
-                // 颜色只是辅助，不是唯一提示。
+                events = match.homeEvents,
+                isHome = true,
                 dimmed = match.status == MatchStatus.Finished && !homeWon,
+                modifier = Modifier.weight(1f),
             )
-            TeamScoreRow(
+            MatchCenter(
+                match = match,
+                isLive = isLive,
+                modifier = Modifier.width(72.dp),
+            )
+            TeamMatchSide(
                 team = match.away,
-                score = match.awayScore,
                 rank = match.awayRank,
                 yellowCards = match.awayYellowCards,
                 redCards = match.awayRedCards,
-                showScore = match.status.hasScore,
-                isLive = isLive,
+                events = match.awayEvents,
+                isHome = false,
                 dimmed = match.status == MatchStatus.Finished && !awayWon,
+                modifier = Modifier.weight(1f),
             )
-            MatchMetaLine(match)
         }
-
-        Icon(
-            painter = painterResource(DqdIcons.ChevronRight),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .size(DqdSize.iconSmall)
-                .clearAndSetSemantics { },
-        )
+        MatchMetaLine(match)
     }
 }
 
 @Composable
-private fun TeamScoreRow(
+private fun MatchHeaderLine(match: MatchSummary, showDate: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
+        listOfNotNull(match.dateLabel.takeIf { showDate }, match.kickoffLabel)
+            .joinToString(" ")
+            .takeIf(String::isNotEmpty)
+            ?.let {
+            Text(
+                text = it,
+                style = DqdTheme.dataText.minuteLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            }
+        Text(
+            text = match.matchInfoLabel
+                ?: listOfNotNull(match.competition.name, match.competition.roundLabel)
+                    .joinToString(" · "),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        match.liveLabel?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TeamMatchSide(
     team: TeamRef,
-    score: Int?,
     rank: String?,
     yellowCards: Int?,
     redCards: Int?,
-    showScore: Boolean,
-    isLive: Boolean,
+    events: List<MatchListEvent>,
+    isHome: Boolean,
     dimmed: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val contentColor = if (dimmed) {
         MaterialTheme.colorScheme.onSurfaceVariant
@@ -119,58 +146,102 @@ private fun TeamScoreRow(
         MaterialTheme.colorScheme.onSurface
     }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if (isHome) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        Box(modifier = Modifier.width(24.dp), contentAlignment = Alignment.CenterEnd) {
-            rank?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        ) {
+            if (!isHome) {
+                TeamCrest(
+                    teamId = team.id,
+                    teamName = team.name,
+                    crestUrl = team.crestUrl,
+                    size = 34.dp,
+                )
+            }
+            Text(
+                text = team.name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = if (isHome) TextAlign.End else TextAlign.Start,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            if (isHome) {
+                TeamCrest(
+                    teamId = team.id,
+                    teamName = team.name,
+                    crestUrl = team.crestUrl,
+                    size = 34.dp,
                 )
             }
         }
-        TeamCrest(
-            teamId = team.id,
-            teamName = team.name,
-            crestUrl = team.crestUrl,
-            size = DqdSize.crestSmall,
+        val badges = listOfNotNull(
+            rank,
+            yellowCards?.takeIf { it > 0 }?.let {
+                stringResource(R.string.ds_match_yellow_cards, it)
+            },
+            redCards?.takeIf { it > 0 }?.let {
+                stringResource(R.string.ds_match_red_cards, it)
+            },
         )
-        Text(
-            text = team.name,
-            style = MaterialTheme.typography.bodySmall,
-            color = contentColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-
-        yellowCards?.takeIf { it > 0 }?.let {
+        if (badges.isNotEmpty()) {
             Text(
-                text = stringResource(R.string.ds_match_yellow_cards, it),
+                text = badges.joinToString(" · "),
                 style = MaterialTheme.typography.labelSmall,
-                color = DqdTheme.sports.yellowCard,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = if (isHome) TextAlign.End else TextAlign.Start,
             )
         }
-        redCards?.takeIf { it > 0 }?.let {
+        events.forEach { event ->
             Text(
-                text = stringResource(R.string.ds_match_red_cards, it),
+                text = event.label,
                 style = MaterialTheme.typography.labelSmall,
-                color = DqdTheme.sports.redCard,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = if (isHome) TextAlign.End else TextAlign.Start,
+                maxLines = 2,
             )
         }
+    }
+}
 
-        ScoreCell(score = score, showScore = showScore, isLive = isLive, dimmed = dimmed)
+@Composable
+private fun MatchCenter(
+    match: MatchSummary,
+    isLive: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        if (match.status.hasScore) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                ScoreCell(match.homeScore, showScore = true, isLive = isLive, dimmed = false)
+                Text(
+                    text = " : ",
+                    style = DqdTheme.dataText.scoreMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                ScoreCell(match.awayScore, showScore = true, isLive = isLive, dimmed = false)
+            }
+        }
+        MatchStatusBadge(status = match.status)
     }
 }
 
 @Composable
 private fun MatchMetaLine(match: MatchSummary) {
     val labels = listOfNotNull(
-        match.liveLabel,
         pairedScore(match.homeHalfScore, match.awayHalfScore)?.let {
             stringResource(R.string.ds_match_half_score, it)
         },
@@ -191,7 +262,8 @@ private fun MatchMetaLine(match: MatchSummary) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.padding(start = 24.dp + DqdSpacing.sm),
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
     )
 }
 

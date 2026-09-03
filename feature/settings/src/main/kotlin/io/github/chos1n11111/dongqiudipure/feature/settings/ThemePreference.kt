@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.annotation.StringRes
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -31,6 +32,7 @@ data class FootballPreferences(
 
 data class NewsPreferences(
     val categoryIds: Set<String> = DEFAULT_NEWS_CATEGORY_IDS,
+    val footballOnly: Boolean = true,
 )
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -66,6 +68,7 @@ class SettingsStore(private val context: Context) {
             categoryIds = preferences[NEWS_CATEGORY_IDS_KEY]
                 ?.takeIf { it.isNotEmpty() }
                 ?: DEFAULT_NEWS_CATEGORY_IDS,
+            footballOnly = preferences[NEWS_FOOTBALL_ONLY_KEY] ?: true,
         )
     }
 
@@ -118,6 +121,12 @@ class SettingsStore(private val context: Context) {
         }
     }
 
+    suspend fun setNewsFootballOnly(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[NEWS_FOOTBALL_ONLY_KEY] = enabled
+        }
+    }
+
     private fun requireCompetitionId(value: String) {
         require(value.isNotEmpty() && value.all(Char::isDigit))
     }
@@ -128,6 +137,7 @@ class SettingsStore(private val context: Context) {
         val DEFAULT_MATCH_COMPETITION_ID_KEY = stringPreferencesKey("default_match_competition_id")
         val RANKING_COMPETITION_IDS_KEY = stringSetPreferencesKey("ranking_competition_ids")
         val NEWS_CATEGORY_IDS_KEY = stringSetPreferencesKey("news_category_ids")
+        val NEWS_FOOTBALL_ONLY_KEY = booleanPreferencesKey("news_football_only")
     }
 }
 

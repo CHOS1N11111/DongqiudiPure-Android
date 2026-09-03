@@ -149,6 +149,19 @@ class FootballDataTest {
     }
 
     @Test
+    fun `team sample separates world rank from market value`() {
+        val profile = TeamSampleDto(
+            teamId = JsonPrimitive("50000804"),
+            teamName = "拜仁慕尼黑",
+            rank = "世界排名第1  总身价10.4亿欧",
+            marketValue = JsonPrimitive("1040000000"),
+        ).toDomain()
+
+        assertEquals("世界排名第1", profile.rankLabel)
+        assertEquals("10.4亿欧", profile.marketValueLabel)
+    }
+
+    @Test
     fun `lineup keeps players when an unused substitute has slot coordinates`() {
         val teamA = MatchLineupTeamDto(
             teamId = JsonPrimitive("50000001"),

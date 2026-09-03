@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -79,6 +81,31 @@ fun ImagePlaceholder(
                     modifier = Modifier.padding(start = if (badgeIcon != null) 3.dp else 0.dp),
                 )
             }
+        }
+    }
+}
+
+/** Displays article media without cropping it; portrait statistics images remain complete. */
+@Composable
+fun OriginalAspectImage(
+    url: String?,
+    aspectRatio: Float?,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(aspectRatio?.takeIf { it.isFinite() && it > 0f } ?: 16f / 9f)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (url != null) {
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }

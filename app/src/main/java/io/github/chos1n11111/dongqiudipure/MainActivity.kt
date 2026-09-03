@@ -68,6 +68,9 @@ class MainActivity : ComponentActivity() {
                             settingsStore.setNewsCategoryEnabled(categoryId, enabled)
                         }
                     },
+                    onNewsFootballOnlyChange = { enabled ->
+                        lifecycleScope.launch { settingsStore.setNewsFootballOnly(enabled) }
+                    },
                     appVersion = BuildConfig.VERSION_NAME,
                 )
             }

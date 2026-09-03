@@ -41,6 +41,9 @@ data class PlayerProfile(
     val footLabel: String?,
     val marketValueLabel: String? = null,
     val contractUntil: String? = null,
+    val nickname: String? = null,
+    val otherNationalities: List<String> = emptyList(),
+    val weeklySalaryLabel: String? = null,
 )
 
 /** 一项赛季数据。服务端驱动的开放模型，不写死指标集合。 */

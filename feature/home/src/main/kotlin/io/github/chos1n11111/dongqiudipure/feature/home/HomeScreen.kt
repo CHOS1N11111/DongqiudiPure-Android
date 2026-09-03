@@ -62,11 +62,12 @@ import kotlinx.coroutines.flow.flowOf
 fun HomeRoute(
     onArticleClick: (ArticleId) -> Unit,
     enabledCategoryIds: Set<String>,
+    footballOnly: Boolean,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(enabledCategoryIds) {
-        viewModel.setEnabledCategoryIds(enabledCategoryIds)
+    LaunchedEffect(enabledCategoryIds, footballOnly) {
+        viewModel.setPreferences(enabledCategoryIds, footballOnly)
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val articles = viewModel.feed.collectAsLazyPagingItems()

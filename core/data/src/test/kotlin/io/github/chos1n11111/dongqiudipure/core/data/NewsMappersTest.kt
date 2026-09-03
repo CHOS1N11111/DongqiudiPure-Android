@@ -2,11 +2,16 @@ package io.github.chos1n11111.dongqiudipure.core.data
 
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleBlock
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
+import io.github.chos1n11111.dongqiudipure.core.model.ArticleLinkTarget
 import io.github.chos1n11111.dongqiudipure.core.model.ArticleMedia
 import io.github.chos1n11111.dongqiudipure.core.model.EntityRef
+import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
+import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleChannelDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleDetailDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleDetailEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleInfosDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentUserDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentsEnvelopeDto
@@ -49,6 +54,55 @@ class NewsMappersTest {
                 EntityRef.Player(PlayerId("7"), "Fixture Player"),
             ),
             article.relatedEntities,
+        )
+    }
+
+    @Test
+    fun `article mapper preserves gif ratio internal link and entity thumbnail`() {
+        val article = ArticleDetailDto(
+            articleId = JsonPrimitive("1001"),
+            title = "Fixture report",
+            time = "2026-09-03 04:37",
+            writer = "Fixture Desk",
+            body = """
+                <p><img data-gif-src="https://img1.qunliao.info/goal.gif"
+                    data-src="https://img1.qunliao.info/goal.jpg"
+                    data-width="640" data-height="360"></p>
+                <p><a href="dongqiudi://v1/main/match/matchinfo/54473222">查看比赛</a></p>
+            """.trimIndent(),
+            infos = ArticleInfosDto(
+                channels = listOf(
+                    ArticleChannelDto(
+                        href = "dongqiudi:///team/50000804",
+                        tag = "拜仁慕尼黑",
+                        thumb = "https://sd.qunliao.info/bayern.png",
+                    ),
+                ),
+            ),
+        ).toDomain(ArticleId("1001"))
+
+        assertEquals(
+            ArticleBlock.Image(
+                url = "https://img1.qunliao.info/goal.gif",
+                caption = null,
+                aspectRatio = 16f / 9f,
+            ),
+            article.blocks[0],
+        )
+        assertEquals(
+            ArticleBlock.Link(
+                text = "查看比赛",
+                target = ArticleLinkTarget.Match(MatchId("54473222")),
+            ),
+            article.blocks[1],
+        )
+        assertEquals(
+            EntityRef.Team(
+                id = TeamId("50000804"),
+                displayName = "拜仁慕尼黑",
+                imageUrl = "https://sd.qunliao.info/bayern.png",
+            ),
+            article.relatedEntities.single(),
         )
     }
 

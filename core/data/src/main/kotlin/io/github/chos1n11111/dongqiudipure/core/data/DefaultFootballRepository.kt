@@ -45,6 +45,27 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
+private fun TeamProfile.mergeSample(sample: TeamProfile): TeamProfile = copy(
+    crestUrl = crestUrl ?: sample.crestUrl,
+    englishName = englishName ?: sample.englishName,
+    country = country ?: sample.country,
+    city = city ?: sample.city,
+    competitionName = competitionName ?: sample.competitionName,
+    venue = venue ?: sample.venue,
+    venueCapacity = venueCapacity ?: sample.venueCapacity,
+    foundedLabel = foundedLabel ?: sample.foundedLabel,
+    rankLabel = rankLabel ?: sample.rankLabel,
+    marketValueLabel = marketValueLabel ?: sample.marketValueLabel,
+    leagueRankLabel = leagueRankLabel ?: sample.leagueRankLabel,
+    leagueRecordLabel = leagueRecordLabel ?: sample.leagueRecordLabel,
+    type = if (type == io.github.chos1n11111.dongqiudipure.core.model.TeamType.Unknown) {
+        sample.type
+    } else {
+        type
+    },
+    recentForm = recentForm.ifEmpty { sample.recentForm },
+)
+
 @Singleton
 class DefaultFootballRepository @Inject constructor(
     private val remote: FootballRemoteDataSource,
@@ -242,11 +263,27 @@ class DefaultFootballRepository @Inject constructor(
         }
     }
 
-    override suspend fun loadTeamProfile(teamId: TeamId): DataResult<TeamProfile?> =
-        when (val result = remote.loadTeamDetail(teamId)) {
-            is ApiResult.Failure -> DataResult.Failure(result.error)
-            is ApiResult.Success -> mapContract(TEAM_DETAIL_ENDPOINT) { result.value.toDomain() }
+    override suspend fun loadTeamProfile(teamId: TeamId): DataResult<TeamProfile?> = coroutineScope {
+        val detailRequest = async { remote.loadTeamDetail(teamId) }
+        val sampleRequest = async { remote.loadTeamSample(teamId) }
+        val detailResult = detailRequest.await()
+        val sampleResult = sampleRequest.await()
+        val detail = (detailResult as? ApiResult.Success)?.let {
+            runCatching { it.value.toDomain() }.getOrNull()
         }
+        val sample = (sampleResult as? ApiResult.Success)?.let {
+            runCatching { it.value.toDomain() }.getOrNull()
+        }
+        when {
+            detail != null && sample != null && detail.id == sample.id ->
+                DataResult.Success(detail.mergeSample(sample))
+            detail != null -> DataResult.Success(detail)
+            sample != null -> DataResult.Success(sample)
+            detailResult is ApiResult.Failure -> DataResult.Failure(detailResult.error)
+            sampleResult is ApiResult.Failure -> DataResult.Failure(sampleResult.error)
+            else -> DataResult.Failure(AppError.UnsupportedContract(TEAM_DETAIL_ENDPOINT))
+        }
+    }
 
     override suspend fun loadTeamStatistics(
         teamId: TeamId,

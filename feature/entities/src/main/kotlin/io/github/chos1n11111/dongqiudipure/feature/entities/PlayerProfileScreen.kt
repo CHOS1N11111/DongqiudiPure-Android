@@ -565,6 +565,13 @@ private fun PlayerHeader(profile: PlayerProfile, onTeamClick: (TeamId) -> Unit) 
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            profile.nickname?.let {
+                Text(
+                    text = stringResource(R.string.player_nickname_value, it),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             val team = profile.team
             if (team != null) {
                 Row(
@@ -594,6 +601,8 @@ private fun PlayerHeader(profile: PlayerProfile, onTeamClick: (TeamId) -> Unit) 
 private fun AttributeGrid(profile: PlayerProfile) {
     val values = listOf(
         stringResource(R.string.player_attr_nationality) to profile.nationality,
+        stringResource(R.string.player_attr_other_nationalities) to
+            profile.otherNationalities.joinToString("、").ifEmpty { null },
         stringResource(R.string.player_attr_age) to profile.ageLabel,
         stringResource(R.string.player_attr_birthday) to profile.birthdayLabel,
         stringResource(R.string.player_attr_height) to profile.heightLabel,
@@ -601,6 +610,7 @@ private fun AttributeGrid(profile: PlayerProfile) {
         stringResource(R.string.player_attr_foot) to profile.footLabel,
         stringResource(R.string.player_attr_value) to profile.marketValueLabel,
         stringResource(R.string.player_attr_contract) to profile.contractUntil,
+        stringResource(R.string.player_attr_weekly_salary) to profile.weeklySalaryLabel,
     )
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer)) {
         values.chunked(2).forEach { pair ->

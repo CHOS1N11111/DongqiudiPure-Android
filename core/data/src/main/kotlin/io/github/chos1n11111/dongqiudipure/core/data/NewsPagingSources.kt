@@ -25,6 +25,7 @@ internal class FeedPagingSource(
     private val remote: NewsRemoteDataSource,
     private val tabId: String,
     private val fresh: Boolean = false,
+    private val footballOnly: Boolean = false,
 ) : PagingSource<FeedPageKey, ArticleSummary>() {
 
     override suspend fun load(params: LoadParams<FeedPageKey>): LoadResult<FeedPageKey, ArticleSummary> {
@@ -50,7 +51,10 @@ internal class FeedPagingSource(
                     throw ContractViolation()
                 }
                 LoadResult.Page(
-                    data = response.flattenedArticles().map { it.toDomain() }.distinctBy { it.id },
+                    data = response.flattenedArticles(
+                        includeRecommendations = tabId == HEADLINE_TAB_ID,
+                        footballOnly = footballOnly,
+                    ).map { it.toDomain() }.distinctBy { it.id },
                     prevKey = null,
                     nextKey = parseFeedNext(response.next, tabId),
                 )
@@ -190,6 +194,7 @@ private fun kotlinx.serialization.json.JsonElement?.scalarStringValue(): String?
     (this as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
 
 private const val API_HOST = "api.dongqiudi.com"
+private const val HEADLINE_TAB_ID = "1"
 private val FEED_ENDPOINT = EndpointId("news.feed")
 private val COMMENTS_ENDPOINT = EndpointId("news.comments")
 private val COMMENT_THREAD_ENDPOINT = EndpointId("news.comment-thread")

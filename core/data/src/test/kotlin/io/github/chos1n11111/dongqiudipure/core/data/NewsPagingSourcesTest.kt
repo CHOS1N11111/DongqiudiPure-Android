@@ -109,6 +109,31 @@ class NewsPagingSourcesTest {
     }
 
     @Test
+    fun `non headline feed excludes recommendations repeated in the time ordered stream`() = runBlocking {
+        val recommended = FeedArticleDto(
+            id = JsonPrimitive(2001),
+            title = "Global recommendation",
+        )
+        val recent = FeedArticleDto(
+            id = JsonPrimitive(2002),
+            title = "Breaking fixture",
+        )
+        val remote = FakeNewsRemoteDataSource().apply {
+            feedResult = ApiResult.Success(
+                FeedResponseDto(
+                    recommend = listOf(recommended),
+                    articles = listOf(recommended, recent),
+                ),
+            )
+        }
+
+        val result = FeedPagingSource(remote, tabId = "284").load(refresh())
+
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals(listOf("2002"), page.data.map { it.id.raw })
+    }
+
+    @Test
     fun `feed rejects next cursor outside the public API host`() = runBlocking {
         val remote = FakeNewsRemoteDataSource().apply {
             feedResult = ApiResult.Success(

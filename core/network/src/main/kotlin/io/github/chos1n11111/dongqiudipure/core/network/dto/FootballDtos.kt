@@ -57,6 +57,15 @@ data class MatchDto(
     val cards: JsonElement? = null,
     val rating: JsonElement? = null,
     @SerialName("dqd_rating") val dqdRating: JsonElement? = null,
+    @SerialName("team_A_events") val homeEvents: List<MatchListEventDto>? = null,
+    @SerialName("team_B_events") val awayEvents: List<MatchListEventDto>? = null,
+)
+
+@Serializable
+data class MatchListEventDto(
+    val title: String? = null,
+    val code: String? = null,
+    val sort: JsonElement? = null,
 )
 
 @Serializable
@@ -228,6 +237,14 @@ data class MatchLineupPlayerDto(
     @SerialName("position_x") val positionX: JsonElement? = null,
     @SerialName("position_y") val positionY: JsonElement? = null,
     @SerialName("nationality_name") val nationalityName: String? = null,
+    val events: List<MatchLineupPlayerEventDto>? = null,
+)
+
+@Serializable
+data class MatchLineupPlayerEventDto(
+    val type: String? = null,
+    val minute: JsonElement? = null,
+    @SerialName("minute_extra") val minuteExtra: JsonElement? = null,
 )
 
 @Serializable
@@ -308,6 +325,7 @@ data class DataMenuGroupDto(
 
 @Serializable
 data class DataMenuCompetitionDto(
+    val id: JsonElement? = null,
     val label: String? = null,
     val logo: String? = null,
     @SerialName("competition_id") val competitionId: JsonElement? = null,
@@ -722,6 +740,9 @@ data class PlayerBaseInfoDto(
     @SerialName("market_value") val marketValue: JsonElement? = null,
     val contract: String? = null,
     @SerialName("team_info") val teamInfo: PlayerTeamInfoDto? = null,
+    val nickname: String? = null,
+    @SerialName("other_nationality") val otherNationality: List<String>? = null,
+    @SerialName("weekly_salary") val weeklySalary: JsonElement? = null,
 )
 
 @Serializable

@@ -45,8 +45,14 @@ class DefaultNewsRepository @Inject constructor(
     override fun pagedFeed(
         category: NewsCategory,
         fresh: Boolean,
+        footballOnly: Boolean,
     ): Flow<PagingData<ArticleSummary>> = Pager(PAGING_CONFIG) {
-        FeedPagingSource(remote, category.id, fresh)
+        FeedPagingSource(
+            remote = remote,
+            tabId = category.id,
+            fresh = fresh,
+            footballOnly = footballOnly,
+        )
     }.flow
 
     override suspend fun loadArticle(articleId: ArticleId): DataResult<ArticleDetail> =

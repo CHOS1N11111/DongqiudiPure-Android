@@ -14,6 +14,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
 import io.github.chos1n11111.dongqiudipure.feature.account.AccountRoute
+import io.github.chos1n11111.dongqiudipure.feature.account.AppInfoScreen
 import io.github.chos1n11111.dongqiudipure.feature.article.ArticleRoute
 import io.github.chos1n11111.dongqiudipure.feature.article.CommentDetailRoute
 import io.github.chos1n11111.dongqiudipure.feature.entities.PlayerProfileRoute
@@ -43,6 +44,7 @@ fun DqdNavHost(
     onMatchCompetitionToggle: (String, Boolean) -> Unit,
     onRankingCompetitionToggle: (String, Boolean) -> Unit,
     onNewsCategoryToggle: (String, Boolean) -> Unit,
+    onNewsFootballOnlyChange: (Boolean) -> Unit,
     appVersion: String,
     navController: NavHostController,
     modifier: Modifier = Modifier,
@@ -57,6 +59,7 @@ fun DqdNavHost(
             HomeRoute(
                 onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
                 enabledCategoryIds = newsPreferences.categoryIds,
+                footballOnly = newsPreferences.footballOnly,
             )
         }
 
@@ -80,8 +83,7 @@ fun DqdNavHost(
         composable(DqdDestination.Account.route) {
             AccountRoute(
                 onSettingsClick = { navController.navigate(DqdRoutes.SETTINGS) },
-                onAboutClick = { navController.navigate(DqdRoutes.ABOUT) },
-                onLicenseClick = { navController.navigate(DqdRoutes.LICENSE) },
+                onAppInfoClick = { navController.navigate(DqdRoutes.APP_INFO) },
                 appVersion = appVersion,
             )
         }
@@ -101,6 +103,8 @@ fun DqdNavHost(
                 onCommentClick = { commentId ->
                     navController.navigate(DqdRoutes.comment(id, commentId))
                 },
+                onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
+                onCompetitionClick = { navController.navigate(DqdRoutes.standings(it.raw)) },
                 onEntityClick = { entity ->
                     when (entity) {
                         is EntityRef.Team ->
@@ -205,6 +209,7 @@ fun DqdNavHost(
             NewsCategorySettingsRoute(
                 preferences = newsPreferences,
                 onCategoryToggle = onNewsCategoryToggle,
+                onFootballOnlyChange = onNewsFootballOnlyChange,
                 onBack = navController::popBackStack,
             )
         }
@@ -236,6 +241,15 @@ fun DqdNavHost(
                 appVersion = appVersion,
                 onBack = navController::popBackStack,
                 onLicenseClick = { navController.navigate(DqdRoutes.LICENSE) },
+            )
+        }
+
+        composable(DqdRoutes.APP_INFO) {
+            AppInfoScreen(
+                appVersion = appVersion,
+                onAboutClick = { navController.navigate(DqdRoutes.ABOUT) },
+                onLicenseClick = { navController.navigate(DqdRoutes.LICENSE) },
+                onBack = navController::popBackStack,
             )
         }
 

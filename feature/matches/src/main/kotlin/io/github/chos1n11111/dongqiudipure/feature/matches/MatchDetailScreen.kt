@@ -110,7 +110,6 @@ fun MatchDetailRoute(
         onRetryLineup = viewModel::retryLineup,
         onRetryAnalysis = viewModel::retryAnalysis,
         onTabSelect = viewModel::selectTab,
-        onLineupSideChange = viewModel::selectLineupSide,
         modifier = modifier,
     )
 }
@@ -129,7 +128,6 @@ fun MatchDetailScreen(
     onRetryLineup: () -> Unit,
     onRetryAnalysis: () -> Unit,
     onTabSelect: (MatchTab) -> Unit,
-    onLineupSideChange: (LineupSide) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -207,17 +205,13 @@ fun MatchDetailScreen(
                 )
                 MatchTab.Lineup -> LineupTab(
                     state = uiState.lineup,
-                    side = uiState.lineupSide,
                     onRetry = onRetryLineup,
-                    onSideChange = onLineupSideChange,
                     onPlayerClick = onPlayerClick,
                 )
                 MatchTab.Intelligence -> IntelligenceTab(
                     lineupState = uiState.lineup,
                     analysis = uiState.analysis.contentOrNull(),
-                    side = uiState.lineupSide,
                     onRetry = onRetryLineup,
-                    onSideChange = onLineupSideChange,
                     onPlayerClick = onPlayerClick,
                 )
                 MatchTab.Analysis -> AnalysisTab(
@@ -248,7 +242,7 @@ private fun RatingsTab(
     }.orEmpty()
 
     if (ratedPlayers.isNotEmpty()) {
-        SectionHeader(title = stringResource(R.string.match_ratings_title))
+        SectionHeader(title = stringResource(R.string.match_official_ratings_title))
         Text(
             text = stringResource(R.string.match_ratings_read_only),
             style = MaterialTheme.typography.labelSmall,
@@ -263,9 +257,30 @@ private fun RatingsTab(
             PlayerRatingRow(
                 player = player,
                 teamName = teamName,
-                userRatingLabel = userRatings[player.id],
                 onClick = { onPlayerClick(player.id) },
             )
+        }
+        SectionHeader(title = stringResource(R.string.match_user_ratings_title))
+        val userRatedPlayers = ratedPlayers.filter { (_, player) -> userRatings[player.id] != null }
+        if (userRatedPlayers.isEmpty()) {
+            Text(
+                text = stringResource(R.string.match_user_ratings_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(
+                    horizontal = DqdSpacing.listHorizontal,
+                    vertical = DqdSpacing.md,
+                ),
+            )
+        } else {
+            userRatedPlayers.forEach { (teamName, player) ->
+                UserRatingRow(
+                    player = player,
+                    teamName = teamName,
+                    ratingLabel = requireNotNull(userRatings[player.id]),
+                    onClick = { onPlayerClick(player.id) },
+                )
+            }
         }
     } else {
         SectionContainer(
@@ -294,7 +309,6 @@ private fun RatingsTab(
 private fun PlayerRatingRow(
     player: LineupPlayer,
     teamName: String,
-    userRatingLabel: String?,
     onClick: () -> Unit,
 ) {
     Row(
@@ -321,22 +335,45 @@ private fun PlayerRatingRow(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        Column(horizontalAlignment = Alignment.End) {
+        Text(
+            player.ratingLabel.orEmpty(),
+            style = DqdTheme.dataText.statValue,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+        )
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+}
+
+@Composable
+private fun UserRatingRow(
+    player: LineupPlayer,
+    teamName: String,
+    ratingLabel: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+    ) {
+        PlayerAvatar(player.id, player.name, player.avatarUrl, 38.dp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(player.name, style = MaterialTheme.typography.bodyMedium)
             Text(
-                stringResource(R.string.match_data_rating_value, player.ratingLabel.orEmpty()),
-                style = DqdTheme.dataText.statValue,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
+                teamName,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            userRatingLabel?.let { rating ->
-                Text(
-                    stringResource(R.string.match_user_rating_value, rating),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
         }
+        Text(
+            ratingLabel,
+            style = DqdTheme.dataText.statValue,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
@@ -448,9 +485,7 @@ private fun SituationContent(overview: MatchOverview, onArticleClick: (ArticleId
 @Composable
 private fun LineupTab(
     state: SectionState<MatchLineupBundle>,
-    side: LineupSide,
     onRetry: () -> Unit,
-    onSideChange: (LineupSide) -> Unit,
     onPlayerClick: (PlayerId) -> Unit,
 ) {
     val actualState: SectionState<MatchLineup> = when (state) {
@@ -467,7 +502,7 @@ private fun LineupTab(
         emptyDescription = stringResource(R.string.match_lineup_empty_description),
         loading = { LineupSkeleton() },
     ) { lineup ->
-        LineupContent(lineup, side, onSideChange, onPlayerClick)
+        LineupContent(lineup, onPlayerClick)
     }
 }
 
@@ -475,9 +510,7 @@ private fun LineupTab(
 private fun IntelligenceTab(
     lineupState: SectionState<MatchLineupBundle>,
     analysis: MatchAnalysis?,
-    side: LineupSide,
     onRetry: () -> Unit,
-    onSideChange: (LineupSide) -> Unit,
     onPlayerClick: (PlayerId) -> Unit,
 ) {
     val forecastState: SectionState<MatchLineup> = when (lineupState) {
@@ -495,7 +528,7 @@ private fun IntelligenceTab(
         emptyDescription = stringResource(R.string.match_forecast_empty_description),
         loading = { LineupSkeleton() },
     ) { lineup ->
-        LineupContent(lineup, side, onSideChange, onPlayerClick)
+        LineupContent(lineup, onPlayerClick)
     }
 
     val bundle = lineupState.contentOrNull()
@@ -1072,7 +1105,6 @@ private fun MatchDetailDarkPreview() {
             onRetryLineup = {},
             onRetryAnalysis = {},
             onTabSelect = {},
-            onLineupSideChange = {},
         )
     }
 }

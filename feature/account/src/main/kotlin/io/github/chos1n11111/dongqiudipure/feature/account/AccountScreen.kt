@@ -58,12 +58,10 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdTheme
 @Composable
 fun AccountRoute(
     onSettingsClick: () -> Unit,
-    onAboutClick: () -> Unit,
-    onLicenseClick: () -> Unit,
+    onAppInfoClick: () -> Unit,
     modifier: Modifier = Modifier,
     appVersion: String = "0.1.0",
 ) {
-    val uriHandler = LocalUriHandler.current
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -107,23 +105,9 @@ fun AccountRoute(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 SettingsRow(
                     icon = DqdIcons.Info,
-                    label = stringResource(R.string.account_row_about),
+                    label = stringResource(R.string.account_row_app_info),
                     value = appVersion,
-                    onClick = onAboutClick,
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                SettingsRow(
-                    icon = DqdIcons.Link,
-                    label = stringResource(R.string.account_row_source),
-                    subtitle = stringResource(R.string.account_repository_url),
-                    onClick = { runCatching { uriHandler.openUri(PROJECT_URL) } },
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                SettingsRow(
-                    icon = DqdIcons.File,
-                    label = stringResource(R.string.account_row_license),
-                    value = "GPL-3.0",
-                    onClick = onLicenseClick,
+                    onClick = onAppInfoClick,
                 )
             }
 
@@ -135,6 +119,67 @@ fun AccountRoute(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = DqdSpacing.lg, vertical = DqdSpacing.xl),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppInfoScreen(
+    appVersion: String,
+    onAboutClick: () -> Unit,
+    onLicenseClick: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val uriHandler = LocalUriHandler.current
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.account_app_info_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            painter = painterResource(DqdIcons.ArrowBack),
+                            contentDescription = stringResource(DesignR.string.ds_action_back),
+                            modifier = Modifier.size(DqdSize.iconMedium),
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.surfaceContainer),
+        ) {
+            SettingsRow(
+                icon = DqdIcons.Info,
+                label = stringResource(R.string.account_row_about),
+                value = appVersion,
+                onClick = onAboutClick,
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            SettingsRow(
+                icon = DqdIcons.Link,
+                label = stringResource(R.string.account_row_source),
+                subtitle = stringResource(R.string.account_repository_url),
+                onClick = { runCatching { uriHandler.openUri(PROJECT_URL) } },
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            SettingsRow(
+                icon = DqdIcons.File,
+                label = stringResource(R.string.account_row_license),
+                value = "GPL-3.0",
+                onClick = onLicenseClick,
             )
         }
     }
@@ -269,7 +314,7 @@ private const val PROJECT_URL = "https://github.com/CHOS1N11111/DongqiudiPure-An
 @Composable
 private fun AccountDarkPreview() {
     DqdTheme(darkTheme = true) {
-        AccountRoute(onSettingsClick = {}, onAboutClick = {}, onLicenseClick = {})
+        AccountRoute(onSettingsClick = {}, onAppInfoClick = {})
     }
 }
 
@@ -277,6 +322,6 @@ private fun AccountDarkPreview() {
 @Composable
 private fun AccountLightPreview() {
     DqdTheme(darkTheme = false) {
-        AccountRoute(onSettingsClick = {}, onAboutClick = {}, onLicenseClick = {})
+        AccountRoute(onSettingsClick = {}, onAppInfoClick = {})
     }
 }

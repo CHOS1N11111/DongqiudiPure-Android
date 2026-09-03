@@ -39,6 +39,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerSeasonStat
 import io.github.chos1n11111.dongqiudipure.core.model.SquadMember
 import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadGroup
+import io.github.chos1n11111.dongqiudipure.core.model.TeamMemberGroupKind
 
 /**
  * 阵容名单。
@@ -66,9 +67,78 @@ fun SquadList(
                         vertical = DqdSpacing.sm,
                     ),
             )
-            group.members.forEach { member ->
-                SquadRow(member = member, onClick = { onPlayerClick(member.id) })
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            if (
+                group.kind == TeamMemberGroupKind.Coaches ||
+                group.kind == TeamMemberGroupKind.Staff
+            ) {
+                StaffGrid(group.members, onPlayerClick)
+            } else {
+                group.members.forEach { member ->
+                    SquadRow(member = member, onClick = { onPlayerClick(member.id) })
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StaffGrid(members: List<SquadMember>, onPlayerClick: (PlayerId) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = DqdSpacing.sm, vertical = DqdSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
+        members.chunked(2).forEach { rowMembers ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+            ) {
+                rowMembers.forEach { member ->
+                    StaffCell(
+                        member = member,
+                        onClick = { onPlayerClick(member.id) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                if (rowMembers.size == 1) Box(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun StaffCell(
+    member: SquadMember,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .defaultMinSize(minHeight = DqdSize.touchTarget)
+            .padding(DqdSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
+        PlayerAvatar(member.id, member.name, member.avatarUrl, 38.dp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = member.name,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            member.roleLabel?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -174,15 +244,35 @@ fun TeamFixtureList(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        fixtures.forEach { match ->
-            MatchRow(
-                match = match,
-                onClick = { onMatchClick(match.id) },
-                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer),
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        fixtures.groupBy { it.dateLabel?.take(7) }.forEach { (month, matches) ->
+            month?.let {
+                Text(
+                    text = formatMonthLabel(it),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = DqdSpacing.listHorizontal, vertical = DqdSpacing.sm),
+                )
+            }
+            matches.forEach { match ->
+                MatchRow(
+                    match = match,
+                    onClick = { onMatchClick(match.id) },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer),
+                    showDate = true,
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
         }
     }
+}
+
+private fun formatMonthLabel(raw: String): String {
+    val parts = raw.split('-')
+    val month = parts.getOrNull(1)?.toIntOrNull() ?: return raw
+    return "${parts.firstOrNull().orEmpty()}年${month}月"
 }
 
 /**

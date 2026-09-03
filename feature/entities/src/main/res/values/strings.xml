@@ -8,6 +8,7 @@
     <string name="team_tab_news">资讯</string>
     <string name="team_tab_dynamic">动态</string>
     <string name="team_tab_players">球员</string>
+    <string name="team_tab_transfers">转会</string>
     <string name="team_schedule_past">过去</string>
     <string name="team_schedule_future">未来</string>
     <string name="team_schedule_all_competitions">全部赛事</string>
@@ -105,6 +106,7 @@
     <string name="player_injuries">伤病记录</string>
     <string name="player_career">履历</string>
     <string name="player_attr_nationality">国籍</string>
+    <string name="player_attr_other_nationalities">其他国籍</string>
     <string name="player_attr_age">年龄</string>
     <string name="player_attr_birthday">出生日期</string>
     <string name="player_attr_height">身高</string>
@@ -112,6 +114,8 @@
     <string name="player_attr_foot">惯用脚</string>
     <string name="player_attr_value">身价</string>
     <string name="player_attr_contract">合同到期</string>
+    <string name="player_attr_weekly_salary">周薪</string>
+    <string name="player_nickname_value">昵称：%1$s</string>
     <string name="player_shirt_number">#%1$d</string>
 
     <string name="player_career_column_season">赛季</string>

@@ -25,6 +25,9 @@
     <string name="match_tab_analysis">分析</string>
 
     <string name="match_ratings_title">球员评分</string>
+    <string name="match_official_ratings_title">官方评分</string>
+    <string name="match_user_ratings_title">用户评分</string>
+    <string name="match_user_ratings_empty">懂球帝暂未返回该场比赛的用户评分。</string>
     <string name="match_ratings_read_only">评分来自比赛数据，仅供查看</string>
     <string name="match_ratings_empty_title">暂无球员评分</string>
     <string name="match_ratings_empty_description">该场比赛还没有可用的球员评分。</string>
@@ -72,6 +75,7 @@
     <string name="lineup_side_home">主队</string>
     <string name="lineup_side_away">客队</string>
     <string name="lineup_formation">阵型</string>
+    <string name="lineup_starters">首发阵容</string>
     <string name="lineup_substitutes">替补</string>
     <string name="lineup_coach">主教练</string>
     <string name="lineup_absentees">缺阵</string>

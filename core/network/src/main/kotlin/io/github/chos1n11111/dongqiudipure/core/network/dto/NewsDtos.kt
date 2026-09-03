@@ -36,6 +36,7 @@ data class FeedArticleDto(
     val top: Boolean? = null,
     val topnew: JsonElement? = null,
     @SerialName("tab_ids") val tabIds: List<JsonElement>? = null,
+    val category: JsonElement? = null,
 )
 
 @Serializable
