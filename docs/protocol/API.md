@@ -220,6 +220,24 @@ GET https://sport-data.dongqiudi.com/soccer/biz/data/standing?season_id={seasonI
 
 M11/M12 只扩大覆盖范围，不改变鉴权方式；对应 Request 必须先按匿名 contract 验证，不能因为实现时已经有登录模块就默认携带 Authorization。
 
+### 6.3 匿名主队、关注实体与球队圈子
+
+2026-09-04 以不携带 Authorization、Cookie 或设备标识的最小 `GET` Request 验证：
+
+```http
+GET https://api.dongqiudi.com/search?keywords={query}
+GET https://sport-data.dongqiudi.com/soccer/biz/dqd/team/sample/{shortTeamId}?app=dqd&lang=zh-cn
+GET https://api.dongqiudi.com/groups/topic/all/{groupId}?order=reply&page={page}
+```
+
+- 搜索响应直接提供真实球队/球员 ID、名称、队徽或头像；名称中的高亮 HTML 只转为纯文本，不执行标签。
+- 球队 sample 的 `tabs.list` 决定公开内容层级，并在 `tab=circle` 时提供 `group_id`。客户端不按球队名称猜圈子 ID。
+- 圈子列表可匿名分页读取，展示作者、正文摘要、媒体、回复数和点赞数；分页、空数据和不兼容响应独立降级。
+- 圈子话题 ID 虽带有 App 内部 article scheme，但已验证的 `/v2/article/detail/{articleId}` 不接受该 ID。话题详情 contract 未确认前，列表不错误跳转到资讯详情。
+- 主队及关注列表当前只保存在本机 DataStore。未验证任何远端关注或账号同步写接口，也不会向用户宣称服务端关注成功。
+
+结论：主队/关注中心的公开内容与本机个性化不需要登录；账号既有关注、跨设备同步和远端关注操作仍需要登录及独立 contract。
+
 “前期已观察可匿名读取”仍不等于 contract 完成。M2-M12 对每个能力执行同一流程：
 
 1. 从官方匿名入口确认实际可达页面和参数来源。

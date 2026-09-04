@@ -146,25 +146,29 @@ fun PlayerProfileScreen(
     onShotMapRetry: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    showTopBar: Boolean = true,
+    showProfileHeader: Boolean = true,
 ) {
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            painterResource(DqdIcons.ArrowBack),
-                            stringResource(DesignR.string.ds_action_back),
-                            Modifier.size(DqdSize.iconMedium),
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            if (showTopBar) {
+                TopAppBar(
+                    title = {},
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                painterResource(DqdIcons.ArrowBack),
+                                stringResource(DesignR.string.ds_action_back),
+                                Modifier.size(DqdSize.iconMedium),
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                )
+            }
         },
         containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
@@ -173,12 +177,14 @@ fun PlayerProfileScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            SectionContainer(
-                state = uiState.profile,
-                onRetry = onRetry,
-                modifier = Modifier.background(MaterialTheme.colorScheme.surface),
-                loading = { HeaderSkeleton() },
-            ) { PlayerHeader(it, onTeamClick) }
+            if (showProfileHeader) {
+                SectionContainer(
+                    state = uiState.profile,
+                    onRetry = onRetry,
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                    loading = { HeaderSkeleton() },
+                ) { PlayerHeader(it, onTeamClick) }
+            }
 
             PrimaryScrollableTabRow(
                 selectedTabIndex = PlayerTab.entries.indexOf(uiState.selectedTab),

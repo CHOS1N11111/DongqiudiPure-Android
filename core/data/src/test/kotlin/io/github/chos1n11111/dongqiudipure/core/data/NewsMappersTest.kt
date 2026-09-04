@@ -18,9 +18,11 @@ import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentUserDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentsEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedArticleDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedAuthorDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedImageDto
 import io.github.chos1n11111.dongqiudipure.core.testing.FixtureLoader
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -154,15 +156,23 @@ class NewsMappersTest {
             title = "Fixture title",
             commentsTotal = JsonPrimitive("3"),
             createdAt = "2026-09-01 10:00:00",
-            authorName = "Fixture Desk",
+            authorAvatar = "",
+            author = FeedAuthorDto(
+                name = "Fixture Desk",
+                avatar = "https://bdimg2.qunliao.info/avatar.png",
+            ),
             matchImageList = listOf(FeedImageDto(apiUrl = "https://tracker.example/image.jpg")),
             showContent = "Fixture pinned",
+            topicTags = JsonObject(mapOf("content" to JsonPrimitive("Fixture topic"))),
         ).toDomain()
 
         assertEquals(3, article.commentCount)
         assertEquals(ArticleMedia.None, article.media)
         assertEquals("2026-09-01 10:00:00", article.publishedLabel)
         assertEquals("Fixture pinned", article.tag)
+        assertEquals("Fixture Desk", article.source)
+        assertEquals("https://bdimg2.qunliao.info/avatar.png", article.authorAvatarUrl)
+        assertEquals("Fixture topic", article.topicLabel)
     }
 
     @Test

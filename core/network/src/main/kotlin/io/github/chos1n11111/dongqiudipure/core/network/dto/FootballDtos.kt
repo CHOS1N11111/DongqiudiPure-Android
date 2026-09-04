@@ -501,6 +501,80 @@ data class TeamSampleDto(
     @SerialName("market_value") val marketValue: JsonElement? = null,
     val type: String? = null,
     val description: List<TeamDescriptionDto>? = null,
+    val tabs: TeamTabsDto? = null,
+)
+
+@Serializable
+data class TeamTabsDto(
+    val list: List<TeamTabDto>? = null,
+)
+
+@Serializable
+data class TeamTabDto(
+    val title: String? = null,
+    val tab: String? = null,
+    @SerialName("group_id") val groupId: JsonElement? = null,
+)
+
+@Serializable
+data class EntitySearchEnvelopeDto(
+    val teams: List<EntitySearchTeamDto>? = null,
+    val players: List<EntitySearchPlayerDto>? = null,
+)
+
+@Serializable
+data class EntitySearchTeamDto(
+    @SerialName("team_id") val teamId: JsonElement? = null,
+    @SerialName("team_name") val teamName: String? = null,
+    @SerialName("team_img") val teamImage: String? = null,
+    val country: String? = null,
+)
+
+@Serializable
+data class EntitySearchPlayerDto(
+    @SerialName("person_id") val personId: JsonElement? = null,
+    @SerialName("person_name") val personName: String? = null,
+    @SerialName("person_img") val personImage: String? = null,
+    val team: String? = null,
+    val nationality: String? = null,
+    val position: String? = null,
+)
+
+@Serializable
+data class TeamCircleEnvelopeDto(
+    val code: JsonElement? = null,
+    val data: TeamCirclePageDto? = null,
+)
+
+@Serializable
+data class TeamCirclePageDto(
+    @SerialName("current_page") val currentPage: JsonElement? = null,
+    @SerialName("last_page") val lastPage: JsonElement? = null,
+    val data: List<TeamCirclePostDto>? = null,
+)
+
+@Serializable
+data class TeamCirclePostDto(
+    val id: JsonElement? = null,
+    val title: String? = null,
+    val content: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    val up: JsonElement? = null,
+    @SerialName("total_replies") val totalReplies: JsonElement? = null,
+    val attachments: List<TeamCircleAttachmentDto>? = null,
+    val author: TeamCircleAuthorDto? = null,
+)
+
+@Serializable
+data class TeamCircleAttachmentDto(
+    val thumb: String? = null,
+    val url: String? = null,
+)
+
+@Serializable
+data class TeamCircleAuthorDto(
+    val username: String? = null,
+    val avatar: String? = null,
 )
 
 @Serializable
