@@ -7,9 +7,11 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -60,7 +62,6 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.FormBadge
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ImagePlaceholder
-import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchStatusBadge
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
@@ -335,6 +336,7 @@ private fun MainTeamMatchStrip(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .background(MaterialTheme.colorScheme.outlineVariant),
         horizontalArrangement = Arrangement.spacedBy(1.dp),
     ) {
@@ -342,7 +344,9 @@ private fun MainTeamMatchStrip(
             MainTeamMatchCard(
                 match = match,
                 onClick = { onMatchClick(match.id) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
             )
         }
         if (previews.size == 1) Box(Modifier.weight(1f))
@@ -377,52 +381,38 @@ private fun MainTeamMatchCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            if (match.status is MatchStatus.NotStarted) {
-                Text(
-                    text = stringResource(DesignR.string.ds_match_not_started),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                MatchStatusBadge(match.status)
-            }
+            Text(
+                text = stringResource(
+                    if (match.status is MatchStatus.NotStarted) {
+                        DesignR.string.ds_match_not_started
+                    } else {
+                        DesignR.string.ds_match_finished
+                    },
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                MainTeamMatchSide(match.home, match.homeScore, showScore = match.status.hasScore)
-                MainTeamMatchSide(match.away, match.awayScore, showScore = match.status.hasScore)
-            }
-            if (!match.status.hasScore) {
-                Column(horizontalAlignment = Alignment.End) {
-                    match.dateLabel?.takeLast(5)?.let { date ->
-                        Text(
-                            text = date,
-                            style = DqdTheme.dataText.minuteLabel,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    match.kickoffLabel?.let { kickoff ->
-                        Text(
-                            text = kickoff,
-                            style = DqdTheme.dataText.minuteLabel,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
+        val showScore = match.status.hasScore
+        MainTeamMatchSide(
+            team = match.home,
+            trailingLabel = if (showScore) match.homeScore?.toString() else match.dateLabel?.takeLast(5),
+            emphasizeTrailing = showScore,
+        )
+        MainTeamMatchSide(
+            team = match.away,
+            trailingLabel = if (showScore) match.awayScore?.toString() else match.kickoffLabel,
+            emphasizeTrailing = showScore,
+        )
     }
 }
 
 @Composable
-private fun MainTeamMatchSide(team: TeamRef, score: Int?, showScore: Boolean) {
+private fun MainTeamMatchSide(
+    team: TeamRef,
+    trailingLabel: String?,
+    emphasizeTrailing: Boolean,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -441,8 +431,17 @@ private fun MainTeamMatchSide(team: TeamRef, score: Int?, showScore: Boolean) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        if (showScore) {
-            ValueText(value = score, style = DqdTheme.dataText.tableCellStrong)
+        trailingLabel?.let { label ->
+            Text(
+                text = label,
+                style = if (emphasizeTrailing) {
+                    DqdTheme.dataText.tableCellStrong
+                } else {
+                    DqdTheme.dataText.minuteLabel
+                },
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+            )
         }
     }
 }
