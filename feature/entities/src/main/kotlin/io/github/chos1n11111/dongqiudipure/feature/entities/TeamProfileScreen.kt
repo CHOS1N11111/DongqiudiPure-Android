@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -148,6 +150,11 @@ fun TeamProfileScreen(
 ) {
     Scaffold(
         modifier = modifier,
+        contentWindowInsets = if (showTopBar) {
+            ScaffoldDefaults.contentWindowInsets
+        } else {
+            WindowInsets(0)
+        },
         topBar = {
             if (showTopBar) {
                 TopAppBar(
@@ -380,16 +387,36 @@ private fun MainTeamMatchCard(
                 MatchStatusBadge(match.status)
             }
         }
-        MainTeamMatchSide(match.home, match.homeScore, showScore = match.status.hasScore)
-        MainTeamMatchSide(match.away, match.awayScore, showScore = match.status.hasScore)
-        if (!match.status.hasScore) {
-            Text(
-                text = listOfNotNull(match.dateLabel?.takeLast(5), match.kickoffLabel)
-                    .joinToString(" "),
-                style = DqdTheme.dataText.minuteLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.End),
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                MainTeamMatchSide(match.home, match.homeScore, showScore = match.status.hasScore)
+                MainTeamMatchSide(match.away, match.awayScore, showScore = match.status.hasScore)
+            }
+            if (!match.status.hasScore) {
+                Column(horizontalAlignment = Alignment.End) {
+                    match.dateLabel?.takeLast(5)?.let { date ->
+                        Text(
+                            text = date,
+                            style = DqdTheme.dataText.minuteLabel,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    match.kickoffLabel?.let { kickoff ->
+                        Text(
+                            text = kickoff,
+                            style = DqdTheme.dataText.minuteLabel,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
         }
     }
 }
