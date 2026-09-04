@@ -13,6 +13,7 @@ import io.github.chos1n11111.dongqiudipure.feature.settings.SettingsStore
 import io.github.chos1n11111.dongqiudipure.feature.settings.FootballPreferences
 import io.github.chos1n11111.dongqiudipure.feature.settings.NewsPreferences
 import io.github.chos1n11111.dongqiudipure.feature.settings.ThemeMode
+import io.github.chos1n11111.dongqiudipure.core.model.FollowedEntityPreferences
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -33,6 +34,8 @@ class MainActivity : ComponentActivity() {
                 .collectAsStateWithLifecycle(initialValue = FootballPreferences())
             val newsPreferences by settingsStore.newsPreferences
                 .collectAsStateWithLifecycle(initialValue = NewsPreferences())
+            val followedEntityPreferences by settingsStore.followedEntityPreferences
+                .collectAsStateWithLifecycle(initialValue = FollowedEntityPreferences())
 
             val darkTheme = when (themeMode) {
                 ThemeMode.System -> isSystemInDarkTheme()
@@ -48,6 +51,7 @@ class MainActivity : ComponentActivity() {
                     },
                     footballPreferences = footballPreferences,
                     newsPreferences = newsPreferences,
+                    followedEntityPreferences = followedEntityPreferences,
                     onDefaultMatchCompetitionChange = { competitionId ->
                         lifecycleScope.launch {
                             settingsStore.setDefaultMatchCompetition(competitionId)
@@ -70,6 +74,17 @@ class MainActivity : ComponentActivity() {
                     },
                     onNewsFootballOnlyChange = { enabled ->
                         lifecycleScope.launch { settingsStore.setNewsFootballOnly(enabled) }
+                    },
+                    onFollowedEntityAdd = { entity, makeMainTeam ->
+                        lifecycleScope.launch {
+                            settingsStore.addFollowedEntity(entity, makeMainTeam)
+                        }
+                    },
+                    onFollowedEntityRemove = { stableKey ->
+                        lifecycleScope.launch { settingsStore.removeFollowedEntity(stableKey) }
+                    },
+                    onMainTeamChange = { teamId ->
+                        lifecycleScope.launch { settingsStore.setMainTeam(teamId) }
                     },
                     appVersion = BuildConfig.VERSION_NAME,
                 )

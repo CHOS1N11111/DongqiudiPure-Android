@@ -18,6 +18,7 @@ import io.github.chos1n11111.dongqiudipure.core.network.dto.MatchNewsEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.MatchOverviewDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.DataMenuEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.EntityFeedEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.EntitySearchEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CompetitionScheduleEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerAbilityEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.PlayerDetailDto
@@ -30,6 +31,7 @@ import io.github.chos1n11111.dongqiudipure.core.network.dto.RankingTypesEnvelope
 import io.github.chos1n11111.dongqiudipure.core.network.dto.SeasonDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.StandingEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamMembersEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamCircleEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamDetailDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamSampleDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamScheduleEnvelopeDto
@@ -288,6 +290,32 @@ class OkHttpFootballRemoteDataSource @Inject constructor(
         return get(url, TEAM_TRANSFERS_ENDPOINT, TeamTransferEnvelopeDto.serializer())
     }
 
+    override suspend fun searchEntities(query: String): ApiResult<EntitySearchEnvelopeDto> {
+        val normalizedQuery = query.trim()
+        require(normalizedQuery.isNotEmpty() && normalizedQuery.length <= MAX_SEARCH_QUERY_LENGTH)
+        require(normalizedQuery.none(Char::isISOControl))
+        val url = apiBaseUrl.newBuilder()
+            .addPathSegment("search")
+            .addQueryParameter("keywords", normalizedQuery)
+            .build()
+        return get(url, ENTITY_SEARCH_ENDPOINT, EntitySearchEnvelopeDto.serializer())
+    }
+
+    override suspend fun loadTeamCircle(
+        groupId: String,
+        page: Int,
+    ): ApiResult<TeamCircleEnvelopeDto> {
+        requireId(groupId)
+        require(page > 0)
+        val url = apiBaseUrl.newBuilder()
+            .addPathSegments("groups/topic/all")
+            .addPathSegment(groupId)
+            .addQueryParameter("order", "reply")
+            .addQueryParameter("page", page.toString())
+            .build()
+        return get(url, TEAM_CIRCLE_ENDPOINT, TeamCircleEnvelopeDto.serializer())
+    }
+
     override suspend fun loadEntityFeed(request: EntityFeedRequest): ApiResult<EntityFeedEnvelopeDto> {
         requireEntityId(request.entityId)
         require(request.type == "team" || request.type == "player")
@@ -473,6 +501,8 @@ class OkHttpFootballRemoteDataSource @Inject constructor(
         val TEAM_MEMBERS_ENDPOINT = EndpointId("football.team-members")
         val TEAM_SCHEDULE_ENDPOINT = EndpointId("football.team-schedule")
         val TEAM_TRANSFERS_ENDPOINT = EndpointId("football.team-transfers")
+        val ENTITY_SEARCH_ENDPOINT = EndpointId("football.entity-search")
+        val TEAM_CIRCLE_ENDPOINT = EndpointId("football.team-circle")
         val ENTITY_FEED_ENDPOINT = EndpointId("football.entity-feed")
         val PLAYER_DETAIL_ENDPOINT = EndpointId("football.player-detail")
         val PLAYER_STATISTICS_ENDPOINT = EndpointId("football.player-statistics")
@@ -481,5 +511,6 @@ class OkHttpFootballRemoteDataSource @Inject constructor(
         val PLAYER_SHOT_MAP_ENDPOINT = EndpointId("football.player-shot-map")
         val PLAYER_ABILITY_ENDPOINT = EndpointId("football.player-ability")
         val DATE: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+        const val MAX_SEARCH_QUERY_LENGTH = 100
     }
 }

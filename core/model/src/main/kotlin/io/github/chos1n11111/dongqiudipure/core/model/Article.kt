@@ -15,6 +15,8 @@ data class ArticleSummary(
     val commentCount: Int?,
     val media: ArticleMedia,
     val tag: String? = null,
+    val authorAvatarUrl: String? = null,
+    val topicLabel: String? = null,
 )
 
 /**

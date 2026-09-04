@@ -75,6 +75,54 @@ class FootballDataTest {
     }
 
     @Test
+    fun `entity search mapper keeps real ids and removes highlight markup`() {
+        val dto = json.decodeFromString(
+            EntitySearchEnvelopeDto.serializer(),
+            """
+            {
+              "teams":[{
+                "team_id":50000513,
+                "team_name":"<font color='#00a65a'>阿森纳</font>",
+                "team_img":"https://fixture.qunliao.info/arsenal.png",
+                "country":"英格兰"
+              }],
+              "players":[{
+                "person_id":"50000116",
+                "person_name":"<font>梅西</font>",
+                "person_img":"https://fixture.qunliao.info/messi.png",
+                "team":"迈阿密国际",
+                "position":"前锋"
+              }]
+            }
+            """.trimIndent(),
+        ).toDomain()
+
+        assertEquals("阿森纳", dto.teams.single().name)
+        assertEquals("50000513", dto.teams.single().team.id.raw)
+        assertEquals("梅西", dto.players.single().name)
+        assertEquals("前锋 · 迈阿密国际", dto.players.single().secondaryLabel)
+    }
+
+    @Test
+    fun `team sample mapper exposes the server supplied circle id`() {
+        val dto = json.decodeFromString(
+            TeamSampleDto.serializer(),
+            """
+            {
+              "team_id":50000513,
+              "team_name":"阿森纳",
+              "tabs":{"list":[
+                {"title":"动态","tab":"news"},
+                {"title":"圈子","tab":"circle","group_id":9}
+              ]}
+            }
+            """.trimIndent(),
+        ).toDomain()
+
+        assertEquals("9", dto.circleId)
+    }
+
+    @Test
     fun `match overview uses group minute and merges an assist with its goal`() {
         val overview = json.decodeFromString(
             MatchOverviewDto.serializer(),
@@ -618,6 +666,14 @@ class FootballDataTest {
             teamId: TeamId,
             windowId: String?,
         ): ApiResult<TeamTransferEnvelopeDto> = error("Not used")
+
+        override suspend fun searchEntities(query: String): ApiResult<EntitySearchEnvelopeDto> =
+            error("Not used")
+
+        override suspend fun loadTeamCircle(
+            groupId: String,
+            page: Int,
+        ): ApiResult<TeamCircleEnvelopeDto> = error("Not used")
 
         override suspend fun loadEntityFeed(
             request: EntityFeedRequest,

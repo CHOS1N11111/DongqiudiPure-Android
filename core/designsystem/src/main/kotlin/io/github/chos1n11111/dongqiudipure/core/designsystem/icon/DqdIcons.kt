@@ -35,4 +35,7 @@ object DqdIcons {
     val Play = R.drawable.ic_play
     val Visibility = R.drawable.ic_visibility
     val VisibilityOff = R.drawable.ic_visibility_off
+    val Add = R.drawable.ic_add
+    val More = R.drawable.ic_more_horizontal
+    val Check = R.drawable.ic_check
 }

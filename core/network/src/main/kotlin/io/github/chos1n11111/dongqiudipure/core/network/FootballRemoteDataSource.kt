@@ -30,6 +30,8 @@ import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamSampleDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamScheduleEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamStatisticDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamTransferEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.EntitySearchEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamCircleEnvelopeDto
 import java.time.LocalDate
 
 interface FootballRemoteDataSource {
@@ -72,6 +74,8 @@ interface FootballRemoteDataSource {
         teamId: TeamId,
         windowId: String? = null,
     ): ApiResult<TeamTransferEnvelopeDto>
+    suspend fun searchEntities(query: String): ApiResult<EntitySearchEnvelopeDto>
+    suspend fun loadTeamCircle(groupId: String, page: Int): ApiResult<TeamCircleEnvelopeDto>
     suspend fun loadEntityFeed(request: EntityFeedRequest): ApiResult<EntityFeedEnvelopeDto>
     suspend fun loadPlayerDetail(playerId: PlayerId): ApiResult<PlayerDetailDto>
     suspend fun loadPlayerStatistics(playerId: PlayerId): ApiResult<PlayerStatisticsDto>

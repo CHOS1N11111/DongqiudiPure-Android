@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="main_team_title">主队</string>
+    <string name="main_team_empty_title">尚未设置主队</string>
+    <string name="main_team_empty_description">暂无主队与关注内容。</string>
+    <string name="main_team_choose">选择主队</string>
+    <string name="main_team_add">添加球队或球员</string>
+    <string name="main_team_manage">管理主队与关注</string>
+    <string name="main_team_teams">球队</string>
+    <string name="main_team_players">球员</string>
+    <string name="main_team_search_teams">搜索球队</string>
+    <string name="main_team_search_players">搜索球员</string>
+    <string name="main_team_search_teams_prompt">输入球队名称</string>
+    <string name="main_team_search_players_prompt">输入球员名称</string>
+    <string name="main_team_search_empty">没有找到结果</string>
+    <string name="main_team_search_empty_description">换个关键词再试。</string>
+    <string name="main_team_clear_search">清除搜索</string>
+    <string name="main_team_add_one">添加%1$s</string>
+    <string name="main_team_remove">移除%1$s</string>
+    <string name="main_team_badge">主队</string>
     <!-- 球队分栏 -->
     <string name="team_tab_overview">资料</string>
     <string name="team_tab_squad">阵容</string>
@@ -8,6 +26,7 @@
     <string name="team_tab_news">资讯</string>
     <string name="team_tab_dynamic">动态</string>
     <string name="team_tab_players">球员</string>
+    <string name="team_tab_circles">圈子</string>
     <string name="team_tab_transfers">转会</string>
     <string name="team_schedule_past">过去</string>
     <string name="team_schedule_future">未来</string>
@@ -55,6 +74,11 @@
     <string name="entity_news_video">视频</string>
     <string name="entity_news_gallery_count">%1$d 图</string>
     <string name="entity_news_load_more_retry">重新加载</string>
+    <string name="entity_news_topic"># %1$s</string>
+    <string name="team_circle_empty_title">暂无圈子内容</string>
+    <string name="team_circle_empty_description">这支球队当前没有返回公开圈子内容。</string>
+    <string name="team_circle_replies">%1$d 回复</string>
+    <string name="team_circle_likes">%1$d 赞</string>
 
     <string name="team_founded">建于 %1$s</string>
     <string name="team_recent_form">近期战绩</string>

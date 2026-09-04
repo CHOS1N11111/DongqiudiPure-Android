@@ -196,6 +196,8 @@ data class TeamProfile(
     val topScorers: List<TeamRecordEntry> = emptyList(),
     val appearanceLeaders: List<TeamRecordEntry> = emptyList(),
     val description: String? = null,
+    /** Public fan-circle identifier advertised by the server-provided team tab list. */
+    val circleId: String? = null,
 )
 
 enum class TeamType { Club, National, Unknown }
