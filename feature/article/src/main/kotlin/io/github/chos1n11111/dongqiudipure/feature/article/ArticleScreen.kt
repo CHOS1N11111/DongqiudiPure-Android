@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -446,6 +447,7 @@ private fun ArticleVideo(block: ArticleBlock.Video) {
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun AndroidVideoPlayer(url: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
