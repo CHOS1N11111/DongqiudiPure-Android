@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 与成品图外围一致，供自适应图标移动时补足背景。 -->
-    <color name="ic_launcher_background">#606E81</color>
+    <color name="ic_launcher_background">#96A7BA</color>
 
     <!--
       冷启动窗口背景。必须与应用主题的 surface 一致，
