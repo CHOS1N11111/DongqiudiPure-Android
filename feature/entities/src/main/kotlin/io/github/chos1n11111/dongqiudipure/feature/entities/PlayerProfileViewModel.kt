@@ -49,7 +49,7 @@ data class PlayerProfileUiState(
     val matches: SectionState<PlayerMatchPage> = SectionState.Loading,
     val ability: SectionState<PlayerAbility> = SectionState.Loading,
     val heatMap: SectionState<PlayerHeatMap> = SectionState.Loading,
-    val shotMap: SectionState<PlayerShotMap> = SectionState.Loading,
+    val shotMap: SectionState<PlayerShotMap> = SectionState.Empty,
     val selectedTab: PlayerTab = PlayerTab.Dynamic,
     val selectedScope: PlayerStatisticScope = PlayerStatisticScope.League,
     val expandedStatisticId: String? = null,
@@ -120,6 +120,19 @@ class PlayerProfileViewModel @Inject constructor(
 
     fun selectShotMatch(matchId: MatchId) {
         val id = playerId ?: return
+        if (_uiState.value.selectedShotMatchId == matchId) {
+            jobs["shot"]?.cancel()
+            _uiState.update {
+                it.copy(selectedShotMatchId = null, shotMap = SectionState.Empty)
+            }
+        } else {
+            loadShotMap(id, matchId)
+        }
+    }
+
+    fun retryShotMap() {
+        val id = playerId ?: return
+        val matchId = _uiState.value.selectedShotMatchId ?: return
         loadShotMap(id, matchId)
     }
 
@@ -210,7 +223,14 @@ class PlayerProfileViewModel @Inject constructor(
 
     private fun loadMatches(id: PlayerId, page: Int) {
         jobs["matches"]?.cancel()
-        _uiState.update { it.copy(matches = SectionState.Loading) }
+        jobs["shot"]?.cancel()
+        _uiState.update {
+            it.copy(
+                matches = SectionState.Loading,
+                selectedShotMatchId = null,
+                shotMap = SectionState.Empty,
+            )
+        }
         jobs["matches"] = viewModelScope.launch {
             when (val result = repository.loadPlayerMatches(id, page)) {
                 is DataResult.Failure -> updateIfCurrent(id) {
@@ -219,7 +239,7 @@ class PlayerProfileViewModel @Inject constructor(
                 is DataResult.Success -> {
                     val state = result.value.toSectionState { it.matches.isNotEmpty() }
                     updateIfCurrent(id) {
-                        it.copy(matches = state, shotMap = SectionState.Empty)
+                        it.copy(matches = state)
                     }
                 }
             }

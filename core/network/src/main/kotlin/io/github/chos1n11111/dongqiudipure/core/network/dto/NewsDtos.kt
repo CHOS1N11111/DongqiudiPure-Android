@@ -76,6 +76,12 @@ data class ArticleDetailDto(
     val body: String? = null,
     val thumb: String? = null,
     val infos: ArticleInfosDto? = null,
+    val account: ArticleAccountDto? = null,
+)
+
+@Serializable
+data class ArticleAccountDto(
+    val name: String? = null,
 )
 
 @Serializable

@@ -40,7 +40,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -120,6 +122,8 @@ fun PlayerProfileRoute(
         onScopeSelect = viewModel::selectScope,
         onStatisticToggle = viewModel::toggleStatistic,
         onMatchesPageSelect = viewModel::selectMatchesPage,
+        onShotMatchSelect = viewModel::selectShotMatch,
+        onShotMapRetry = viewModel::retryShotMap,
         onRetry = viewModel::retryAll,
         modifier = modifier,
     )
@@ -138,6 +142,8 @@ fun PlayerProfileScreen(
     onScopeSelect: (PlayerStatisticScope) -> Unit,
     onStatisticToggle: (PlayerStatisticEntry) -> Unit,
     onMatchesPageSelect: (Int) -> Unit,
+    onShotMatchSelect: (MatchId) -> Unit,
+    onShotMapRetry: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -221,6 +227,8 @@ fun PlayerProfileScreen(
                             uiState,
                             onMatchClick,
                             onMatchesPageSelect,
+                            onShotMatchSelect,
+                            onShotMapRetry,
                             onRetry,
                         )
 
@@ -349,6 +357,8 @@ private fun PlayerMatchesTab(
     uiState: PlayerProfileUiState,
     onMatchClick: (MatchId) -> Unit,
     onPageSelect: (Int) -> Unit,
+    onShotMatchSelect: (MatchId) -> Unit,
+    onShotMapRetry: () -> Unit,
     onRetry: () -> Unit,
 ) {
     SectionContainer(
@@ -357,7 +367,14 @@ private fun PlayerMatchesTab(
         emptyTitle = stringResource(R.string.player_matches_empty_title),
         emptyDescription = stringResource(R.string.player_matches_empty_description),
     ) { page ->
-        PlayerMatchList(page, onMatchClick)
+        PlayerMatchList(
+            page = page,
+            selectedShotMatchId = uiState.selectedShotMatchId,
+            shotMap = uiState.shotMap,
+            onMatchClick = onMatchClick,
+            onShotMatchSelect = onShotMatchSelect,
+            onShotMapRetry = onShotMapRetry,
+        )
         if (page.totalPages > 1) {
             EntityPagination(page.page, page.totalPages, onPageSelect)
         }
@@ -365,19 +382,45 @@ private fun PlayerMatchesTab(
 }
 
 @Composable
-private fun PlayerMatchList(page: PlayerMatchPage, onMatchClick: (MatchId) -> Unit) {
+private fun PlayerMatchList(
+    page: PlayerMatchPage,
+    selectedShotMatchId: MatchId?,
+    shotMap: SectionState<PlayerShotMap>,
+    onMatchClick: (MatchId) -> Unit,
+    onShotMatchSelect: (MatchId) -> Unit,
+    onShotMapRetry: () -> Unit,
+) {
     page.matches.forEach { performance ->
+        val matchId = performance.match.id
+        val selected = matchId == selectedShotMatchId
         EntityFixtureRow(
             match = performance.match,
-            onClick = { onMatchClick(performance.match.id) },
+            onClick = { onMatchClick(matchId) },
         )
-        PerformanceRow(performance)
+        PerformanceRow(
+            performance = performance,
+            shotMapSelected = selected,
+            onShotMapClick = { onShotMatchSelect(matchId) },
+        )
+        if (selected) {
+            SectionContainer(
+                state = shotMap,
+                onRetry = onShotMapRetry,
+                title = stringResource(R.string.player_shot_map),
+                emptyTitle = stringResource(R.string.player_shot_map_empty_title),
+                emptyDescription = stringResource(R.string.player_shot_map_empty_description),
+            ) { ShotMap(it) }
+        }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
 @Composable
-private fun PerformanceRow(performance: PlayerMatchPerformance) {
+private fun PerformanceRow(
+    performance: PlayerMatchPerformance,
+    shotMapSelected: Boolean,
+    onShotMapClick: () -> Unit,
+) {
     val values = listOfNotNull(
         performance.minutesLabel?.let { stringResource(R.string.player_minutes_value, it) },
         performance.goals?.let { stringResource(R.string.player_goals_value, it) },
@@ -386,16 +429,62 @@ private fun PerformanceRow(performance: PlayerMatchPerformance) {
         performance.ratingLabel?.let { stringResource(R.string.player_rating_value, it) },
         performance.userRatingLabel?.let { stringResource(R.string.player_user_rating_value, it) },
     )
-    if (values.isNotEmpty()) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(start = 64.dp, end = DqdSpacing.listHorizontal, bottom = DqdSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
         Text(
             text = values.joinToString("  ·  "),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-                .padding(start = 64.dp, end = DqdSpacing.listHorizontal, bottom = DqdSpacing.sm),
+                .weight(1f)
+                .padding(vertical = 6.dp),
         )
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    if (shotMapSelected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHigh
+                    },
+                )
+                .clickable(onClick = onShotMapClick)
+                .padding(horizontal = DqdSpacing.sm, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = stringResource(
+                    if (shotMapSelected) R.string.player_hide_shot_map
+                    else R.string.player_shot_map,
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (shotMapSelected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+            Icon(
+                painter = painterResource(DqdIcons.ChevronRight),
+                contentDescription = null,
+                tint = if (shotMapSelected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier
+                    .size(14.dp)
+                    .rotate(if (shotMapSelected) 90f else 0f),
+            )
+        }
     }
 }
 
@@ -525,6 +614,7 @@ private fun interpolateHeatColor(
 
 private const val HEAT_MAP_WIDTH = 320
 private const val HEAT_MAP_HEIGHT = 200
+private const val SHOT_MAP_DEPTH = 50f
 
 @Composable
 private fun ShotMap(data: PlayerShotMap) {
@@ -549,25 +639,77 @@ private fun ShotMap(data: PlayerShotMap) {
     }
     val plotted = data.shots.filter { it.x != null && it.y != null }
     if (plotted.isNotEmpty()) {
-        val lineColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-        val normalColor = MaterialTheme.colorScheme.primary
-        val goalColor = DqdTheme.sports.win
+        val pitchColor = Color(0xFF2FAE5F)
+        val lineColor = Color.White.copy(alpha = 0.68f)
+        val normalColor = Color.White
+        val onTargetColor = Color(0xFFFF8A65)
+        val goalColor = Color(0xFFFFD54F)
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(DqdSpacing.md)
                 .clip(RoundedCornerShape(6.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .aspectRatio(1.8f),
+                .background(pitchColor)
+                .aspectRatio(1.45f),
         ) {
-            drawRect(lineColor, style = Stroke(1.dp.toPx()))
+            val stroke = Stroke(1.2.dp.toPx())
+            val penaltyWidth = size.width * 0.68f
+            val penaltyDepth = size.height * 0.44f
+            val goalAreaWidth = size.width * 0.32f
+            val goalAreaDepth = size.height * 0.17f
+            val goalWidth = size.width * 0.18f
+            val goalDepth = size.height * 0.035f
+
+            drawRect(lineColor, style = stroke)
+            drawRect(
+                color = lineColor,
+                topLeft = Offset((size.width - penaltyWidth) / 2f, 0f),
+                size = androidx.compose.ui.geometry.Size(penaltyWidth, penaltyDepth),
+                style = stroke,
+            )
+            drawRect(
+                color = lineColor,
+                topLeft = Offset((size.width - goalAreaWidth) / 2f, 0f),
+                size = androidx.compose.ui.geometry.Size(goalAreaWidth, goalAreaDepth),
+                style = stroke,
+            )
+            drawRect(
+                color = lineColor,
+                topLeft = Offset((size.width - goalWidth) / 2f, 0f),
+                size = androidx.compose.ui.geometry.Size(goalWidth, goalDepth),
+                style = stroke,
+            )
+            drawCircle(
+                color = lineColor,
+                radius = 1.8.dp.toPx(),
+                center = Offset(size.width / 2f, size.height * 0.29f),
+            )
+
+            val markerOuterRadius = 7.dp.toPx()
+            val markerInnerRadius = 5.dp.toPx()
             plotted.forEach { shot ->
                 val x = requireNotNull(shot.x).coerceIn(0f, 100f)
-                val y = requireNotNull(shot.y).coerceIn(0f, 100f)
+                val y = requireNotNull(shot.y).coerceIn(0f, SHOT_MAP_DEPTH)
+                val center = Offset(
+                    x = markerOuterRadius +
+                        (size.width - markerOuterRadius * 2f) * x / 100f,
+                    y = markerOuterRadius +
+                        (size.height - markerOuterRadius * 2f) * y / SHOT_MAP_DEPTH,
+                )
+                val markerColor = when {
+                    shot.outcome.orEmpty().contains("进球") -> goalColor
+                    shot.outcome.orEmpty().contains("射正") -> onTargetColor
+                    else -> normalColor
+                }
                 drawCircle(
-                    color = if (shot.outcome.orEmpty().contains("进球")) goalColor else normalColor,
-                    radius = 5.dp.toPx(),
-                    center = Offset(size.width * x / 100f, size.height * y / 100f),
+                    color = Color.Black.copy(alpha = 0.32f),
+                    radius = markerOuterRadius,
+                    center = center,
+                )
+                drawCircle(
+                    color = markerColor,
+                    radius = markerInnerRadius,
+                    center = center,
                 )
             }
         }

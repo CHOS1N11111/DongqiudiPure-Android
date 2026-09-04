@@ -86,7 +86,10 @@ internal fun ArticleDetailDto.toDomain(expectedId: ArticleId): ArticleDetail {
     return ArticleDetail(
         id = actualId,
         title = title.required(),
-        source = source?.takeIf(String::isNotBlank) ?: writer.required(),
+        source = sequenceOf(source, writer, account?.name)
+            .mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }
+            .firstOrNull()
+            .required(),
         publishedLabel = time.required(),
         blocks = parseArticleBody(body.orEmpty()),
         relatedEntities = infos?.channels.orEmpty()

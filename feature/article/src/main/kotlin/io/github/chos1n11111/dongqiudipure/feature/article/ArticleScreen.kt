@@ -1,9 +1,6 @@
 package io.github.chos1n11111.dongqiudipure.feature.article
 
 import android.content.Intent
-import android.net.Uri
-import android.widget.MediaController
-import android.widget.VideoView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -63,6 +60,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
@@ -448,23 +449,31 @@ private fun ArticleVideo(block: ArticleBlock.Video) {
 @Composable
 private fun AndroidVideoPlayer(url: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val videoView = remember(url) {
-        VideoView(context).apply {
-            val controls = MediaController(context)
-            setMediaController(controls)
-            controls.setAnchorView(this)
-            setVideoURI(Uri.parse(url))
-            setOnPreparedListener {
-                it.isLooping = false
-                start()
-            }
+    val player = remember(context, url) {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(url))
+            playWhenReady = true
+            prepare()
         }
     }
-    DisposableEffect(videoView) {
-        onDispose { videoView.stopPlayback() }
+    val playerView = remember(context) {
+        PlayerView(context).apply {
+            useController = true
+            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+            keepScreenOn = true
+        }
+    }
+    DisposableEffect(player, playerView) {
+        playerView.player = player
+        onDispose {
+            playerView.player = null
+            player.release()
+        }
     }
     AndroidView(
-        factory = { videoView },
+        factory = { playerView },
+        update = { it.player = player },
         modifier = modifier,
     )
 }

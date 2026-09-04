@@ -3,12 +3,14 @@ package io.github.chos1n11111.dongqiudipure.feature.rankings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,15 +79,24 @@ fun DataHubRoute(
                     selected = uiState.selectedCompetition,
                     onSelect = viewModel::selectCompetition,
                 )
-                SeasonSwitcher(
-                    seasons = uiState.seasons,
-                    selected = uiState.selectedSeason,
-                    onSelect = viewModel::selectSeason,
-                )
-                RankingSectionSwitcher(
-                    selected = uiState.selectedSection,
-                    onSelect = viewModel::selectSection,
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SeasonSwitcher(
+                        seasons = uiState.seasons,
+                        selected = uiState.selectedSeason,
+                        onSelect = viewModel::selectSeason,
+                    )
+                    RankingSectionSwitcher(
+                        selected = uiState.selectedSection,
+                        onSelect = viewModel::selectSection,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 if (uiState.selectedSection != RankingSection.Standings &&
                     uiState.metrics.isNotEmpty()
                 ) {
@@ -128,16 +139,14 @@ internal fun SeasonSwitcher(
     seasons: List<SeasonOption>,
     selected: SeasonOption?,
     onSelect: (SeasonOption) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     if (seasons.isEmpty()) return
     var expanded by remember { mutableStateOf(false) }
     val current = selected ?: seasons.first()
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = DqdSpacing.sm, vertical = 3.dp),
-        contentAlignment = Alignment.Center,
+        modifier = modifier.padding(start = DqdSpacing.sm),
+        contentAlignment = Alignment.CenterStart,
     ) {
         Box {
             Row(
@@ -151,7 +160,9 @@ internal fun SeasonSwitcher(
                 Icon(
                     painter = painterResource(DqdIcons.ChevronRight),
                     contentDescription = null,
-                    modifier = Modifier.rotate(90f),
+                    modifier = Modifier
+                        .size(18.dp)
+                        .rotate(90f),
                 )
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -197,12 +208,11 @@ private fun CompetitionSwitcher(
 private fun RankingSectionSwitcher(
     selected: RankingSection,
     onSelect: (RankingSection) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = DqdSpacing.sm, vertical = 3.dp),
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = DqdSpacing.sm),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         items(RankingSection.entries, key = { it.name }) { section ->

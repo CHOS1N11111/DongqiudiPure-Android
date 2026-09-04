@@ -9,6 +9,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.EntityRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
+import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleAccountDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleChannelDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleDetailDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.ArticleDetailEnvelopeDto
@@ -115,6 +116,34 @@ class NewsMappersTest {
                 imageUrl = "https://sd.qunliao.info/bayern.png",
             ),
             article.relatedEntities.single(),
+        )
+    }
+
+    @Test
+    fun `video article uses its real account when source and writer are blank`() {
+        val article = ArticleDetailDto(
+            articleId = JsonPrimitive("6203328"),
+            title = "Video report",
+            time = "2026-08-20 19:33",
+            writer = "",
+            source = "",
+            account = ArticleAccountDto(name = "Arsenal account"),
+            body = """
+                <p><div class="video"
+                    src="https://img.qunliao.info/video.mp4"
+                    thumb="https://img.qunliao.info/video.mp4?vframe/jpg/offset/1"
+                    data-width="720" data-height="1280"></div></p>
+            """.trimIndent(),
+        ).toDomain(ArticleId("6203328"))
+
+        assertEquals("Arsenal account", article.source)
+        assertEquals(
+            ArticleBlock.Video(
+                url = "https://img.qunliao.info/video.mp4",
+                posterUrl = "https://img.qunliao.info/video.mp4?vframe/jpg/offset/1",
+                aspectRatio = 720f / 1280f,
+            ),
+            article.blocks.single(),
         )
     }
 

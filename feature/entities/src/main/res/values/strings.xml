@@ -104,6 +104,7 @@
     <string name="player_form_trend">近期评分趋势</string>
     <string name="player_shot_match">选择比赛</string>
     <string name="player_shot_map">射门图</string>
+    <string name="player_hide_shot_map">收起</string>
     <string name="player_shot_map_empty_title">暂无射门图</string>
     <string name="player_shot_map_empty_description">这场比赛没有可用的射门记录。</string>
     <string name="player_shots_total">射门</string>
