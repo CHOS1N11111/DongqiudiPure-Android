@@ -1,5 +1,6 @@
 package io.github.chos1n11111.dongqiudipure.core.network.di
 
+import android.os.Build
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -7,8 +8,11 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.chos1n11111.dongqiudipure.core.network.NewsRemoteDataSource
 import io.github.chos1n11111.dongqiudipure.core.network.FootballRemoteDataSource
+import io.github.chos1n11111.dongqiudipure.core.network.AuthRemoteDataSource
+import io.github.chos1n11111.dongqiudipure.core.network.DqdClientProfile
 import io.github.chos1n11111.dongqiudipure.core.network.OkHttpNewsRemoteDataSource
 import io.github.chos1n11111.dongqiudipure.core.network.OkHttpFootballRemoteDataSource
+import io.github.chos1n11111.dongqiudipure.core.network.OkHttpAuthRemoteDataSource
 import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
@@ -25,6 +29,10 @@ annotation class ApiBaseUrl
 @Retention(AnnotationRetention.BINARY)
 annotation class SportDataBaseUrl
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class AuthClient
+
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class NewsNetworkModule {
@@ -40,6 +48,12 @@ abstract class NewsNetworkModule {
     abstract fun bindFootballRemoteDataSource(
         implementation: OkHttpFootballRemoteDataSource,
     ): FootballRemoteDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRemoteDataSource(
+        implementation: OkHttpAuthRemoteDataSource,
+    ): AuthRemoteDataSource
 
     companion object {
         @Provides
@@ -68,6 +82,34 @@ abstract class NewsNetworkModule {
                 chain.proceed(request)
             }
             .build()
+
+        /**
+         * Login and authenticated reads use a dedicated client so credentials can never be
+         * attached to the anonymous news and football request pipeline.
+         */
+        @Provides
+        @Singleton
+        @AuthClient
+        fun provideAuthOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .callTimeout(25, TimeUnit.SECONDS)
+            .followRedirects(false)
+            .followSslRedirects(false)
+            .retryOnConnectionFailure(false)
+            .build()
+
+        @Provides
+        @Singleton
+        fun provideDqdClientProfile(): DqdClientProfile = DqdClientProfile(
+            userAgent = buildString {
+                append("News/20441 Android/")
+                append(Build.VERSION.RELEASE)
+                append(" NewsApp/20441 SDK/")
+                append(Build.VERSION.SDK_INT)
+                append(" VERSION/8.7.2 dproClientApp")
+            },
+        )
 
         @Provides
         @ApiBaseUrl

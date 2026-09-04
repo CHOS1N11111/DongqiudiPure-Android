@@ -18,7 +18,7 @@
 | --- | --- |
 | `:core:model` | 已完成。Domain model、`MatchStatus`、`AppError`、`SectionState` 均已定义，**不需要改动** |
 | `:core:designsystem` | 已完成。深浅两套主题、语义色、组件、状态视图、18 个图标 |
-| `:core:sampledata` | **临时**。仅供尚未接入的「我的」等既有页面使用；比赛、榜单和资料运行路径均不再读取 |
+| `:core:sampledata` | **临时**。仅供当前不可达的搜索模块使用；应用运行路径不读取样例数据 |
 | `:core:network` | 匿名资讯、评论回复、比赛、赛季与积分榜 Request、DTO、错误映射及 contract test 已完成 |
 | `:core:data` | 资讯与评论 Paging、比赛和积分榜 Repository、mapper 已完成 |
 | `:feature:home` | 已接入真实分类、资讯流、图片、下拉刷新和分页 |
@@ -27,7 +27,7 @@
 | `:feature:rankings` | 「数据」根 tab 仅展示五大联赛和中超的真实当前赛季积分榜 |
 | `:feature:entities` | 球队/球员资料 contract 未接入，当前 section 为空而非样例数据 |
 | `:feature:search` | 模块保留供后续开发，但应用依赖和导航入口已移除 |
-| `:feature:account` | 「我的」未登录态已完成；登录属于 M9 |
+| `:feature:account` | 已接入登录界面、会话验证、加密存储、冷启动恢复与退出；真实成功 contract 仍待专用账号确认 |
 | `:feature:settings` | 已完成，且**不需要网络**（主题偏好走 DataStore，见 D-019） |
 | 界面文案 | 全部走 string 资源，各模块自带 `strings.xml`；服务端驱动的赛事、球队与分区名称直接使用 contract 字段 |
 
@@ -235,12 +235,14 @@ Milestone M8。
 
 ### 2.8 登录与会话 · `:feature:account`
 
-「我的」页面的登录按钮当前 `enabled = false`，并显式标注「登录功能尚未实现（M9）」。
+「我的」页面已开放用户名/手机号加密码入口，并接入 `ARCHITECTURE.md §9` 的统一
+会话状态机。Authorization 使用 Android Keystore 的 AES-GCM 密钥加密后落盘；密码
+不保存，稳定随机 UUID 只由 authenticated client 使用。登录候选会话只有通过
+`/v2/user/is_login` 验证后才进入已登录状态，退出只执行确定的本地清除操作。
 
-需要（M9）：
-- `SessionManager` 与 `ARCHITECTURE.md §9` 的会话状态机
-- Android Keystore 支持的加密存储
-- 登录、验证、冷启动恢复、失效、退出
+M9 尚余：使用用户明确授权的专用懂球帝账号确认成功 Response、密码表示、未知
+challenge 分支，以及完成登录 -> 重启恢复 -> 退出的端到端验证。在此之前，兼容
+parser 无法识别的成功 Response 会明确显示协议不兼容，不会误报登录成功。
 
 接入后「我的」页面需要按会话状态分支；主队入口属于 M10。
 

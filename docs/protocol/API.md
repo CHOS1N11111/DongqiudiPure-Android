@@ -92,6 +92,11 @@ username=<user-input>&password=<unverified-representation>
 
 验证只允许使用用户明确授权的专用懂球帝测试账号，完成登录和只读检查后停止。
 
+当前客户端已接入受限的兼容路径：只从登录 Response 的 `Authorization` Header 或
+明确命名的 Authorization/token 字段读取候选值，并立即调用 `/v2/user/is_login`；
+验证失败或结构不兼容时不保存候选值。该实现不改变上述证据等级，真实成功 schema、
+密码表示和 challenge 分支仍须由用户授权的专用账号完成端到端确认。
+
 ## 5. 会话验证
 
 | 项目 | 当前结论 | 证据 |
