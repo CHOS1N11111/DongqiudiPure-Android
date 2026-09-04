@@ -120,6 +120,42 @@ class OkHttpFootballRemoteDataSourceTest {
     }
 
     @Test
+    fun `entity search uses the public anonymous endpoint`() = runBlocking {
+        server.enqueue(
+            jsonResponse(
+                """
+                {
+                  "teams":[{"team_id":50000513,"team_name":"<font>阿森纳</font>"}],
+                  "players":[{"person_id":50000116,"person_name":"梅西"}]
+                }
+                """.trimIndent(),
+            ),
+        )
+
+        val result = remote.searchEntities(" 阿森纳 ") as ApiResult.Success
+        val request = server.takeRequest()
+
+        assertEquals("50000513", result.value.teams?.single()?.teamId.scalarString())
+        assertEquals("/search?keywords=%E9%98%BF%E6%A3%AE%E7%BA%B3", request.target)
+        assertEquals(null, request.headers["Authorization"])
+        assertEquals(null, request.headers["Cookie"])
+    }
+
+    @Test
+    fun `team circle uses reply order and page on the public endpoint`() = runBlocking {
+        server.enqueue(
+            jsonResponse(
+                """{"code":200,"data":{"current_page":2,"last_page":3,"data":[]}}""",
+            ),
+        )
+
+        val result = remote.loadTeamCircle(groupId = "9", page = 2) as ApiResult.Success
+
+        assertEquals("2", result.value.data?.currentPage.scalarString())
+        assertEquals("/groups/topic/all/9?order=reply&page=2", server.takeRequest().target)
+    }
+
+    @Test
     fun `lineup accepts both event arrays and official empty strings`() = runBlocking {
         server.enqueue(
             jsonResponse(

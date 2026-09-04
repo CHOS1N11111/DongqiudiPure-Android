@@ -11,6 +11,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.DataResult
 import io.github.chos1n11111.dongqiudipure.core.model.EndpointId
+import io.github.chos1n11111.dongqiudipure.core.model.EntitySearchResults
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.MatchAnalysis
 import io.github.chos1n11111.dongqiudipure.core.model.MatchLineupBundle
@@ -36,6 +37,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamScheduleData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
+import io.github.chos1n11111.dongqiudipure.core.model.TeamCirclePost
 import io.github.chos1n11111.dongqiudipure.core.network.ApiResult
 import io.github.chos1n11111.dongqiudipure.core.network.FootballRemoteDataSource
 import java.time.LocalDate
@@ -68,6 +70,7 @@ private fun TeamProfile.mergeSample(sample: TeamProfile): TeamProfile = copy(
         type
     },
     recentForm = recentForm.ifEmpty { sample.recentForm },
+    circleId = circleId ?: sample.circleId,
 )
 
 @Singleton
@@ -350,6 +353,20 @@ class DefaultFootballRepository @Inject constructor(
         }
     }
 
+    override suspend fun searchEntities(query: String): DataResult<EntitySearchResults> =
+        when (val result = remote.searchEntities(query)) {
+            is ApiResult.Failure -> DataResult.Failure(result.error)
+            is ApiResult.Success -> mapContract(ENTITY_SEARCH_ENDPOINT) { result.value.toDomain() }
+        }
+
+    override fun pagedTeamCircle(groupId: String): Flow<PagingData<TeamCirclePost>> {
+        require(groupId.isNotEmpty() && groupId.all(Char::isDigit))
+        return Pager(
+            config = PagingConfig(pageSize = 20, prefetchDistance = 5, enablePlaceholders = false),
+            pagingSourceFactory = { TeamCirclePagingSource(remote, groupId) },
+        ).flow
+    }
+
     override fun pagedTeamNews(teamId: TeamId): Flow<PagingData<ArticleSummary>> =
         pagedEntityNews(teamId.raw, "team")
 
@@ -557,6 +574,7 @@ class DefaultFootballRepository @Inject constructor(
         val TEAM_MEMBERS_ENDPOINT = EndpointId("football.team-members")
         val TEAM_SCHEDULE_ENDPOINT = EndpointId("football.team-schedule")
         val TEAM_TRANSFERS_ENDPOINT = EndpointId("football.team-transfers")
+        val ENTITY_SEARCH_ENDPOINT = EndpointId("football.entity-search")
         val PLAYER_DETAIL_ENDPOINT = EndpointId("football.player-detail")
         val PLAYER_STATISTICS_ENDPOINT = EndpointId("football.player-statistics")
         val PLAYER_MATCHES_ENDPOINT = EndpointId("football.player-matches")

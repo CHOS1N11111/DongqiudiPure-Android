@@ -29,6 +29,7 @@ data class FeedArticleDto(
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("published_at") val publishedAt: String? = null,
     @SerialName("author_name") val authorName: String? = null,
+    @SerialName("author_avatar") val authorAvatar: String? = null,
     val author: FeedAuthorDto? = null,
     val thumb: String? = null,
     @SerialName("slide_thumb") val slideThumb: String? = null,
@@ -43,11 +44,13 @@ data class FeedArticleDto(
     val topnew: JsonElement? = null,
     @SerialName("tab_ids") val tabIds: List<JsonElement>? = null,
     val category: JsonElement? = null,
+    @SerialName("topic_tags") val topicTags: JsonElement? = null,
 )
 
 @Serializable
 data class FeedAuthorDto(
     val name: String? = null,
+    val avatar: String? = null,
 )
 
 @Serializable

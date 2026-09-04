@@ -19,6 +19,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamScheduleData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
+import io.github.chos1n11111.dongqiudipure.core.model.TeamCirclePost
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -36,6 +38,7 @@ enum class TeamTab(@param:StringRes val labelRes: Int) {
     Schedule(R.string.team_tab_fixtures),
     Data(R.string.team_tab_stats),
     Players(R.string.team_tab_players),
+    Circles(R.string.team_tab_circles),
     Info(R.string.team_tab_overview),
     Transfers(R.string.team_tab_transfers),
 }
@@ -97,6 +100,12 @@ class TeamProfileViewModel @Inject constructor(
     val news: Flow<PagingData<ArticleSummary>> = newsTeamId
         .filterNotNull()
         .flatMapLatest { repository.pagedTeamNews(it) }
+        .cachedIn(viewModelScope)
+    private val circleGroupId = MutableStateFlow<String?>(null)
+    val circle: Flow<PagingData<TeamCirclePost>> = circleGroupId
+        .flatMapLatest { groupId ->
+            if (groupId == null) flowOf(PagingData.empty()) else repository.pagedTeamCircle(groupId)
+        }
         .cachedIn(viewModelScope)
 
     private var teamId: TeamId? = null
@@ -169,6 +178,7 @@ class TeamProfileViewModel @Inject constructor(
         statisticsSeasonId = null
         squadSeasonId = null
         transferWindowId = null
+        circleGroupId.value = null
         _uiState.value = TeamProfileUiState(selectedTab = _uiState.value.selectedTab)
         loadProfile(id)
         loadSchedule(id, null)
@@ -184,6 +194,9 @@ class TeamProfileViewModel @Inject constructor(
             val state = when (val result = repository.loadTeamProfile(id)) {
                 is DataResult.Failure -> SectionState.Failed(result.error)
                 is DataResult.Success -> result.value.toSectionState()
+            }
+            if (teamId == id) {
+                circleGroupId.value = (state as? SectionState.Content)?.value?.circleId
             }
             updateIfCurrent(id) { it.copy(profile = state) }
         }
@@ -269,6 +282,7 @@ class TeamProfileViewModel @Inject constructor(
             TeamTab.Schedule -> loadSchedule(id, scheduleSeasonId)
             TeamTab.Data -> loadStatistics(id, statisticsSeasonId)
             TeamTab.Players -> loadSquad(id, squadSeasonId)
+            TeamTab.Circles -> loadProfile(id)
             TeamTab.Info -> loadProfile(id)
             TeamTab.Transfers -> loadTransfers(id, transferWindowId)
         }
@@ -279,6 +293,7 @@ class TeamProfileViewModel @Inject constructor(
         TeamTab.Schedule -> state.schedule is SectionState.Failed
         TeamTab.Data -> state.statistics is SectionState.Failed
         TeamTab.Players -> state.squad is SectionState.Failed
+        TeamTab.Circles -> state.profile is SectionState.Failed
         TeamTab.Info -> state.profile is SectionState.Failed
         TeamTab.Transfers -> state.transfers is SectionState.Failed
     }

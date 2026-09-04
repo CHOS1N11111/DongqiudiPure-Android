@@ -58,6 +58,7 @@ import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.PlayerAvatar
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.FormBadge
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.ImagePlaceholder
+import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchStatusBadge
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionContainer
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SectionHeader
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.SkeletonBox
@@ -71,6 +72,8 @@ import io.github.chos1n11111.dongqiudipure.core.model.ArticleId
 import io.github.chos1n11111.dongqiudipure.core.model.FootballCharacteristics
 import io.github.chos1n11111.dongqiudipure.core.model.HistoricalCoach
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
+import io.github.chos1n11111.dongqiudipure.core.model.MatchStatus
+import io.github.chos1n11111.dongqiudipure.core.model.MatchSummary
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.SeasonOption
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
@@ -81,6 +84,9 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamRecordEntry
 import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferEntry
+import io.github.chos1n11111.dongqiudipure.core.model.TeamCirclePost
+import io.github.chos1n11111.dongqiudipure.core.model.TeamRef
+import io.github.chos1n11111.dongqiudipure.core.model.hasScore
 
 @Composable
 fun TeamProfileRoute(
@@ -96,10 +102,12 @@ fun TeamProfileRoute(
     LaunchedEffect(teamId) { viewModel.load(teamId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val news = viewModel.news.collectAsLazyPagingItems()
+    val circle = viewModel.circle.collectAsLazyPagingItems()
 
     TeamProfileScreen(
         uiState = uiState,
         news = news,
+        circle = circle,
         onBack = onBack,
         onArticleClick = onArticleClick,
         onMatchClick = onMatchClick,
@@ -121,6 +129,7 @@ fun TeamProfileRoute(
 fun TeamProfileScreen(
     uiState: TeamProfileUiState,
     news: LazyPagingItems<io.github.chos1n11111.dongqiudipure.core.model.ArticleSummary>,
+    circle: LazyPagingItems<TeamCirclePost>,
     onBack: () -> Unit,
     onArticleClick: (ArticleId) -> Unit,
     onMatchClick: (MatchId) -> Unit,
@@ -134,25 +143,29 @@ fun TeamProfileScreen(
     onRetry: () -> Unit,
     onRetryTab: () -> Unit,
     modifier: Modifier = Modifier,
+    showTopBar: Boolean = true,
+    showProfileHeader: Boolean = true,
 ) {
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            painter = painterResource(DqdIcons.ArrowBack),
-                            contentDescription = stringResource(DesignR.string.ds_action_back),
-                            modifier = Modifier.size(DqdSize.iconMedium),
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            if (showTopBar) {
+                TopAppBar(
+                    title = {},
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                painter = painterResource(DqdIcons.ArrowBack),
+                                contentDescription = stringResource(DesignR.string.ds_action_back),
+                                modifier = Modifier.size(DqdSize.iconMedium),
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                )
+            }
         },
         containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
@@ -161,13 +174,15 @@ fun TeamProfileScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            SectionContainer(
-                state = uiState.profile,
-                onRetry = onRetry,
-                forceRetry = true,
-                modifier = Modifier.background(MaterialTheme.colorScheme.surface),
-                loading = { ProfileHeaderSkeleton() },
-            ) { profile -> ProfileHeader(profile) }
+            if (showProfileHeader) {
+                SectionContainer(
+                    state = uiState.profile,
+                    onRetry = onRetry,
+                    forceRetry = true,
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                    loading = { ProfileHeaderSkeleton() },
+                ) { profile -> ProfileHeader(profile) }
+            }
 
             PrimaryScrollableTabRow(
                 selectedTabIndex = TeamTab.entries.indexOf(uiState.selectedTab),
@@ -191,22 +206,35 @@ fun TeamProfileScreen(
                 }
             }
 
-            if (uiState.selectedTab == TeamTab.Dynamic) {
-                EntityNewsFeed(
-                    articles = news,
-                    onArticleClick = onArticleClick,
-                    emptyTitle = stringResource(R.string.team_news_empty_title),
-                    emptyDescription = stringResource(R.string.team_news_empty_description),
+            when (uiState.selectedTab) {
+                TeamTab.Dynamic -> Column(modifier = Modifier.weight(1f)) {
+                    if (!showProfileHeader) {
+                        (uiState.schedule as? SectionState.Content)?.value?.matches?.let { matches ->
+                            MainTeamMatchStrip(matches = matches, onMatchClick = onMatchClick)
+                        }
+                    }
+                    EntityNewsFeed(
+                        articles = news,
+                        onArticleClick = onArticleClick,
+                        emptyTitle = stringResource(R.string.team_news_empty_title),
+                        emptyDescription = stringResource(R.string.team_news_empty_description),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                TeamTab.Circles -> TeamCircleFeed(
+                    posts = circle,
                     modifier = Modifier.weight(1f),
                 )
-            } else {
-                Column(
+
+                else -> Column(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState()),
                 ) {
                     when (uiState.selectedTab) {
                         TeamTab.Dynamic -> Unit
+                        TeamTab.Circles -> Unit
                         TeamTab.Schedule -> SectionContainer(
                             state = uiState.schedule,
                             onRetry = onRetryTab,
@@ -279,6 +307,115 @@ fun TeamProfileScreen(
                     Box(modifier = Modifier.height(DqdSpacing.xl))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MainTeamMatchStrip(
+    matches: List<MatchSummary>,
+    onMatchClick: (MatchId) -> Unit,
+) {
+    val recent = matches.lastOrNull { it.status == MatchStatus.Finished }
+    val upcoming = matches.firstOrNull {
+        it.status != MatchStatus.Finished &&
+            it.status != MatchStatus.Cancelled &&
+            it.status != MatchStatus.Postponed
+    }
+    val previews = listOfNotNull(recent, upcoming).distinctBy { it.id }
+    if (previews.isEmpty()) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.outlineVariant),
+        horizontalArrangement = Arrangement.spacedBy(1.dp),
+    ) {
+        previews.forEach { match ->
+            MainTeamMatchCard(
+                match = match,
+                onClick = { onMatchClick(match.id) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (previews.size == 1) Box(Modifier.weight(1f))
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+}
+
+@Composable
+private fun MainTeamMatchCard(
+    match: MatchSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(onClick = onClick)
+            .padding(horizontal = DqdSpacing.md, vertical = DqdSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+        ) {
+            Text(
+                text = listOfNotNull(match.competition.name, match.competition.roundLabel)
+                    .joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (match.status is MatchStatus.NotStarted) {
+                Text(
+                    text = stringResource(DesignR.string.ds_match_not_started),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                MatchStatusBadge(match.status)
+            }
+        }
+        MainTeamMatchSide(match.home, match.homeScore, showScore = match.status.hasScore)
+        MainTeamMatchSide(match.away, match.awayScore, showScore = match.status.hasScore)
+        if (!match.status.hasScore) {
+            Text(
+                text = listOfNotNull(match.dateLabel?.takeLast(5), match.kickoffLabel)
+                    .joinToString(" "),
+                style = DqdTheme.dataText.minuteLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.End),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MainTeamMatchSide(team: TeamRef, score: Int?, showScore: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+    ) {
+        TeamCrest(
+            teamId = team.id,
+            teamName = team.name,
+            crestUrl = team.crestUrl,
+            size = 24.dp,
+        )
+        Text(
+            text = team.name,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (showScore) {
+            ValueText(value = score, style = DqdTheme.dataText.tableCellStrong)
         }
     }
 }

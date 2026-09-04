@@ -7,6 +7,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.CompetitionCatalogGroup
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionId
 import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.DataResult
+import io.github.chos1n11111.dongqiudipure.core.model.EntitySearchResults
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.MatchAnalysis
 import io.github.chos1n11111.dongqiudipure.core.model.MatchLineupBundle
@@ -32,6 +33,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamScheduleData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamSquadData
 import io.github.chos1n11111.dongqiudipure.core.model.TeamStatistics
 import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferData
+import io.github.chos1n11111.dongqiudipure.core.model.TeamCirclePost
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -79,6 +81,7 @@ interface StandingsRepository {
 }
 
 interface FootballEntityRepository {
+    suspend fun searchEntities(query: String): DataResult<EntitySearchResults>
     suspend fun loadTeamProfile(teamId: TeamId): DataResult<TeamProfile?>
     suspend fun loadTeamStatistics(
         teamId: TeamId,
@@ -97,6 +100,7 @@ interface FootballEntityRepository {
         windowId: String? = null,
     ): DataResult<TeamTransferData>
     fun pagedTeamNews(teamId: TeamId): Flow<PagingData<ArticleSummary>>
+    fun pagedTeamCircle(groupId: String): Flow<PagingData<TeamCirclePost>>
     suspend fun loadPlayerOverview(playerId: PlayerId): DataResult<PlayerOverview?>
     suspend fun loadPlayerCareer(playerId: PlayerId): DataResult<List<CareerEntry>>
     suspend fun loadPlayerStatistics(playerId: PlayerId): DataResult<PlayerStatisticsData>

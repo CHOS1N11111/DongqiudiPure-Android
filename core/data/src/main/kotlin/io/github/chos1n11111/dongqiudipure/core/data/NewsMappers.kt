@@ -22,6 +22,7 @@ import io.github.chos1n11111.dongqiudipure.core.network.dto.CommentUserDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedArticleDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.FeedResponseDto
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import org.jsoup.Jsoup
@@ -77,6 +78,12 @@ internal fun FeedArticleDto.toDomain(): ArticleSummary {
         media = media,
         tag = showContent?.trim()?.takeIf(String::isNotEmpty)
             ?: if (top == true) "置顶" else null,
+        authorAvatarUrl = safeMediaUrl(authorAvatar) ?: safeMediaUrl(author?.avatar),
+        topicLabel = (topicTags as? JsonObject)
+            ?.get("content")
+            .scalarString()
+            ?.trim()
+            ?.takeIf(String::isNotEmpty),
     )
 }
 

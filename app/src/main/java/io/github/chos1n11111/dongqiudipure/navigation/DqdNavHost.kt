@@ -13,12 +13,15 @@ import io.github.chos1n11111.dongqiudipure.core.model.EntityRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.PlayerId
 import io.github.chos1n11111.dongqiudipure.core.model.TeamId
+import io.github.chos1n11111.dongqiudipure.core.model.FollowedEntity
+import io.github.chos1n11111.dongqiudipure.core.model.FollowedEntityPreferences
 import io.github.chos1n11111.dongqiudipure.feature.account.AccountRoute
 import io.github.chos1n11111.dongqiudipure.feature.account.AppInfoScreen
 import io.github.chos1n11111.dongqiudipure.feature.article.ArticleRoute
 import io.github.chos1n11111.dongqiudipure.feature.article.CommentDetailRoute
 import io.github.chos1n11111.dongqiudipure.feature.entities.PlayerProfileRoute
 import io.github.chos1n11111.dongqiudipure.feature.entities.TeamProfileRoute
+import io.github.chos1n11111.dongqiudipure.feature.entities.MainTeamRoute
 import io.github.chos1n11111.dongqiudipure.feature.home.HomeRoute
 import io.github.chos1n11111.dongqiudipure.feature.matches.MatchDetailRoute
 import io.github.chos1n11111.dongqiudipure.feature.matches.MatchesRoute
@@ -40,11 +43,15 @@ fun DqdNavHost(
     onThemeModeChange: (ThemeMode) -> Unit,
     footballPreferences: FootballPreferences,
     newsPreferences: NewsPreferences,
+    followedEntityPreferences: FollowedEntityPreferences,
     onDefaultMatchCompetitionChange: (String?) -> Unit,
     onMatchCompetitionToggle: (String, Boolean) -> Unit,
     onRankingCompetitionToggle: (String, Boolean) -> Unit,
     onNewsCategoryToggle: (String, Boolean) -> Unit,
     onNewsFootballOnlyChange: (Boolean) -> Unit,
+    onFollowedEntityAdd: (FollowedEntity, Boolean) -> Unit,
+    onFollowedEntityRemove: (String) -> Unit,
+    onMainTeamChange: (TeamId) -> Unit,
     appVersion: String,
     navController: NavHostController,
     modifier: Modifier = Modifier,
@@ -68,6 +75,19 @@ fun DqdNavHost(
                 selectedCompetitionIds = footballPreferences.matchCompetitionIds,
                 defaultCompetitionId = footballPreferences.defaultMatchCompetitionId,
                 onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
+            )
+        }
+
+        composable(DqdDestination.MainTeam.route) {
+            MainTeamRoute(
+                preferences = followedEntityPreferences,
+                onAddEntity = onFollowedEntityAdd,
+                onRemoveEntity = onFollowedEntityRemove,
+                onSetMainTeam = onMainTeamChange,
+                onArticleClick = { navController.navigate(DqdRoutes.article(it.raw)) },
+                onMatchClick = { navController.navigate(DqdRoutes.match(it.raw)) },
+                onTeamClick = { navController.navigate(DqdRoutes.team(it.raw)) },
+                onPlayerClick = { navController.navigate(DqdRoutes.player(it.raw)) },
             )
         }
 

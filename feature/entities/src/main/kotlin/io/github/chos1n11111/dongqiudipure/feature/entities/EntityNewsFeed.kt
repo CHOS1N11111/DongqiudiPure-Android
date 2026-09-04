@@ -153,11 +153,32 @@ private fun EntityFeedRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
         ) {
+            if (article.source.isNotBlank()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    article.authorAvatarUrl?.let { avatarUrl ->
+                        ImagePlaceholder(
+                            url = avatarUrl,
+                            cornerRadius = 14.dp,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
+                    Text(
+                        text = article.source,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
             Text(
                 text = article.title,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(DqdSpacing.sm)) {
@@ -167,6 +188,15 @@ private fun EntityFeedRow(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,
+                    )
+                }
+                article.topicLabel?.let { topic ->
+                    Text(
+                        text = stringResource(R.string.entity_news_topic, topic),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 article.commentCount?.let { count ->

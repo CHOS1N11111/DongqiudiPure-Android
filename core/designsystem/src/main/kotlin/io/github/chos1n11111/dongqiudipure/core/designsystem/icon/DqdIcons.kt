@@ -33,4 +33,7 @@ object DqdIcons {
     val Close = R.drawable.ic_close
     val Link = R.drawable.ic_link
     val Play = R.drawable.ic_play
+    val Add = R.drawable.ic_add
+    val More = R.drawable.ic_more_horizontal
+    val Check = R.drawable.ic_check
 }

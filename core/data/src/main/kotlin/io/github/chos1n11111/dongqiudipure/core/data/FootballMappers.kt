@@ -6,6 +6,7 @@ import io.github.chos1n11111.dongqiudipure.core.model.CompetitionRef
 import io.github.chos1n11111.dongqiudipure.core.model.CareerEntry
 import io.github.chos1n11111.dongqiudipure.core.model.FormResult
 import io.github.chos1n11111.dongqiudipure.core.model.FootballCharacteristics
+import io.github.chos1n11111.dongqiudipure.core.model.FollowedEntity
 import io.github.chos1n11111.dongqiudipure.core.model.HeatPoint
 import io.github.chos1n11111.dongqiudipure.core.model.HistoricalCoach
 import io.github.chos1n11111.dongqiudipure.core.model.Absentee
@@ -85,6 +86,8 @@ import io.github.chos1n11111.dongqiudipure.core.model.TeamTransferWindow
 import io.github.chos1n11111.dongqiudipure.core.model.StatisticRankingTable
 import io.github.chos1n11111.dongqiudipure.core.model.StatItem
 import io.github.chos1n11111.dongqiudipure.core.model.TeamLineup
+import io.github.chos1n11111.dongqiudipure.core.model.EntitySearchResults
+import io.github.chos1n11111.dongqiudipure.core.model.TeamCirclePost
 import io.github.chos1n11111.dongqiudipure.core.network.dto.DataMenuEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.FootballCharacteristicsDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.CompetitionScheduleEnvelopeDto
@@ -126,6 +129,8 @@ import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamStatisticDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamRecordLeaderDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamTransferEnvelopeDto
 import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamTransferTeamDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.EntitySearchEnvelopeDto
+import io.github.chos1n11111.dongqiudipure.core.network.dto.TeamCirclePostDto
 import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
@@ -138,6 +143,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import org.jsoup.Jsoup
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -682,6 +688,62 @@ internal fun TeamSampleDto.toDomain(): TeamProfile {
             else -> TeamType.Unknown
         },
         recentForm = descriptions["最近5场"].toForm(),
+        circleId = tabs?.list.orEmpty()
+            .firstOrNull { it.tab == "circle" }
+            ?.groupId.scalarFootball()
+            ?.takeIf { it.isNotEmpty() && it.all(Char::isDigit) && it != "0" },
+    )
+}
+
+internal fun EntitySearchEnvelopeDto.toDomain(): EntitySearchResults {
+    val mappedTeams = teams.orEmpty().mapNotNull { item ->
+        val id = item.teamId.scalarFootball().displayable()?.fullDqdId() ?: return@mapNotNull null
+        val name = item.teamName.searchDisplayText() ?: return@mapNotNull null
+        FollowedEntity.Team(
+            team = TeamRef(
+                id = TeamId(id),
+                name = name,
+                crestUrl = safeFootballMediaUrl(item.teamImage),
+            ),
+            secondaryLabel = item.country.displayable(),
+        )
+    }.distinctBy { it.team.id }
+    val mappedPlayers = players.orEmpty().mapNotNull { item ->
+        val id = item.personId.scalarFootball().displayable()?.fullDqdId() ?: return@mapNotNull null
+        val name = item.personName.searchDisplayText() ?: return@mapNotNull null
+        val details = listOfNotNull(
+            item.position.displayable(),
+            item.team.displayable(),
+            item.nationality.displayable(),
+        ).distinct().joinToString(" · ").displayable()
+        FollowedEntity.Player(
+            player = PlayerRef(
+                id = PlayerId(id),
+                name = name,
+                avatarUrl = safeFootballMediaUrl(item.personImage),
+            ),
+            secondaryLabel = details,
+        )
+    }.distinctBy { it.player.id }
+    return EntitySearchResults(mappedTeams, mappedPlayers)
+}
+
+internal fun TeamCirclePostDto.toDomain(): TeamCirclePost {
+    val postId = id.scalarFootball().requiredFootball()
+    val body = content.searchDisplayText()
+        ?: title.searchDisplayText()
+        ?: throw ContractViolation()
+    return TeamCirclePost(
+        id = ArticleId(postId),
+        content = body,
+        authorName = author?.username.searchDisplayText() ?: throw ContractViolation(),
+        authorAvatarUrl = safeFootballMediaUrl(author?.avatar),
+        createdAtLabel = createdAt.displayable(),
+        thumbnailUrls = attachments.orEmpty().mapNotNull { attachment ->
+            safeFootballMediaUrl(attachment.thumb) ?: safeFootballMediaUrl(attachment.url)
+        }.distinct(),
+        replyCount = totalReplies.optionalFootballInt(),
+        likeCount = up.optionalFootballInt(),
     )
 }
 
@@ -1508,7 +1570,7 @@ private fun MatchDto.liveMinuteLabel(): String? {
 private fun JsonElement?.requiredFootballInt(): Int =
     optionalFootballInt() ?: throw ContractViolation()
 
-private fun JsonElement?.optionalFootballInt(): Int? {
+internal fun JsonElement?.optionalFootballInt(): Int? {
     val value = scalarFootball()?.trim() ?: return null
     if (value.isEmpty()) return null
     return value.toIntOrNull() ?: throw ContractViolation()
@@ -1668,6 +1730,11 @@ private fun safeFootballMediaUrl(raw: String?): String? {
         uri.scheme == "https" &&
             (uri.host == "qunliao.info" || uri.host?.endsWith(".qunliao.info") == true)
     }
+}
+
+private fun String?.searchDisplayText(): String? {
+    val raw = this?.trim()?.takeIf(String::isNotEmpty) ?: return null
+    return Jsoup.parseBodyFragment(raw).text().displayable()
 }
 
 private val TEAM_GROUP_ORDER = listOf(
