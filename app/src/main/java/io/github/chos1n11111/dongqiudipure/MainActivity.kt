@@ -1,10 +1,13 @@
 package io.github.chos1n11111.dongqiudipure
 
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -41,6 +44,19 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.System -> isSystemInDarkTheme()
                 ThemeMode.Light -> false
                 ThemeMode.Dark -> true
+            }
+
+            SideEffect {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) {
+                        darkTheme
+                    },
+                    // Retain AndroidX's navigation scrims for Android 8 and 9.
+                    navigationBarStyle = SystemBarStyle.auto(
+                        lightScrim = Color.argb(0xe6, 0xff, 0xff, 0xff),
+                        darkScrim = Color.argb(0x80, 0x1b, 0x1b, 0x1b),
+                    ) { darkTheme },
+                )
             }
 
             DqdTheme(darkTheme = darkTheme) {

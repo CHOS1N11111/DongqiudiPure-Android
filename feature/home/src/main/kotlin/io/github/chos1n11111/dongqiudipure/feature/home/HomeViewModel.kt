@@ -52,7 +52,7 @@ class HomeViewModel @Inject constructor(
 
     fun selectCategory(category: NewsCategory) {
         if (category == feedSelection.value.category || category !in _uiState.value.categories) return
-        feedSelection.value = FeedSelection(category)
+        feedSelection.value = feedSelection.value.copy(category = category, refreshGeneration = 0)
         _uiState.value = _uiState.value.copy(selectedCategory = category)
     }
 
