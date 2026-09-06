@@ -38,4 +38,7 @@ object DqdIcons {
     val Add = R.drawable.ic_add
     val More = R.drawable.ic_more_horizontal
     val Check = R.drawable.ic_check
+    val Comment = R.drawable.ic_comment
+    val ZoomIn = R.drawable.ic_zoom_in
+    val ZoomOut = R.drawable.ic_zoom_out
 }
