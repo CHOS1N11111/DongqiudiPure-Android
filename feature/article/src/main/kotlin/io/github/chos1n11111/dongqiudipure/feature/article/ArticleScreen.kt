@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
@@ -37,8 +38,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +54,9 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -59,6 +66,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
@@ -93,8 +103,10 @@ import io.github.chos1n11111.dongqiudipure.core.model.CommentBodyPart
 import io.github.chos1n11111.dongqiudipure.core.model.EntityRef
 import io.github.chos1n11111.dongqiudipure.core.model.MatchId
 import io.github.chos1n11111.dongqiudipure.core.model.SectionState
+import io.github.chos1n11111.dongqiudipure.core.model.contentOrNull
 import io.github.chos1n11111.dongqiudipure.core.model.toAppError
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
 @Composable
 fun ArticleRoute(
@@ -170,6 +182,23 @@ fun ArticleScreen(
     onSortToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    var bodyScrollOffset by rememberSaveable { mutableIntStateOf(0) }
+    var selectedImageIndex by rememberSaveable { mutableStateOf<Int?>(null) }
+    val detail = uiState.detail.contentOrNull()
+
+    selectedImageIndex?.let { index ->
+        val image = detail?.blocks?.getOrNull(index) as? ArticleBlock.Image
+        image?.url?.let { url ->
+            ArticleImageViewer(
+                url = url,
+                caption = image.caption,
+                onDismiss = { selectedImageIndex = null },
+            )
+        }
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -185,6 +214,24 @@ fun ArticleScreen(
                     }
                 },
                 actions = {
+                    ArticleActionButton(
+                        icon = DqdIcons.News,
+                        label = stringResource(R.string.article_back_to_body),
+                        enabled = detail != null,
+                        onClick = { scope.launch { listState.scrollToItem(0, bodyScrollOffset) } },
+                    )
+                    ArticleActionButton(
+                        icon = DqdIcons.Comment,
+                        label = stringResource(R.string.article_go_to_comments),
+                        enabled = detail != null,
+                        onClick = {
+                            // The body is one lazy item, so its pixel offset is the reading bookmark.
+                            if (listState.firstVisibleItemIndex == 0) {
+                                bodyScrollOffset = listState.firstVisibleItemScrollOffset
+                            }
+                            scope.launch { listState.scrollToItem(1) }
+                        },
+                    )
                     IconButton(onClick = onShare) {
                         Icon(
                             painter = painterResource(DqdIcons.Share),
@@ -201,6 +248,7 @@ fun ArticleScreen(
         containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -216,6 +264,7 @@ fun ArticleScreen(
                         detail = detail,
                         onEntityClick = onEntityClick,
                         onLinkClick = onLinkClick,
+                        onImageClick = { selectedImageIndex = it },
                     )
                 }
             }
@@ -325,7 +374,9 @@ private fun ArticleBody(
     detail: ArticleDetail,
     onEntityClick: (EntityRef) -> Unit,
     onLinkClick: (ArticleLinkTarget) -> Unit,
+    onImageClick: (Int) -> Unit,
 ) {
+    val imageDescription = stringResource(R.string.article_image)
     Column {
         Column(
             modifier = Modifier.padding(
@@ -354,7 +405,7 @@ private fun ArticleBody(
             }
         }
 
-        detail.blocks.forEach { block ->
+        detail.blocks.forEachIndexed { index, block ->
             when (block) {
                 is ArticleBlock.Paragraph -> Text(
                     text = block.text,
@@ -370,6 +421,14 @@ private fun ArticleBody(
                     OriginalAspectImage(
                         url = block.url,
                         aspectRatio = block.aspectRatio,
+                        modifier = Modifier
+                            .semantics { contentDescription = block.caption ?: imageDescription }
+                            .clickable(
+                                enabled = block.url != null,
+                                role = Role.Button,
+                                onClickLabel = stringResource(R.string.article_view_image),
+                                onClick = { onImageClick(index) },
+                            ),
                     )
                     block.caption?.let { caption ->
                         Text(
@@ -451,12 +510,16 @@ private fun ArticleVideo(block: ArticleBlock.Video) {
 @Composable
 private fun AndroidVideoPlayer(url: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val player = remember(context, url) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val player = remember(context, url, lifecycleOwner) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(url))
-            playWhenReady = true
+            playWhenReady = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
             prepare()
         }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE, lifecycleOwner) {
+        player.pause()
     }
     val playerView = remember(context) {
         PlayerView(context).apply {

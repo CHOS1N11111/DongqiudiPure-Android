@@ -85,7 +85,7 @@ fun RankingsContent(
             }
 
             table.matchStages.forEachIndexed { stageIndex, stage ->
-                item(key = "match-stage-title-$stageIndex") { StageHeader(stage.name) }
+                stickyHeader(key = "match-stage-title-$stageIndex") { StageHeader(stage.name) }
                 stage.matches.forEachIndexed { matchIndex, match ->
                     item(key = "stage-$stageIndex-match-$matchIndex-${match.id.raw}") {
                         MatchRow(match = match, onClick = { onMatchClick(match.id) })
@@ -95,7 +95,7 @@ fun RankingsContent(
             }
 
             table.knockoutStages.forEachIndexed { stageIndex, stage ->
-                item(key = "knockout-stage-title-$stageIndex") { StageHeader(stage.name) }
+                stickyHeader(key = "knockout-stage-title-$stageIndex") { StageHeader(stage.name) }
                 stage.ties.forEachIndexed { tieIndex, tie ->
                     item(key = "knockout-$stageIndex-$tieIndex") {
                         KnockoutTieRow(
@@ -117,8 +117,12 @@ private fun LazyListScope.standingTable(
     onTeamClick: (TeamId) -> Unit,
     title: String? = null,
 ) {
-    if (title != null) item(key = "$keyPrefix-title") { StageHeader(title) }
-    item(key = "$keyPrefix-header") { TableHeader() }
+    stickyHeader(key = "$keyPrefix-header") {
+        Column(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
+            if (title != null) StageHeader(title)
+            TableHeader()
+        }
+    }
     rows.forEachIndexed { index, row ->
         val previous = rows.getOrNull(index - 1)
         val next = rows.getOrNull(index + 1)

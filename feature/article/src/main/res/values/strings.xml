@@ -14,6 +14,16 @@
     <string name="article_comments_load_more_retry">重新加载更多评论</string>
     <string name="article_share_title">分享资讯</string>
     <string name="article_video_play">播放视频</string>
+    <string name="article_go_to_comments">直达评论</string>
+    <string name="article_back_to_body">返回正文</string>
+    <string name="article_view_image">查看大图</string>
+    <string name="article_image">文章图片</string>
+    <string name="article_close_image">关闭图片</string>
+    <string name="article_image_zoom_in">放大图片</string>
+    <string name="article_image_zoom_out">缩小图片</string>
+    <string name="article_image_reset">还原图片</string>
+    <string name="article_image_zoom_percent">%1$d%%</string>
+    <string name="article_image_error">图片加载失败</string>
 
     <!-- 关联实体 chip 的类型标签。让 chip 自解释，不必靠图标猜是球队还是球员。 -->
     <string name="article_entity_type_team">球队</string>
