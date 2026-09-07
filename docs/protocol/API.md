@@ -97,6 +97,9 @@ username=<user-input>&password=<unverified-representation>
 验证失败或结构不兼容时不保存候选值。该实现不改变上述证据等级，真实成功 schema、
 密码表示和 challenge 分支仍须由用户授权的专用账号完成端到端确认。
 
+会话校验必须返回可识别的明确登录状态。只有普通成功码或用户资料、登录状态缺失或
+无法识别时，返回 `UnsupportedContract`，不保存新令牌，也不显示已登录。
+
 ## 5. 会话验证
 
 | 项目 | 当前结论 | 证据 |

@@ -84,13 +84,7 @@ class OkHttpAuthRemoteDataSource @Inject constructor(
             when (root.explicitLoginState()) {
                 false -> ApiResult.Failure(AppError.SessionExpired)
                 true -> ApiResult.Success(root.accountSummary())
-                null -> {
-                    if (root.hasSuccessCode()) {
-                        ApiResult.Success(root.accountSummary())
-                    } else {
-                        ApiResult.Failure(AppError.UnsupportedContract(SESSION_ENDPOINT))
-                    }
-                }
+                null -> ApiResult.Failure(AppError.UnsupportedContract(SESSION_ENDPOINT))
             }
         }
     }
@@ -187,14 +181,6 @@ private fun JsonObject?.httpError(status: Int): AppError {
     } else {
         AppError.Http(status)
     }
-}
-
-private fun JsonObject.hasSuccessCode(): Boolean {
-    val code = sequenceOf("errCode", "err_code", "code")
-        .mapNotNull { key -> this[key].primitiveContent() }
-        .firstOrNull()
-        ?: return false
-    return code.lowercase() in setOf("0", "200", "ok", "success")
 }
 
 private fun JsonObject.explicitLoginState(): Boolean? {

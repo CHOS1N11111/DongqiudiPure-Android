@@ -2,6 +2,7 @@ package io.github.chos1n11111.dongqiudipure.core.data
 
 import io.github.chos1n11111.dongqiudipure.core.model.AccountSummary
 import io.github.chos1n11111.dongqiudipure.core.model.AppError
+import io.github.chos1n11111.dongqiudipure.core.model.EndpointId
 import io.github.chos1n11111.dongqiudipure.core.network.ApiResult
 import io.github.chos1n11111.dongqiudipure.core.network.AuthRemoteDataSource
 import io.github.chos1n11111.dongqiudipure.core.network.AuthorizationToken
@@ -29,20 +30,38 @@ class DefaultSessionRepositoryTest {
     }
 
     @Test
-    fun `failed validation never persists login candidate`() = runTest {
-        val remote = FakeAuthRemoteDataSource(
-            validationResult = ApiResult.Failure(AppError.AuthenticationRequired),
+    fun `failed or unconfirmed validation never persists login candidate`() = runTest {
+        val errors = listOf(
+            AppError.AuthenticationRequired,
+            AppError.UnsupportedContract(EndpointId("auth.session")),
         )
-        val store = MemorySessionStore()
+        errors.forEach { error ->
+            val remote = FakeAuthRemoteDataSource(
+                validationResult = ApiResult.Failure(error),
+            )
+            val store = MemorySessionStore()
+            val repository = repository(remote, store)
+
+            repository.login("fixture-user", "fixture-password")
+
+            assertNull(store.authorization)
+            assertEquals(SessionState.Anonymous(error), repository.state.value)
+        }
+    }
+
+    @Test
+    fun `cold restore stays anonymous when the saved session cannot be confirmed`() = runTest {
+        val error = AppError.UnsupportedContract(EndpointId("auth.session"))
+        val store = MemorySessionStore(authorization = "saved-token")
+        val remote = FakeAuthRemoteDataSource(
+            validationResult = ApiResult.Failure(error),
+        )
         val repository = repository(remote, store)
 
-        repository.login("fixture-user", "fixture-password")
+        repository.restore()
 
-        assertNull(store.authorization)
-        assertEquals(
-            SessionState.Anonymous(AppError.AuthenticationRequired),
-            repository.state.value,
-        )
+        assertEquals(SessionState.Anonymous(error), repository.state.value)
+        assertEquals("saved-token", store.authorization)
     }
 
     @Test

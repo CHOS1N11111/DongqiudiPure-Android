@@ -1,5 +1,6 @@
 package io.github.chos1n11111.dongqiudipure.core.network
 
+import io.github.chos1n11111.dongqiudipure.core.model.AccountSummary
 import io.github.chos1n11111.dongqiudipure.core.model.AppError
 import io.github.chos1n11111.dongqiudipure.core.model.EndpointId
 import io.github.chos1n11111.dongqiudipure.core.network.di.NewsNetworkModule
@@ -95,6 +96,53 @@ class OkHttpAuthRemoteDataSourceTest {
         assertEquals("/v2/user/is_login", request.target)
         assertEquals("Bearer fixture-token", request.headers["Authorization"])
         assertEquals(FIXTURE_UUID, request.headers["UUID"])
+    }
+
+    @Test
+    fun `session validation rejects generic success without an explicit login state`() = runBlocking {
+        val responses = listOf(
+            """{"errCode":0}""",
+            """{"err_code":0,"data":{}}""",
+            """{"code":200}""",
+            """{"code":"ok"}""",
+            """{"code":"success"}""",
+            """{"errCode":0,"data":{"user":{"uid":"42","nickname":"Fixture"}}}""",
+        )
+        responses.forEach { body ->
+            server.enqueue(jsonResponse(body))
+
+            val result = remote.validateSession(AuthorizationToken("fixture-token"), FIXTURE_UUID)
+
+            assertEquals(
+                body,
+                AppError.UnsupportedContract(EndpointId("auth.session")),
+                (result as ApiResult.Failure).error,
+            )
+        }
+    }
+
+    @Test
+    fun `session validation rejects unrecognized login states despite a success code`() = runBlocking {
+        listOf("null", "2", "\"pending\"", "{}", "[]").forEach { state ->
+            server.enqueue(jsonResponse("""{"errCode":0,"data":{"is_login":$state}}"""))
+
+            val result = remote.validateSession(AuthorizationToken("fixture-token"), FIXTURE_UUID)
+
+            assertEquals(
+                state,
+                AppError.UnsupportedContract(EndpointId("auth.session")),
+                (result as ApiResult.Failure).error,
+            )
+        }
+    }
+
+    @Test
+    fun `session validation accepts explicit login state without profile fields`() = runBlocking {
+        server.enqueue(jsonResponse("""{"errCode":0,"data":{"is_login":true}}"""))
+
+        val result = remote.validateSession(AuthorizationToken("fixture-token"), FIXTURE_UUID)
+
+        assertEquals(AccountSummary(), (result as ApiResult.Success).value)
     }
 
     @Test
