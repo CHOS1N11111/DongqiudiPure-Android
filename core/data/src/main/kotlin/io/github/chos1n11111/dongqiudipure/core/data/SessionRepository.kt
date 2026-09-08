@@ -18,6 +18,9 @@ interface SessionRepository {
 
     suspend fun restore()
 
+    /** Recheck an existing session on foreground entry, without starting a login. */
+    suspend fun refresh()
+
     suspend fun login(identifier: String, password: String)
 
     suspend fun logout()

@@ -4,9 +4,15 @@ import io.github.chos1n11111.dongqiudipure.core.model.AccountSummary
 import io.github.chos1n11111.dongqiudipure.core.model.AppError
 import io.github.chos1n11111.dongqiudipure.core.model.EndpointId
 import io.github.chos1n11111.dongqiudipure.core.network.di.NewsNetworkModule
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import okhttp3.Call
+import okhttp3.EventListener
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -155,6 +161,82 @@ class OkHttpAuthRemoteDataSourceTest {
 
         assertEquals(AppError.SessionExpired, (explicitExpired as ApiResult.Failure).error)
         assertEquals(AppError.AuthenticationRequired, (unauthorized as ApiResult.Failure).error)
+    }
+
+    @Test
+    fun `http 480 expires the session even when its body is not json`() = runBlocking {
+        server.enqueue(MockResponse.Builder().code(480).body("fixture expired").build())
+
+        val result = remote.validateSession(AuthorizationToken("fixture-token"), FIXTURE_UUID)
+
+        assertEquals(AppError.SessionExpired, (result as ApiResult.Failure).error)
+    }
+
+    @Test
+    fun `unknown validation business errors do not imply session expiry`() = runBlocking {
+        server.enqueue(jsonResponse("""{"errCode":40026,"errMesg":"fixture details"}"""))
+
+        val result = remote.validateSession(AuthorizationToken("fixture-token"), FIXTURE_UUID)
+
+        assertEquals(AppError.Server("40026", null), (result as ApiResult.Failure).error)
+    }
+
+    @Test
+    fun `server failures remain transient even with a business error body`() = runBlocking {
+        server.enqueue(MockResponse.Builder().code(503).body("""{"errCode":50001}""").build())
+
+        val result = remote.validateSession(AuthorizationToken("fixture-token"), FIXTURE_UUID)
+
+        assertEquals(AppError.Http(503), (result as ApiResult.Failure).error)
+    }
+
+    @Test
+    fun `authenticated redirects are rejected and login cookies are not retained`() = runBlocking {
+        server.enqueue(
+            MockResponse.Builder().code(200)
+                .addHeader("Set-Cookie", "fixture=private; Path=/")
+                .body("""{"errCode":0,"data":{"authorization":"fixture-token"}}""")
+                .build(),
+        )
+        server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "/other").build())
+        remote.login("fixture-user", "fixture-password", FIXTURE_UUID)
+
+        val result = remote.validateSession(AuthorizationToken("fixture-token"), FIXTURE_UUID)
+
+        assertEquals(AppError.Http(302), (result as ApiResult.Failure).error)
+        assertEquals(2, server.requestCount)
+        assertNull(server.takeRequest().headers["Authorization"])
+        val validationRequest = server.takeRequest()
+        assertNull(validationRequest.headers["Cookie"])
+        assertEquals("fixture-token", validationRequest.headers["Authorization"])
+    }
+
+    @Test
+    fun `cancelling validation cancels its okhttp call`() = runBlocking {
+        val started = CompletableDeferred<Unit>()
+        val cancelled = CompletableDeferred<Unit>()
+        val client = NewsNetworkModule.provideAuthOkHttpClient().newBuilder()
+            .eventListener(object : EventListener() {
+                override fun callStart(call: Call) { started.complete(Unit) }
+                override fun canceled(call: Call) { cancelled.complete(Unit) }
+            })
+            .build()
+        val cancellableRemote = OkHttpAuthRemoteDataSource(
+            client, NewsNetworkModule.provideJson(), server.url("/"), DqdClientProfile("FixtureClient/1"),
+        )
+        val request = launch {
+            cancellableRemote.validateSession(AuthorizationToken("fixture-token"), FIXTURE_UUID)
+        }
+        try {
+            withTimeout(5_000) {
+                started.await()
+                request.cancelAndJoin()
+                cancelled.await()
+            }
+        } finally {
+            request.cancelAndJoin()
+            server.enqueue(jsonResponse("""{"errCode":0,"data":{"is_login":true}}"""))
+        }
     }
 
     private fun jsonResponse(body: String): MockResponse = MockResponse.Builder()
