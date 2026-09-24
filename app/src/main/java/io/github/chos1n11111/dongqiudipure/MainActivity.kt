@@ -17,6 +17,7 @@ import io.github.chos1n11111.dongqiudipure.feature.settings.FootballPreferences
 import io.github.chos1n11111.dongqiudipure.feature.settings.NewsPreferences
 import io.github.chos1n11111.dongqiudipure.feature.settings.ThemeMode
 import io.github.chos1n11111.dongqiudipure.core.model.FollowedEntityPreferences
+import io.github.chos1n11111.dongqiudipure.core.data.SessionRepository
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -26,6 +27,14 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var settingsStore: SettingsStore
+
+    @Inject
+    lateinit var sessionRepository: SessionRepository
+
+    override fun onStart() {
+        super.onStart()
+        lifecycleScope.launch { sessionRepository.refresh() }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

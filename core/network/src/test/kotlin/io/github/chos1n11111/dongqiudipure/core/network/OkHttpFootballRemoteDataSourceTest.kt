@@ -26,7 +26,7 @@ class OkHttpFootballRemoteDataSourceTest {
         server = MockWebServer()
         server.start()
         remote = OkHttpFootballRemoteDataSource(
-            client = NewsNetworkModule.provideOkHttpClient(),
+            client = NewsNetworkModule.provideOkHttpClient(DqdClientProfile("FixtureClient/1")),
             json = NewsNetworkModule.provideJson(),
             apiBaseUrl = server.url("/"),
             sportDataBaseUrl = server.url("/"),

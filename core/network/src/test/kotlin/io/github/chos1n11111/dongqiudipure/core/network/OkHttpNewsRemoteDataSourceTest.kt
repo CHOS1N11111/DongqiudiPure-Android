@@ -24,7 +24,7 @@ class OkHttpNewsRemoteDataSourceTest {
         server = MockWebServer()
         server.start()
         remote = OkHttpNewsRemoteDataSource(
-            client = NewsNetworkModule.provideOkHttpClient(),
+            client = NewsNetworkModule.provideOkHttpClient(DqdClientProfile("FixtureClient/1")),
             json = NewsNetworkModule.provideJson(),
             baseUrl = server.url("/"),
         )
@@ -51,7 +51,7 @@ class OkHttpNewsRemoteDataSourceTest {
             request.target,
         )
         assertEquals("application/json", request.headers["Accept"])
-        assertEquals("DongqiudiPure-Android/0.1", request.headers["User-Agent"])
+        assertEquals("FixtureClient/1", request.headers["User-Agent"])
         assertEquals(null, request.headers["Authorization"])
         assertEquals(null, request.headers["Cookie"])
     }

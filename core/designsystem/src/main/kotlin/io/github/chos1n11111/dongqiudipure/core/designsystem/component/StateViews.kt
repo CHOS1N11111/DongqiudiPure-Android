@@ -233,6 +233,13 @@ private fun errorCopy(error: AppError): ErrorCopy = when (error) {
         icon = DqdIcons.Login,
         isWarning = true,
     )
+
+    AppError.Storage -> ErrorCopy(
+        titleRes = R.string.ds_error_storage_title,
+        descriptionRes = R.string.ds_error_storage_description,
+        icon = DqdIcons.Alert,
+        isWarning = true,
+    )
 }
 
 @Composable
