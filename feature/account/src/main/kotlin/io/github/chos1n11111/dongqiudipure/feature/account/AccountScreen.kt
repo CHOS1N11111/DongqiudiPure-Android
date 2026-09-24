@@ -345,6 +345,11 @@ private fun LoginDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Text(
+                    text = stringResource(R.string.account_login_contract_notice),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
                 OutlinedTextField(
                     value = identifier,
                     onValueChange = {

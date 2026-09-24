@@ -6,6 +6,7 @@
     <string name="account_login_cta">登录</string>
     <string name="account_login_title">登录懂球帝账号</string>
     <string name="account_login_description">登录后会先验证会话，再保存在当前设备。</string>
+    <string name="account_login_contract_notice">登录协议尚未完成真实账号验证，当前仅供测试，不保证登录成功或会话可用。</string>
     <string name="account_login_identifier">用户名或手机号</string>
     <string name="account_login_password">密码</string>
     <string name="account_login_submit">登录</string>
