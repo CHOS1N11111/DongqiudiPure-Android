@@ -12,22 +12,24 @@
 <table>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/images/news.png" width="100%" alt="热门资讯列表" /><br />
-      <sub>热门资讯列表</sub>
+      <img src="docs/images/news.png" width="220" alt="头条资讯列表" /><br />
+      <sub>头条资讯列表</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/images/article.png" width="100%" alt="图文资讯详情" /><br />
+      <img src="docs/images/article.png" width="220" alt="图文资讯详情" /><br />
       <sub>图文资讯详情</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/images/comments.png" width="100%" alt="公开评论与回复" /><br />
+      <img src="docs/images/comments.png" width="220" alt="公开评论与回复" /><br />
       <sub>公开评论与回复</sub>
     </td>
   </tr>
 </table>
 
 - 默认展示「头条」，可在设置中选择其他栏目
-- 资讯详情支持正文、图片、内嵌视频播放、系统分享，并可通过关联标签进入球队、球员或赛事资料页，支持评论查看
+- 资讯详情支持正文、图片、内嵌视频播放和系统分享，并可通过关联标签进入球队、球员或赛事资料页
+- 支持直达评论、查看公开回复，以及返回跳转前的正文阅读位置
+- 点击正文图片可全屏查看，支持双指缩放、双击放大与还原，以及放大后拖动查看细节
 - 资讯设置支持搜索栏目、自定义首页栏目以及「仅展示足球资讯」过滤
 
 **比赛**
@@ -35,11 +37,11 @@
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="docs/images/matches.png" width="100%" alt="按日期查看比赛" /><br />
+      <img src="docs/images/matches.png" width="220" alt="按日期查看比赛" /><br />
       <sub>按日期查看比赛</sub>
     </td>
     <td align="center" width="50%">
-      <img src="docs/images/match-detail.png" width="100%" alt="比赛阵容详情" /><br />
+      <img src="docs/images/match-detail.png" width="220" alt="比赛阵容详情" /><br />
       <sub>比赛阵容详情</sub>
     </td>
   </tr>
@@ -50,16 +52,27 @@
 - 可从赛事目录中搜索并添加顶部赛事
 - 比赛详情包含「评分 / 赛况 / 阵容 / 情报 / 分析」五个栏目
 
+**主队**
+
+<p align="center">
+  <img src="docs/images/main-team.png" width="220" alt="中国国家队主队主页" /><br />
+  <sub>中国国家队主队主页</sub>
+</p>
+
+- 无需登录即可搜索并关注球队或球员，设置自己的主队；本页使用中国国家队演示
+- 主队页集中展示比赛预览、球队动态、赛程、数据和球员等内容，可在已关注的球队与球员之间切换
+- 主队与关注列表保存在本机，可随时调整；底部「主队」入口展示所选球队的队徽
+
 **数据**
 
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="docs/images/standings.png" width="100%" alt="联赛积分榜" /><br />
-      <sub>联赛积分榜</sub>
+      <img src="docs/images/standings.png" width="220" alt="联赛积分榜与吸顶表头" /><br />
+      <sub>积分榜</sub>
     </td>
     <td align="center" width="50%">
-      <img src="docs/images/player-rankings.png" width="100%" alt="球员统计榜" /><br />
+      <img src="docs/images/player-rankings.png" width="220" alt="球员统计榜" /><br />
       <sub>球员统计榜</sub>
     </td>
   </tr>
@@ -67,27 +80,20 @@
 
 - 可在设置中搜索并选择公开赛事
 - 支持切换当前赛事的赛季，查看「积分榜 / 球员榜 / 球队榜」
+- 积分榜表头在滚动时保持可见，分组赛事同步显示当前分组标题
 - 榜单中的球员和球队可直接进入对应资料页
 
 **球队与球员**
 
 <table>
   <tr>
-    <td align="center" width="25%">
-      <img src="docs/images/team.png" width="100%" alt="球队主页" /><br />
-      <sub>球队主页</sub>
-    </td>
-    <td align="center" width="25%">
-      <img src="docs/images/team-players.png" width="100%" alt="球队球员" /><br />
+    <td align="center" width="50%">
+      <img src="docs/images/team-players.png" width="220" alt="球队球员" /><br />
       <sub>球队球员</sub>
     </td>
-    <td align="center" width="25%">
-      <img src="docs/images/player.png" width="100%" alt="球员主页" /><br />
+    <td align="center" width="50%">
+      <img src="docs/images/player.png" width="220" alt="球员主页" /><br />
       <sub>球员主页</sub>
-    </td>
-    <td align="center" width="25%">
-      <img src="docs/images/player-data.png" width="100%" alt="球员数据" /><br />
-      <sub>球员数据</sub>
     </td>
   </tr>
 </table>
@@ -99,11 +105,11 @@
 **设置与本机体验**
 
 <p align="center">
-  <img src="docs/images/competition-settings.png" width="32%" alt="比赛赛事选择" /><br />
+  <img src="docs/images/competition-settings.png" width="220" alt="比赛赛事选择" /><br />
   <sub>比赛赛事选择</sub>
 </p>
 
-- 底部导航固定为「资讯 / 比赛 / 数据 / 我的」
+- 底部导航固定为「资讯 / 比赛 / 主队 / 数据 / 我的」
 - 外观可选「跟随系统 / 浅色 / 深色」，资讯栏目、比赛赛事和数据赛事偏好保存在本机
 - 不展示广告、赔率、盘口或其他博彩与体育投注内容
 
