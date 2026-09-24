@@ -55,7 +55,10 @@ class DefaultSessionRepositoryTest {
             repository.login("fixture-user", "fixture-password")
 
             assertNull(store.authorization)
-            assertEquals(SessionState.Anonymous(error), repository.state.value)
+            assertEquals(
+                SessionState.Anonymous(error, SessionErrorSource.Login),
+                repository.state.value,
+            )
         }
     }
 
@@ -347,7 +350,7 @@ class DefaultSessionRepositoryTest {
         repository.restore()
 
         assertEquals(
-            SessionState.Anonymous(AppError.UnsupportedContract(EndpointId("auth.storage"))),
+            SessionState.Anonymous(AppError.Storage, SessionErrorSource.Storage),
             repository.state.value,
         )
         assertEquals(1, remote.validationCalls)
@@ -364,7 +367,7 @@ class DefaultSessionRepositoryTest {
         repository.restore()
 
         assertEquals(
-            SessionState.Anonymous(AppError.UnsupportedContract(EndpointId("auth.storage"))),
+            SessionState.Anonymous(AppError.Storage, SessionErrorSource.Storage),
             repository.state.value,
         )
         assertEquals(0, remote.validationCalls)
@@ -381,7 +384,10 @@ class DefaultSessionRepositoryTest {
 
         repository.login("other-user", "fixture-password")
 
-        assertEquals(SessionState.Anonymous(error), repository.state.value)
+        assertEquals(
+            SessionState.Anonymous(error, SessionErrorSource.Login),
+            repository.state.value,
+        )
         assertNull(store.authorization)
         repository.restore()
         assertEquals(SessionState.Anonymous(), repository.state.value)

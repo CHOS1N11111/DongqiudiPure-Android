@@ -107,10 +107,22 @@ class OkHttpAuthRemoteDataSource @Inject constructor(
         return try {
             client.newCall(request).awaitResponse { response ->
                 if (response.code == 480) {
-                    return@awaitResponse ApiResult.Failure(AppError.SessionExpired)
+                    return@awaitResponse ApiResult.Failure(
+                        if (endpoint == SESSION_ENDPOINT) {
+                            AppError.SessionExpired
+                        } else {
+                            AppError.Http(response.code)
+                        },
+                    )
                 }
                 if (response.code == 401 || response.code == 403) {
-                    return@awaitResponse ApiResult.Failure(AppError.AuthenticationRequired)
+                    return@awaitResponse ApiResult.Failure(
+                        if (endpoint == SESSION_ENDPOINT) {
+                            AppError.AuthenticationRequired
+                        } else {
+                            AppError.Http(response.code)
+                        },
+                    )
                 }
                 if (response.code == 429) {
                     return@awaitResponse ApiResult.Failure(AppError.RateLimited(retryAfter = null))

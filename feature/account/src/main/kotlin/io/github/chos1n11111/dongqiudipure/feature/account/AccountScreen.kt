@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.chos1n11111.dongqiudipure.core.data.SessionState
+import io.github.chos1n11111.dongqiudipure.core.data.SessionErrorSource
 import io.github.chos1n11111.dongqiudipure.core.designsystem.R as DesignR
 import io.github.chos1n11111.dongqiudipure.core.designsystem.icon.DqdIcons
 import io.github.chos1n11111.dongqiudipure.core.designsystem.theme.DqdSize
@@ -223,10 +224,10 @@ private fun SessionHeader(
             )
             is SessionState.Anonymous -> {
                 AnonymousContent(
-                    statusText = state.error?.let { loginErrorText(it) },
+                    statusText = state.error?.let { accountErrorText(it, state.source) },
                     onLoginClick = onLoginClick,
                 )
-                if (state.error?.isRetryable == true) {
+                if (state.source == SessionErrorSource.Session && state.error?.isRetryable == true) {
                     TextButton(onClick = onRetrySession) {
                         Text(stringResource(R.string.account_retry_session))
                     }
@@ -339,7 +340,12 @@ private fun LoginDialog(
         onDismissRequest = { if (!busy) onDismiss() },
         title = { Text(stringResource(R.string.account_login_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(DqdSpacing.md)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(DqdSpacing.md),
+            ) {
                 Text(
                     text = stringResource(R.string.account_login_description),
                     style = MaterialTheme.typography.bodySmall,
@@ -416,12 +422,14 @@ private fun LoginDialog(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                (sessionState as? SessionState.Anonymous)?.error?.let { error ->
-                    Text(
-                        text = loginErrorText(error),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                (sessionState as? SessionState.Anonymous)?.let { anonymous ->
+                    anonymous.error?.let { error ->
+                        Text(
+                            text = accountErrorText(error, anonymous.source),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
                 if (busy) {
                     Row(
@@ -460,27 +468,58 @@ private fun LoginDialog(
 }
 
 @Composable
+private fun accountErrorText(error: AppError, source: SessionErrorSource): String = when (source) {
+    SessionErrorSource.Login -> loginErrorText(error)
+    SessionErrorSource.Session -> sessionErrorText(error)
+    SessionErrorSource.Storage -> stringResource(R.string.account_error_storage)
+}
+
+@Composable
 private fun loginErrorText(error: AppError): String = when (error) {
-    is AppError.Network -> when (error.kind) {
-        NetworkKind.NoConnection -> stringResource(R.string.account_error_no_connection)
-        NetworkKind.Timeout -> stringResource(R.string.account_error_timeout)
-        NetworkKind.TlsFailure -> stringResource(R.string.account_error_secure_connection)
-        NetworkKind.Unknown -> stringResource(R.string.account_error_network)
-    }
+    is AppError.Network -> networkErrorText(error)
     is AppError.RateLimited -> stringResource(R.string.account_error_rate_limited)
     is AppError.Server -> when (error.code) {
         "40002" -> stringResource(R.string.account_login_fields_required)
         "40003" -> stringResource(R.string.account_error_credentials)
         "40026" -> stringResource(R.string.account_error_client_version)
-        else -> stringResource(R.string.account_error_challenge)
+        else -> stringResource(R.string.account_error_server)
     }
-    is AppError.Http -> stringResource(R.string.account_error_server)
+    is AppError.Http -> if (error.status in 401..403) {
+        stringResource(R.string.account_error_credentials)
+    } else {
+        stringResource(R.string.account_error_server)
+    }
     is AppError.Parse,
     is AppError.UnsupportedContract,
     -> stringResource(R.string.account_error_contract)
     AppError.AuthenticationRequired,
     AppError.SessionExpired,
     -> stringResource(R.string.account_error_session_validation)
+    AppError.Storage -> stringResource(R.string.account_error_storage)
+}
+
+@Composable
+private fun sessionErrorText(error: AppError): String = when (error) {
+    is AppError.Network -> networkErrorText(error)
+    is AppError.RateLimited -> stringResource(R.string.account_error_rate_limited)
+    is AppError.Server,
+    is AppError.Http,
+    -> stringResource(R.string.account_error_session_unavailable)
+    is AppError.Parse,
+    is AppError.UnsupportedContract,
+    -> stringResource(R.string.account_error_contract)
+    AppError.AuthenticationRequired,
+    AppError.SessionExpired,
+    -> stringResource(R.string.account_error_session_validation)
+    AppError.Storage -> stringResource(R.string.account_error_storage)
+}
+
+@Composable
+private fun networkErrorText(error: AppError.Network): String = when (error.kind) {
+        NetworkKind.NoConnection -> stringResource(R.string.account_error_no_connection)
+        NetworkKind.Timeout -> stringResource(R.string.account_error_timeout)
+        NetworkKind.TlsFailure -> stringResource(R.string.account_error_secure_connection)
+        NetworkKind.Unknown -> stringResource(R.string.account_error_network)
 }
 
 private fun SessionState.isBusy(): Boolean =
@@ -638,6 +677,33 @@ private fun AccountAuthenticatedPreview() {
             onSettingsClick = {},
             onAppInfoClick = {},
             appVersion = "0.1.0",
+        )
+    }
+}
+
+@Preview(name = "登录弹窗 · 初始", showBackground = true)
+@Composable
+private fun LoginDialogPreview() {
+    DqdTheme(darkTheme = false) {
+        LoginDialog(
+            sessionState = SessionState.Anonymous(source = SessionErrorSource.Login),
+            onSubmit = { _, _ -> },
+            onDismiss = {},
+        )
+    }
+}
+
+@Preview(name = "登录弹窗 · 错误", showBackground = true)
+@Composable
+private fun LoginDialogErrorPreview() {
+    DqdTheme(darkTheme = true) {
+        LoginDialog(
+            sessionState = SessionState.Anonymous(
+                error = AppError.Server("40003", null),
+                source = SessionErrorSource.Login,
+            ),
+            onSubmit = { _, _ -> },
+            onDismiss = {},
         )
     }
 }

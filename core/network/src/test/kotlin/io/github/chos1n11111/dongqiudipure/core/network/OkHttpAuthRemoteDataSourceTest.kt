@@ -164,6 +164,21 @@ class OkHttpAuthRemoteDataSourceTest {
     }
 
     @Test
+    fun `login http authentication failures stay login errors`() = runBlocking {
+        server.enqueue(MockResponse.Builder().code(401).build())
+        server.enqueue(MockResponse.Builder().code(403).build())
+        server.enqueue(MockResponse.Builder().code(480).build())
+
+        val unauthorized = remote.login("fixture-user", "wrong", FIXTURE_UUID)
+        val forbidden = remote.login("fixture-user", "wrong", FIXTURE_UUID)
+        val expired = remote.login("fixture-user", "wrong", FIXTURE_UUID)
+
+        assertEquals(AppError.Http(401), (unauthorized as ApiResult.Failure).error)
+        assertEquals(AppError.Http(403), (forbidden as ApiResult.Failure).error)
+        assertEquals(AppError.Http(480), (expired as ApiResult.Failure).error)
+    }
+
+    @Test
     fun `http 480 expires the session even when its body is not json`() = runBlocking {
         server.enqueue(MockResponse.Builder().code(480).body("fixture expired").build())
 

@@ -4,9 +4,18 @@ import io.github.chos1n11111.dongqiudipure.core.model.AccountSummary
 import io.github.chos1n11111.dongqiudipure.core.model.AppError
 import kotlinx.coroutines.flow.StateFlow
 
+enum class SessionErrorSource {
+    Login,
+    Session,
+    Storage,
+}
+
 sealed interface SessionState {
     data object Restoring : SessionState
-    data class Anonymous(val error: AppError? = null) : SessionState
+    data class Anonymous(
+        val error: AppError? = null,
+        val source: SessionErrorSource = SessionErrorSource.Session,
+    ) : SessionState
     data object SubmittingCredentials : SessionState
     data object ValidatingSession : SessionState
     data class Authenticated(val account: AccountSummary) : SessionState

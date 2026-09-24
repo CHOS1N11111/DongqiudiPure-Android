@@ -1,7 +1,6 @@
 package io.github.chos1n11111.dongqiudipure.core.data
 
 import io.github.chos1n11111.dongqiudipure.core.model.AppError
-import io.github.chos1n11111.dongqiudipure.core.model.EndpointId
 import io.github.chos1n11111.dongqiudipure.core.model.isRetryable
 import io.github.chos1n11111.dongqiudipure.core.network.ApiResult
 import io.github.chos1n11111.dongqiudipure.core.network.AuthRemoteDataSource
@@ -50,12 +49,12 @@ class DefaultSessionRepository internal constructor(
     private suspend fun checkSavedSession(kind: OperationKind) = runOperation(kind) { operation ->
         val credentials = operation.update {
             if (storageBlocked) {
-                _state.value = SessionState.Anonymous(storageError())
+                _state.value = SessionState.Anonymous(AppError.Storage, SessionErrorSource.Storage)
                 return@update null
             }
             val token = storageCall { sessionStore.readAuthorization()?.let(::AuthorizationToken) }
                 .getOrElse {
-                    _state.value = SessionState.Anonymous(storageError())
+                    _state.value = SessionState.Anonymous(AppError.Storage, SessionErrorSource.Storage)
                     return@update null
                 }
             if (token == null) {
@@ -90,7 +89,7 @@ class DefaultSessionRepository internal constructor(
                         _state.value = operation.previousState
                     } else {
                         // Unconfirmed sessions stay anonymous, but a later retry may recover the saved token.
-                        _state.value = SessionState.Anonymous(result.error)
+                        _state.value = SessionState.Anonymous(result.error, SessionErrorSource.Session)
                     }
                 }
             }
@@ -101,7 +100,10 @@ class DefaultSessionRepository internal constructor(
         if (identifier.isBlank() || password.isBlank()) {
             operationMutex.withLock {
                 if (activeOperation == null && _state.value !is SessionState.Authenticated) {
-                    _state.value = SessionState.Anonymous(AppError.Server("40002", null))
+                    _state.value = SessionState.Anonymous(
+                        AppError.Server("40002", null),
+                        SessionErrorSource.Login,
+                    )
                 }
             }
             return
@@ -110,7 +112,7 @@ class DefaultSessionRepository internal constructor(
         runOperation(OperationKind.Login) { operation ->
             val deviceId = operation.update {
                 if (!clearStoredSession()) {
-                    _state.value = SessionState.Anonymous(storageError())
+                    _state.value = SessionState.Anonymous(AppError.Storage, SessionErrorSource.Storage)
                     return@update null
                 }
                 readDeviceId()
@@ -118,7 +120,7 @@ class DefaultSessionRepository internal constructor(
 
             when (val loginResult = remote.login(identifier.trim(), password, deviceId)) {
                 is ApiResult.Failure -> operation.update {
-                    _state.value = SessionState.Anonymous(loginResult.error)
+                    _state.value = SessionState.Anonymous(loginResult.error, SessionErrorSource.Login)
                 }
                 is ApiResult.Success -> {
                     operation.update { _state.value = SessionState.ValidatingSession }
@@ -126,7 +128,10 @@ class DefaultSessionRepository internal constructor(
                     val validation = remote.validateSession(loginResult.value, deviceId)
                     operation.update {
                         when (validation) {
-                            is ApiResult.Failure -> _state.value = SessionState.Anonymous(validation.error)
+                            is ApiResult.Failure -> _state.value = SessionState.Anonymous(
+                                validation.error,
+                                SessionErrorSource.Login,
+                            )
                             is ApiResult.Success -> {
                                 val stored = storageCall {
                                     sessionStore.writeAuthorization(loginResult.value.value)
@@ -137,7 +142,10 @@ class DefaultSessionRepository internal constructor(
                                     _state.value = SessionState.Authenticated(validation.value)
                                 } else {
                                     clearStoredSession()
-                                    _state.value = SessionState.Anonymous(storageError())
+                                    _state.value = SessionState.Anonymous(
+                                        AppError.Storage,
+                                        SessionErrorSource.Storage,
+                                    )
                                 }
                             }
                         }
@@ -153,7 +161,9 @@ class DefaultSessionRepository internal constructor(
             activeOperation = null
             _state.value = SessionState.Anonymous()
             lastCheckMillis = null
-            if (!clearStoredSession()) _state.value = SessionState.Anonymous(storageError())
+            if (!clearStoredSession()) {
+                _state.value = SessionState.Anonymous(AppError.Storage, SessionErrorSource.Storage)
+            }
         }
     }
 
@@ -184,7 +194,11 @@ class DefaultSessionRepository internal constructor(
                         activeOperation = null
                         if (_state.value.isBusy()) {
                             val cleared = kind != OperationKind.Login || clearStoredSession()
-                            _state.value = SessionState.Anonymous(if (cleared) null else storageError())
+                            _state.value = if (cleared) {
+                                SessionState.Anonymous()
+                            } else {
+                                SessionState.Anonymous(AppError.Storage, SessionErrorSource.Storage)
+                            }
                         }
                     }
                 }
@@ -208,7 +222,7 @@ class DefaultSessionRepository internal constructor(
 
     private suspend fun readDeviceId(): String? = storageCall { deviceIdStore.getOrCreate() }
         .getOrElse {
-            _state.value = SessionState.Anonymous(storageError())
+            _state.value = SessionState.Anonymous(AppError.Storage, SessionErrorSource.Storage)
             null
         }
 
@@ -221,7 +235,9 @@ class DefaultSessionRepository internal constructor(
 
     private suspend fun expireSession() {
         _state.value = SessionState.Expired
-        if (!clearStoredSession()) _state.value = SessionState.Anonymous(storageError())
+        if (!clearStoredSession()) {
+            _state.value = SessionState.Anonymous(AppError.Storage, SessionErrorSource.Storage)
+        }
     }
 
     private suspend fun <T> storageCall(block: suspend () -> T): Result<T> = try {
@@ -241,14 +257,11 @@ class DefaultSessionRepository internal constructor(
         this == SessionState.Restoring || this == SessionState.SubmittingCredentials ||
             this == SessionState.ValidatingSession
 
-    private fun storageError(): AppError = AppError.UnsupportedContract(STORAGE_ENDPOINT)
-
     private class Operation(val job: Job, val previousState: SessionState)
 
     private enum class OperationKind { Restore, Login, Refresh }
 
     private companion object {
-        val STORAGE_ENDPOINT = EndpointId("auth.storage")
         const val REFRESH_INTERVAL_MILLIS = 60_000L
     }
 }

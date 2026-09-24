@@ -31,6 +31,9 @@ sealed interface AppError {
      * 用户重试再多次也不会成功，需要的是更新应用。
      */
     data class UnsupportedContract(val endpoint: EndpointId) : AppError
+
+    /** Local session storage could not be read or cleared. */
+    data object Storage : AppError
 }
 
 enum class NetworkKind {
@@ -44,7 +47,7 @@ enum class NetworkKind {
 val AppError.isRetryable: Boolean
     get() = when (this) {
         is AppError.Network, is AppError.Http, is AppError.Server, is AppError.RateLimited -> true
-        is AppError.Parse, is AppError.UnsupportedContract -> false
+        is AppError.Parse, is AppError.UnsupportedContract, AppError.Storage -> false
         AppError.AuthenticationRequired, AppError.SessionExpired -> false
     }
 
@@ -57,5 +60,5 @@ val AppError.diagnostic: String?
         is AppError.Server -> code?.let { "Server · $it" }
         is AppError.Network -> "Network · $kind"
         is AppError.RateLimited -> "RateLimited"
-        AppError.AuthenticationRequired, AppError.SessionExpired -> null
+        AppError.Storage, AppError.AuthenticationRequired, AppError.SessionExpired -> null
     }

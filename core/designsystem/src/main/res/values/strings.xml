@@ -78,6 +78,8 @@
 
     <string name="ds_error_server_title">加载失败</string>
     <string name="ds_error_server_description">服务端暂时无法返回该内容，请稍后重试。</string>
+    <string name="ds_error_storage_title">本地数据暂不可用</string>
+    <string name="ds_error_storage_description">本地登录信息暂时无法读取或清除，请重试。</string>
     <string name="ds_error_auth_required_title">需要登录</string>
     <string name="ds_error_auth_required_description">该内容需要登录后才能查看。公开内容不受影响。</string>
     <string name="ds_error_session_expired_title">登录已过期</string>
