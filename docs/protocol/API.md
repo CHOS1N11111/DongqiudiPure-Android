@@ -44,6 +44,7 @@ News/20441 Android/13 NewsApp/20441 SDK/33 VERSION/8.7.2 dproClientApp
 
 - `ClientProfile` 集中保存 app version name/code、Android version 和 SDK 信息。
 - profile 更新不修改页面或 Repository。
+- 运行时根据应用包信息生成 User-Agent，不把调研样本中的官方版本号写成永久常量。
 - UUID 使用随机生成的稳定 UUID；调研中的占位 UUID 不得进入正式实现。
 - 匿名 Request 默认不携带 Authorization。
 - 不伪造与功能无关的设备标识，也不收集 IMEI、广告 ID 或硬件序列号。
@@ -197,7 +198,7 @@ APK 普通缓存引用的[赛事历史页面](https://n.dongqiudi.com/webapp/mat
 共同约束：
 
 - Host 为 `api.dongqiudi.com`，Method 均为 `GET`。
-- 必须发送 `Accept: application/json`；本项目使用可识别的 `User-Agent: DongqiudiPure-Android/0.1`。
+- 必须发送 `Accept: application/json`；本项目使用由运行时应用版本生成的可识别 User-Agent。
 - 不发送 `Authorization`、Cookie、UUID、账号标识或设备标识。
 - JSON 忽略新增的非关键字段；关键字段缺失、字段类型不兼容或 `next` 跳出 API Host 时返回 `UnsupportedContract`。
 - 固定脱敏样本位于 `core/testing/src/main/resources/contracts/news/2026-09-01/`，其中所有内容、账号、ID、cursor 与媒体路径均为虚构值。

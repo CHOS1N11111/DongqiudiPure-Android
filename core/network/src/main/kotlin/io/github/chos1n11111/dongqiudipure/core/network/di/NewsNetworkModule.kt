@@ -1,10 +1,12 @@
 package io.github.chos1n11111.dongqiudipure.core.network.di
 
+import android.content.Context
 import android.os.Build
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.chos1n11111.dongqiudipure.core.network.NewsRemoteDataSource
 import io.github.chos1n11111.dongqiudipure.core.network.FootballRemoteDataSource
@@ -67,7 +69,7 @@ abstract class NewsNetworkModule {
 
         @Provides
         @Singleton
-        fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
+        fun provideOkHttpClient(clientProfile: DqdClientProfile): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .callTimeout(25, TimeUnit.SECONDS)
@@ -77,7 +79,7 @@ abstract class NewsNetworkModule {
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .header("Accept", "application/json")
-                    .header("User-Agent", "DongqiudiPure-Android/0.1")
+                    .header("User-Agent", clientProfile.userAgent)
                     .build()
                 chain.proceed(request)
             }
@@ -101,15 +103,31 @@ abstract class NewsNetworkModule {
 
         @Provides
         @Singleton
-        fun provideDqdClientProfile(): DqdClientProfile = DqdClientProfile(
-            userAgent = buildString {
-                append("News/20441 Android/")
-                append(Build.VERSION.RELEASE)
-                append(" NewsApp/20441 SDK/")
-                append(Build.VERSION.SDK_INT)
-                append(" VERSION/8.7.2 dproClientApp")
-            },
-        )
+        @Suppress("DEPRECATION")
+        fun provideDqdClientProfile(
+            @ApplicationContext context: Context,
+        ): DqdClientProfile {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode
+            } else {
+                packageInfo.versionCode.toLong()
+            }
+            val versionName = packageInfo.versionName?.takeIf(String::isNotBlank) ?: "unknown"
+
+            return DqdClientProfile(
+                userAgent = buildString {
+                    append("DongqiudiPure-Android/")
+                    append(versionName)
+                    append(" Android/")
+                    append(Build.VERSION.RELEASE)
+                    append(" SDK/")
+                    append(Build.VERSION.SDK_INT)
+                    append(" VersionCode/")
+                    append(versionCode)
+                },
+            )
+        }
 
         @Provides
         @ApiBaseUrl
