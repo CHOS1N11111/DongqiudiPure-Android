@@ -27,6 +27,7 @@ internal class FeedPagingSource(
     private val fresh: Boolean = false,
     private val footballOnly: Boolean = false,
 ) : PagingSource<FeedPageKey, ArticleSummary>() {
+    private val deduplicator = PagingDeduplicator()
 
     override suspend fun load(params: LoadParams<FeedPageKey>): LoadResult<FeedPageKey, ArticleSummary> {
         val key = params.key
@@ -50,13 +51,15 @@ internal class FeedPagingSource(
                 ) {
                     throw ContractViolation()
                 }
+                val items = response.flattenedArticles(
+                    includeRecommendations = tabId == HEADLINE_TAB_ID,
+                    footballOnly = footballOnly,
+                ).map { it.toDomain() }
+                val nextKey = parseFeedNext(response.next, tabId)
                 LoadResult.Page(
-                    data = response.flattenedArticles(
-                        includeRecommendations = tabId == HEADLINE_TAB_ID,
-                        footballOnly = footballOnly,
-                    ).map { it.toDomain() }.distinctBy { it.id },
+                    data = deduplicator.filter(items, params is LoadParams.Refresh) { it.id.raw },
                     prevKey = null,
-                    nextKey = parseFeedNext(response.next, tabId),
+                    nextKey = nextKey,
                 )
             } catch (_: ContractViolation) {
                 LoadResult.Error(
@@ -74,6 +77,7 @@ internal class CommentPagingSource(
     private val articleId: ArticleId,
     private val order: CommentOrder,
 ) : PagingSource<CommentPageKey, Comment>() {
+    private val deduplicator = PagingDeduplicator()
 
     override suspend fun load(params: LoadParams<CommentPageKey>): LoadResult<CommentPageKey, Comment> {
         val key = params.key
@@ -93,10 +97,12 @@ internal class CommentPagingSource(
                 } else {
                     regular
                 }
+                val items = rows.map { it.toDomain(users) }
+                val nextKey = parseCommentNext(data.next, articleId)
                 LoadResult.Page(
-                    data = rows.map { it.toDomain(users) }.distinctBy { it.id },
+                    data = deduplicator.filter(items, params is LoadParams.Refresh) { it.id },
                     prevKey = null,
-                    nextKey = parseCommentNext(data.next, articleId),
+                    nextKey = nextKey,
                 )
             } catch (_: ContractViolation) {
                 LoadResult.Error(
@@ -114,6 +120,7 @@ internal class ReplyPagingSource(
     private val articleId: ArticleId,
     private val commentId: String,
 ) : PagingSource<ReplyPageKey, Comment>() {
+    private val deduplicator = PagingDeduplicator()
 
     override suspend fun load(params: LoadParams<ReplyPageKey>): LoadResult<ReplyPageKey, Comment> {
         val key = params.key
@@ -131,10 +138,12 @@ internal class ReplyPagingSource(
                 if (actualArticleId != articleId.raw) throw ContractViolation()
                 val users = (data.userList ?: throw ContractViolation()).byId()
                 val replies = data.replyList ?: throw ContractViolation()
+                val items = replies.map { it.toDomain(users) }
+                val nextKey = parseReplyNext(data.next, commentId)
                 LoadResult.Page(
-                    data = replies.map { it.toDomain(users) }.distinctBy { it.id },
+                    data = deduplicator.filter(items, params is LoadParams.Refresh) { it.id },
                     prevKey = null,
-                    nextKey = parseReplyNext(data.next, commentId),
+                    nextKey = nextKey,
                 )
             } catch (_: ContractViolation) {
                 LoadResult.Error(

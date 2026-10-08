@@ -293,6 +293,51 @@ class NewsPagingSourcesTest {
         assertEquals(ReplyPageKey("fixture-reply-cursor", 1), page.nextKey)
     }
 
+    @Test
+    fun `feed deduplicates across pages without consuming failed pages and resets on refresh`() = runBlocking {
+        val first = FeedArticleDto(id = JsonPrimitive(1001), title = "First")
+        val second = first.copy(id = JsonPrimitive(1002), title = "Second")
+        val remote = FakeNewsRemoteDataSource().apply {
+            feedResult = ApiResult.Success(FeedResponseDto(articles = listOf(first)))
+        }
+        val source = FeedPagingSource(remote, "1")
+        source.load(refresh())
+        val append = PagingSource.LoadParams.Append(FeedPageKey("cursor", 2), 20, false)
+        remote.feedResult = ApiResult.Success(FeedResponseDto(
+            articles = listOf(first, second), next = "https://invalid.example/next",
+        ))
+        assertTrue(source.load(append) is PagingSource.LoadResult.Error)
+        remote.feedResult = ApiResult.Success(FeedResponseDto(articles = listOf(first, second)))
+        val page = source.load(append) as PagingSource.LoadResult.Page
+        assertEquals(listOf("1002"), page.data.map { it.id.raw })
+        val refreshed = source.load(refresh()) as PagingSource.LoadResult.Page
+        assertEquals(listOf("1001", "1002"), refreshed.data.map { it.id.raw })
+    }
+
+    @Test
+    fun `comments repeated after recommendations are removed but pagination continues`() = runBlocking {
+        val fixture = commentsFixture("comments-success.json")
+        val remote = FakeNewsRemoteDataSource().apply { commentsResult = ApiResult.Success(fixture) }
+        val source = CommentPagingSource(remote, ArticleId("1001"), CommentOrder.Recommended)
+        val first = source.load(commentRefresh()) as PagingSource.LoadResult.Page
+        val next = source.load(PagingSource.LoadParams.Append(first.nextKey!!, 20, false))
+            as PagingSource.LoadResult.Page
+        assertTrue(next.data.isEmpty())
+        assertEquals(first.nextKey, next.nextKey)
+    }
+
+    @Test
+    fun `replies repeated across pages are removed`() = runBlocking {
+        val remote = FakeNewsRemoteDataSource().apply {
+            commentThreadResult = ApiResult.Success(commentsFixture("comment-thread-success.json"))
+        }
+        val source = ReplyPagingSource(remote, ArticleId("1001"), "501")
+        val first = source.load(replyRefresh()) as PagingSource.LoadResult.Page
+        val next = source.load(PagingSource.LoadParams.Append(first.nextKey!!, 20, false))
+            as PagingSource.LoadResult.Page
+        assertTrue(next.data.isEmpty())
+    }
+
     private fun feedFixture(name: String): FeedResponseDto = json.decodeFromString(
         FeedResponseDto.serializer(),
         fixture(name),

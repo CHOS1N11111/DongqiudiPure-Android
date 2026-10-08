@@ -110,7 +110,7 @@ fun HomeScreen(
             }
 
             is LoadState.NotLoading -> if (refreshLoadingObserved) {
-                val currentFirstId = articles.peek(0)?.id?.raw
+                val currentFirstId = articles.itemSnapshotList.items.firstOrNull()?.id?.raw
                 snackbarHostState.showSnackbar(
                     if (currentFirstId != snapshot.firstArticleId) refreshedMessage else latestMessage,
                 )
@@ -144,7 +144,7 @@ fun HomeScreen(
             isRefreshing = refresh is LoadState.Loading && articles.itemCount > 0,
             onRefresh = {
                 if (refreshSnapshot == null) {
-                    refreshSnapshot = RefreshSnapshot(articles.peek(0)?.id?.raw)
+                    refreshSnapshot = RefreshSnapshot(articles.itemSnapshotList.items.firstOrNull()?.id?.raw)
                     onRefresh()
                 }
             },

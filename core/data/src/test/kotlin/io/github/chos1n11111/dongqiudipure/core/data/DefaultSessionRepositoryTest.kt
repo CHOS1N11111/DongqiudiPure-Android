@@ -394,6 +394,21 @@ class DefaultSessionRepositoryTest {
         assertEquals(1, remote.validationCalls)
     }
 
+    @Test
+    fun `foreground refresh preserves login failures without retrying a session`() = runTest {
+        val error = AppError.Server("40003", null)
+        val remote = FakeAuthRemoteDataSource(loginResult = ApiResult.Failure(error))
+        val repository = repository(remote, MemorySessionStore()) { testScheduler.currentTime }
+        repository.login("fixture-user", "fixture-password")
+
+        advanceTimeBy(60_000)
+        repository.refresh()
+
+        assertEquals(SessionState.Anonymous(error, SessionErrorSource.Login), repository.state.value)
+        assertEquals(0, remote.validationCalls)
+        assertEquals(1, remote.loginCalls)
+    }
+
     private fun repository(
         remote: FakeAuthRemoteDataSource,
         store: MemorySessionStore,

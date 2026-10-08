@@ -82,10 +82,8 @@ class DefaultFootballRepository @Inject constructor(
     override val defaultRankingCompetitions: List<CompetitionRef> = DEFAULT_RANKING_COMPETITIONS
     override val defaultCompetitions: List<CompetitionRef> = DEFAULT_RANKING_COMPETITIONS
 
-    private val cachedMatches = mutableMapOf<MatchId, MatchSummary>()
     private val cachedSeasons = mutableMapOf<CompetitionId, CurrentSeason?>()
     private val cachedSeasonOptions = mutableMapOf<CompetitionId, List<SeasonOption>>()
-    private val cachedCompetitionSchedules = mutableMapOf<SeasonId, List<DatedMatch>>()
     private var cachedCatalog: List<CompetitionCatalogGroup>? = null
 
     override suspend fun loadCompetitionCatalog(): DataResult<List<CompetitionCatalogGroup>> {
@@ -116,13 +114,10 @@ class DefaultFootballRepository @Inject constructor(
     }
 
     override suspend fun loadMatch(matchId: MatchId): DataResult<MatchSummary?> {
-        cachedMatches[matchId]?.let { return DataResult.Success(it) }
         return when (val result = remote.loadMatchDetail(matchId)) {
             is ApiResult.Failure -> DataResult.Failure(result.error)
             is ApiResult.Success -> mapContract(MATCH_DETAIL_ENDPOINT) {
-                result.value.matchSample?.toDomain(ZoneId.systemDefault())?.match?.also {
-                    cachedMatches[it.id] = it
-                }
+                result.value.matchSample?.toDomain(ZoneId.systemDefault())?.match
             }
         }
     }
@@ -337,9 +332,7 @@ class DefaultFootballRepository @Inject constructor(
         when (val result = remote.loadTeamSchedule(teamId, seasonId)) {
             is ApiResult.Failure -> DataResult.Failure(result.error)
             is ApiResult.Success -> mapContract(TEAM_SCHEDULE_ENDPOINT) {
-                result.value.toDomain(ZoneId.systemDefault(), seasonId).also {
-                    cacheMatches(it.matches)
-                }
+                result.value.toDomain(ZoneId.systemDefault(), seasonId)
             }
         }
 
@@ -397,9 +390,7 @@ class DefaultFootballRepository @Inject constructor(
     ): DataResult<PlayerMatchPage> = when (val result = remote.loadPlayerMatches(playerId, page)) {
         is ApiResult.Failure -> DataResult.Failure(result.error)
         is ApiResult.Success -> mapContract(PLAYER_MATCHES_ENDPOINT) {
-            result.value.toDomain(ZoneId.systemDefault()).also { mapped ->
-                cacheMatches(mapped.matches.map { it.match })
-            }
+            result.value.toDomain(ZoneId.systemDefault())
         }
     }
 
@@ -475,7 +466,7 @@ class DefaultFootballRepository @Inject constructor(
             is DataResult.Failure -> return result
             is DataResult.Success -> result.value ?: return DataResult.Success(emptyList())
         }
-        val datedMatches = cachedCompetitionSchedules[season.id] ?: when (
+        val datedMatches = when (
             val result = remote.loadCompetitionSchedule(season.id)
         ) {
             is ApiResult.Failure -> return DataResult.Failure(result.error)
@@ -485,10 +476,7 @@ class DefaultFootballRepository @Inject constructor(
                 }
             ) {
                 is DataResult.Failure -> return mapped
-                is DataResult.Success -> mapped.value.also {
-                    cachedCompetitionSchedules[season.id] = it
-                    cacheMatches(it.map(DatedMatch::match))
-                }
+                is DataResult.Success -> mapped.value
             }
         }
         return DataResult.Success(
@@ -522,15 +510,10 @@ class DefaultFootballRepository @Inject constructor(
                 .distinctBy { it.match.id }
                 .sortedBy { it.kickoff }
                 .toList()
-            cacheMatches(matches.map { it.match })
             DataResult.Success(matches)
         } catch (_: ContractViolation) {
             DataResult.Failure(AppError.UnsupportedContract(MATCHES_ENDPOINT))
         }
-    }
-
-    private fun cacheMatches(matches: List<MatchSummary>) {
-        matches.forEach { cachedMatches[it.id] = it }
     }
 
     private inline fun <T> mapContract(endpoint: EndpointId, block: () -> T): DataResult<T> =
