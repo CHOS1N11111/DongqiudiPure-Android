@@ -13,6 +13,7 @@ internal class TeamCirclePagingSource(
     private val remote: FootballRemoteDataSource,
     private val groupId: String,
 ) : PagingSource<Int, TeamCirclePost>() {
+    private val deduplicator = PagingDeduplicator()
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, TeamCirclePost> {
         val page = params.key ?: 1
@@ -27,10 +28,11 @@ internal class TeamCirclePagingSource(
                 if (currentPage != page || lastPage < currentPage) {
                     throw ContractViolation()
                 }
+                val items = posts.mapNotNull { post ->
+                    runCatching { post.toDomain() }.getOrNull()
+                }
                 LoadResult.Page(
-                    data = posts.mapNotNull { post ->
-                        runCatching { post.toDomain() }.getOrNull()
-                    }.distinctBy { it.id },
+                    data = deduplicator.filter(items, params is LoadParams.Refresh) { it.id.raw },
                     prevKey = null,
                     nextKey = (page + 1).takeIf { page < lastPage },
                 )

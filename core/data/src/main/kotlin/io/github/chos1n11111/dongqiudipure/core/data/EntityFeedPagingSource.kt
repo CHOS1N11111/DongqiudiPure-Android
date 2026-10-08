@@ -22,6 +22,7 @@ internal class EntityFeedPagingSource(
     private val entityId: String,
     private val type: String,
 ) : PagingSource<EntityFeedPageKey, ArticleSummary>() {
+    private val deduplicator = PagingDeduplicator()
 
     override suspend fun load(
         params: LoadParams<EntityFeedPageKey>,
@@ -40,12 +41,13 @@ internal class EntityFeedPagingSource(
                 if (result.value.code.scalarFootball() != "0") throw ContractViolation()
                 val feed = result.value.data ?: throw ContractViolation()
                 if (feed.articles == null) throw ContractViolation()
+                val items = feed.flattenedArticles()
+                    .mapNotNull { article -> runCatching { article.toDomain() }.getOrNull() }
+                val nextKey = parseEntityFeedNext(feed.next, entityId, type)
                 LoadResult.Page(
-                    data = feed.flattenedArticles()
-                        .mapNotNull { article -> runCatching { article.toDomain() }.getOrNull() }
-                        .distinctBy { it.id },
+                    data = deduplicator.filter(items, params is LoadParams.Refresh) { it.id.raw },
                     prevKey = null,
-                    nextKey = parseEntityFeedNext(feed.next, entityId, type),
+                    nextKey = nextKey,
                 )
             } catch (_: ContractViolation) {
                 LoadResult.Error(

@@ -43,6 +43,7 @@ enum class PlayerTab(@param:StringRes val labelRes: Int) {
 }
 
 data class PlayerProfileUiState(
+    val entityId: PlayerId? = null,
     val profile: SectionState<PlayerProfile> = SectionState.Loading,
     val overview: SectionState<PlayerOverview> = SectionState.Loading,
     val statistics: SectionState<PlayerStatisticsData> = SectionState.Loading,
@@ -143,7 +144,7 @@ class PlayerProfileViewModel @Inject constructor(
     private fun loadAll(id: PlayerId) {
         jobs.values.forEach(Job::cancel)
         jobs.clear()
-        _uiState.value = PlayerProfileUiState(selectedTab = _uiState.value.selectedTab)
+        _uiState.value = PlayerProfileUiState(entityId = id, selectedTab = _uiState.value.selectedTab)
 
         jobs["overview"] = viewModelScope.launch {
             when (val result = repository.loadPlayerOverview(id)) {

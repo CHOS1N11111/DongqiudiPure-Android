@@ -214,105 +214,111 @@ fun TeamProfileScreen(
                 }
             }
 
-            when (uiState.selectedTab) {
-                TeamTab.Dynamic -> Column(modifier = Modifier.weight(1f)) {
-                    if (!showProfileHeader) {
-                        (uiState.schedule as? SectionState.Content)?.value?.matches?.let { matches ->
-                            MainTeamMatchStrip(matches = matches, onMatchClick = onMatchClick)
+            EntityTabState(uiState.entityId?.raw, uiState.selectedTab.name) {
+                when (uiState.selectedTab) {
+                    TeamTab.Dynamic -> Column(modifier = Modifier.weight(1f)) {
+                        if (!showProfileHeader) {
+                            (uiState.schedule as? SectionState.Content)?.value?.matches?.let { matches ->
+                                MainTeamMatchStrip(matches = matches, onMatchClick = onMatchClick)
+                            }
                         }
+                        EntityNewsFeed(
+                            articles = news,
+                            onArticleClick = onArticleClick,
+                            emptyTitle = stringResource(R.string.team_news_empty_title),
+                            emptyDescription = stringResource(R.string.team_news_empty_description),
+                            modifier = Modifier.weight(1f),
+                        )
                     }
-                    EntityNewsFeed(
-                        articles = news,
-                        onArticleClick = onArticleClick,
-                        emptyTitle = stringResource(R.string.team_news_empty_title),
-                        emptyDescription = stringResource(R.string.team_news_empty_description),
+
+                    TeamTab.Circles -> TeamCircleFeed(
+                        posts = circle,
                         modifier = Modifier.weight(1f),
                     )
-                }
 
-                TeamTab.Circles -> TeamCircleFeed(
-                    posts = circle,
-                    modifier = Modifier.weight(1f),
-                )
+                    else -> Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        when (uiState.selectedTab) {
+                            TeamTab.Dynamic -> Unit
+                            TeamTab.Circles -> Unit
+                            TeamTab.Schedule -> SectionContainer(
+                                state = uiState.schedule,
+                                onRetry = onRetryTab,
+                                forceRetry = true,
+                                emptyTitle = stringResource(R.string.team_fixtures_empty_title),
+                                emptyDescription = stringResource(R.string.team_fixtures_empty_description),
+                            ) { schedule ->
+                                TeamScheduleContent(
+                                    matches = schedule.matches,
+                                    seasons = schedule.seasons,
+                                    selectedSeasonId = schedule.selectedSeasonId,
+                                    onSeasonSelect = onScheduleSeasonSelect,
+                                    onMatchClick = onMatchClick,
+                                )
+                            }
 
-                else -> Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    when (uiState.selectedTab) {
-                        TeamTab.Dynamic -> Unit
-                        TeamTab.Circles -> Unit
-                        TeamTab.Schedule -> SectionContainer(
-                            state = uiState.schedule,
-                            onRetry = onRetryTab,
-                            forceRetry = true,
-                            emptyTitle = stringResource(R.string.team_fixtures_empty_title),
-                            emptyDescription = stringResource(R.string.team_fixtures_empty_description),
-                        ) { schedule ->
-                            TeamScheduleContent(
-                                matches = schedule.matches,
-                                seasons = schedule.seasons,
-                                selectedSeasonId = schedule.selectedSeasonId,
-                                onSeasonSelect = onScheduleSeasonSelect,
-                                onMatchClick = onMatchClick,
+                            TeamTab.Players -> SectionContainer(
+                                state = uiState.squad,
+                                onRetry = onRetryTab,
+                                forceRetry = true,
+                                emptyTitle = stringResource(R.string.team_squad_empty_title),
+                                emptyDescription = stringResource(R.string.team_squad_empty_description),
+                            ) { squad ->
+                                SeasonPicker(squad.seasons, squad.selectedSeasonId, onSquadSeasonSelect)
+                                if (squad.groups.isEmpty()) {
+                                    InlineEmpty(stringResource(R.string.team_squad_empty_description))
+                                } else {
+                                    SquadList(squad.groups, onPlayerClick)
+                                }
+                            }
+
+                            TeamTab.Data -> TeamInfoContent(
+                                profileState = uiState.profile,
+                                statisticsState = uiState.statistics,
+                                transfersState = uiState.transfers,
+                                onStatisticsSeasonSelect = onStatisticsSeasonSelect,
+                                onTransferWindowSelect = onTransferWindowSelect,
+                                onPlayerClick = onPlayerClick,
+                                onTeamClick = onTeamClick,
+                                onRetry = onRetryTab,
+                                showProfile = false,
+                                showStatistics = true,
+                                showTransfers = false,
+                            )
+
+                            TeamTab.Info -> TeamInfoContent(
+                                profileState = uiState.profile,
+                                statisticsState = uiState.statistics,
+                                transfersState = uiState.transfers,
+                                onStatisticsSeasonSelect = onStatisticsSeasonSelect,
+                                onTransferWindowSelect = onTransferWindowSelect,
+                                onPlayerClick = onPlayerClick,
+                                onTeamClick = onTeamClick,
+                                onRetry = onRetryTab,
+                                showProfile = true,
+                                showStatistics = false,
+                                showTransfers = false,
+                            )
+
+                            TeamTab.Transfers -> TeamInfoContent(
+                                profileState = uiState.profile,
+                                statisticsState = uiState.statistics,
+                                transfersState = uiState.transfers,
+                                onStatisticsSeasonSelect = onStatisticsSeasonSelect,
+                                onTransferWindowSelect = onTransferWindowSelect,
+                                onPlayerClick = onPlayerClick,
+                                onTeamClick = onTeamClick,
+                                onRetry = onRetryTab,
+                                showProfile = false,
+                                showStatistics = false,
+                                showTransfers = true,
                             )
                         }
-
-                        TeamTab.Players -> SectionContainer(
-                            state = uiState.squad,
-                            onRetry = onRetryTab,
-                            forceRetry = true,
-                            emptyTitle = stringResource(R.string.team_squad_empty_title),
-                            emptyDescription = stringResource(R.string.team_squad_empty_description),
-                        ) { squad ->
-                            SeasonPicker(squad.seasons, squad.selectedSeasonId, onSquadSeasonSelect)
-                            SquadList(squad.groups, onPlayerClick)
-                        }
-
-                        TeamTab.Data -> TeamInfoContent(
-                            profileState = uiState.profile,
-                            statisticsState = uiState.statistics,
-                            transfersState = uiState.transfers,
-                            onStatisticsSeasonSelect = onStatisticsSeasonSelect,
-                            onTransferWindowSelect = onTransferWindowSelect,
-                            onPlayerClick = onPlayerClick,
-                            onTeamClick = onTeamClick,
-                            onRetry = onRetryTab,
-                            showProfile = false,
-                            showStatistics = true,
-                            showTransfers = false,
-                        )
-
-                        TeamTab.Info -> TeamInfoContent(
-                            profileState = uiState.profile,
-                            statisticsState = uiState.statistics,
-                            transfersState = uiState.transfers,
-                            onStatisticsSeasonSelect = onStatisticsSeasonSelect,
-                            onTransferWindowSelect = onTransferWindowSelect,
-                            onPlayerClick = onPlayerClick,
-                            onTeamClick = onTeamClick,
-                            onRetry = onRetryTab,
-                            showProfile = true,
-                            showStatistics = false,
-                            showTransfers = false,
-                        )
-
-                        TeamTab.Transfers -> TeamInfoContent(
-                            profileState = uiState.profile,
-                            statisticsState = uiState.statistics,
-                            transfersState = uiState.transfers,
-                            onStatisticsSeasonSelect = onStatisticsSeasonSelect,
-                            onTransferWindowSelect = onTransferWindowSelect,
-                            onPlayerClick = onPlayerClick,
-                            onTeamClick = onTeamClick,
-                            onRetry = onRetryTab,
-                            showProfile = false,
-                            showStatistics = false,
-                            showTransfers = true,
-                        )
+                        Box(modifier = Modifier.height(DqdSpacing.xl))
                     }
-                    Box(modifier = Modifier.height(DqdSpacing.xl))
                 }
             }
         }

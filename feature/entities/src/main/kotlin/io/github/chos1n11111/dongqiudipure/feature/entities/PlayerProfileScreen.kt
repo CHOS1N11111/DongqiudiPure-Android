@@ -213,54 +213,56 @@ fun PlayerProfileScreen(
                 }
             }
 
-            if (uiState.selectedTab == PlayerTab.Dynamic) {
-                EntityNewsFeed(
-                    articles = news,
-                    onArticleClick = onArticleClick,
-                    emptyTitle = stringResource(R.string.player_news_empty_title),
-                    emptyDescription = stringResource(R.string.player_news_empty_description),
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    when (uiState.selectedTab) {
-                        PlayerTab.Dynamic -> Unit
-                        PlayerTab.Data -> PlayerDataTab(
-                            uiState,
-                            onScopeSelect,
-                            onStatisticToggle,
-                            onRetry,
-                        )
+            EntityTabState(uiState.entityId?.raw, uiState.selectedTab.name) {
+                if (uiState.selectedTab == PlayerTab.Dynamic) {
+                    EntityNewsFeed(
+                        articles = news,
+                        onArticleClick = onArticleClick,
+                        emptyTitle = stringResource(R.string.player_news_empty_title),
+                        emptyDescription = stringResource(R.string.player_news_empty_description),
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        when (uiState.selectedTab) {
+                            PlayerTab.Dynamic -> Unit
+                            PlayerTab.Data -> PlayerDataTab(
+                                uiState,
+                                onScopeSelect,
+                                onStatisticToggle,
+                                onRetry,
+                            )
 
-                        PlayerTab.Matches -> PlayerMatchesTab(
-                            uiState,
-                            onMatchClick,
-                            onMatchesPageSelect,
-                            onShotMatchSelect,
-                            onShotMapRetry,
-                            onRetry,
-                        )
+                            PlayerTab.Matches -> PlayerMatchesTab(
+                                uiState,
+                                onMatchClick,
+                                onMatchesPageSelect,
+                                onShotMatchSelect,
+                                onShotMapRetry,
+                                onRetry,
+                            )
 
-                        PlayerTab.Ability -> SectionContainer(
-                            state = uiState.ability,
-                            onRetry = onRetry,
-                            title = stringResource(R.string.player_ability),
-                            emptyTitle = stringResource(R.string.player_ability_empty_title),
-                            emptyDescription = stringResource(R.string.player_ability_empty_description),
-                        ) { AbilityContent(it) }
+                            PlayerTab.Ability -> SectionContainer(
+                                state = uiState.ability,
+                                onRetry = onRetry,
+                                title = stringResource(R.string.player_ability),
+                                emptyTitle = stringResource(R.string.player_ability_empty_title),
+                                emptyDescription = stringResource(R.string.player_ability_empty_description),
+                            ) { AbilityContent(it) }
 
-                        PlayerTab.Info -> SectionContainer(
-                            state = uiState.overview,
-                            onRetry = onRetry,
-                            emptyTitle = stringResource(R.string.player_profile_empty_title),
-                            emptyDescription = stringResource(R.string.player_profile_empty_description),
-                        ) { PlayerInfoContent(it, onTeamClick) }
+                            PlayerTab.Info -> SectionContainer(
+                                state = uiState.overview,
+                                onRetry = onRetry,
+                                emptyTitle = stringResource(R.string.player_profile_empty_title),
+                                emptyDescription = stringResource(R.string.player_profile_empty_description),
+                            ) { PlayerInfoContent(it, onTeamClick) }
+                        }
+                        Box(Modifier.height(DqdSpacing.xl))
                     }
-                    Box(Modifier.height(DqdSpacing.xl))
                 }
             }
         }

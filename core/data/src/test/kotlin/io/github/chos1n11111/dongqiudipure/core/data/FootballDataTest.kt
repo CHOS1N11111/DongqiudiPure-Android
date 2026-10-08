@@ -564,6 +564,94 @@ class FootballDataTest {
         assertEquals(listOf("出场", "进球"), squad.groups.single().statisticLabels)
     }
 
+    @Test
+    fun `match detail reloads score instead of using a previous list or detail`() = runBlocking {
+        val match = matchesFixture().list!!.first().copy(homeScore = JsonPrimitive(0))
+        val remote = FakeFootballRemoteDataSource().apply {
+            matchResult = ApiResult.Success(MatchListEnvelopeDto(list = listOf(match)))
+            matchDetailResult = ApiResult.Success(MatchDetailEnvelopeDto(matchSample = match))
+        }
+        val repository = DefaultFootballRepository(remote)
+        val date = match.toDomain(ZoneId.systemDefault()).date
+        val id = match.toDomain(ZoneId.systemDefault()).match.id
+        repository.loadMatches(date)
+        repository.loadMatch(id)
+        remote.matchDetailResult = ApiResult.Success(
+            MatchDetailEnvelopeDto(matchSample = match.copy(homeScore = JsonPrimitive(1))),
+        )
+
+        val updated = repository.loadMatch(id) as DataResult.Success
+
+        assertEquals(1, updated.value!!.homeScore)
+        assertEquals(2, remote.matchDetailCalls)
+    }
+
+    @Test
+    fun `competition schedule reloads upstream scores on the same date`() = runBlocking {
+        val match = matchesFixture().list!!.first().copy(homeScore = JsonPrimitive(0))
+        fun schedule(score: Int) = ApiResult.Success(CompetitionScheduleEnvelopeDto(
+            template = "schedule_round",
+            content = CompetitionScheduleContentDto(matches = listOf(
+                CompetitionScheduleGroupDto(name = "第3轮", data = listOf(
+                    match.copy(homeScore = JsonPrimitive(score)),
+                )),
+            )),
+        ))
+        val remote = FakeFootballRemoteDataSource().apply {
+            seasonResult = ApiResult.Success(seasonsFixture())
+            competitionScheduleResult = schedule(0)
+        }
+        val repository = DefaultFootballRepository(remote)
+        val competition = CompetitionRef(CompetitionId("4"), "Contract League", null)
+        val date = match.toDomain(ZoneId.systemDefault()).date
+        repository.loadMatches(date, competition)
+        remote.competitionScheduleResult = schedule(2)
+
+        val updated = repository.loadMatches(date, competition) as DataResult.Success
+
+        assertEquals(2, updated.value.single().homeScore)
+    }
+
+    @Test
+    fun `entity feed removes articles repeated on later pages`() = runBlocking {
+        val remote = FakeFootballRemoteDataSource().apply {
+            entityFeedResult = ApiResult.Success(EntityFeedEnvelopeDto(
+                code = JsonPrimitive(0),
+                data = FeedResponseDto(articles = listOf(
+                    FeedArticleDto(id = JsonPrimitive("101"), title = "Repeated article"),
+                )),
+            ))
+        }
+        val source = EntityFeedPagingSource(remote, "513", "team")
+        source.load(PagingSource.LoadParams.Refresh(null, 20, false))
+        val next = source.load(PagingSource.LoadParams.Append(
+            EntityFeedPageKey("cursor", 2, 1), 20, false,
+        )) as PagingSource.LoadResult.Page
+        assertTrue(next.data.isEmpty())
+    }
+
+    @Test
+    fun `team circle removes posts repeated on later pages`() = runBlocking {
+        val post = TeamCirclePostDto(
+            id = JsonPrimitive("101"), content = "Repeated post",
+            author = TeamCircleAuthorDto(username = "Fixture"),
+        )
+        fun page(number: Int) = ApiResult.Success(TeamCircleEnvelopeDto(
+            code = JsonPrimitive(200),
+            data = TeamCirclePageDto(JsonPrimitive(number), JsonPrimitive(3), listOf(post)),
+        ))
+        val remote = FakeFootballRemoteDataSource().apply { circleResult = page(1) }
+        val source = TeamCirclePagingSource(remote, "9")
+        val first = source.load(PagingSource.LoadParams.Refresh(null, 20, false))
+            as PagingSource.LoadResult.Page
+        assertEquals(listOf("101"), first.data.map { it.id.raw })
+        remote.circleResult = page(2)
+        val next = source.load(PagingSource.LoadParams.Append(2, 20, false))
+            as PagingSource.LoadResult.Page
+        assertTrue(next.data.isEmpty())
+        assertEquals(3, next.nextKey)
+    }
+
     private fun matchesFixture(): MatchListEnvelopeDto = json.decodeFromString(
         MatchListEnvelopeDto.serializer(),
         fixture("matches-success.json"),
@@ -584,10 +672,13 @@ class FootballDataTest {
     )
 
     private class FakeFootballRemoteDataSource : FootballRemoteDataSource {
+        var matchDetailCalls = 0
+        lateinit var matchDetailResult: ApiResult<MatchDetailEnvelopeDto>
         lateinit var matchResult: ApiResult<MatchListEnvelopeDto>
         lateinit var seasonResult: ApiResult<List<SeasonDto>>
         lateinit var standingResult: ApiResult<StandingEnvelopeDto>
         lateinit var competitionScheduleResult: ApiResult<CompetitionScheduleEnvelopeDto>
+        lateinit var circleResult: ApiResult<TeamCircleEnvelopeDto>
         lateinit var entityFeedResult: ApiResult<EntityFeedEnvelopeDto>
         var requestedSeason: SeasonId? = null
         var requestedEntityFeed: EntityFeedRequest? = null
@@ -597,7 +688,10 @@ class FootballDataTest {
         ): ApiResult<MatchListEnvelopeDto> = matchResult
 
         override suspend fun loadMatchDetail(matchId: io.github.chos1n11111.dongqiudipure.core.model.MatchId):
-            ApiResult<MatchDetailEnvelopeDto> = error("Not used")
+            ApiResult<MatchDetailEnvelopeDto> {
+            matchDetailCalls++
+            return matchDetailResult
+        }
 
         override suspend fun loadMatchOverview(matchId: io.github.chos1n11111.dongqiudipure.core.model.MatchId):
             ApiResult<MatchOverviewDto> = error("Not used")
@@ -673,7 +767,7 @@ class FootballDataTest {
         override suspend fun loadTeamCircle(
             groupId: String,
             page: Int,
-        ): ApiResult<TeamCircleEnvelopeDto> = error("Not used")
+        ): ApiResult<TeamCircleEnvelopeDto> = circleResult
 
         override suspend fun loadEntityFeed(
             request: EntityFeedRequest,

@@ -215,7 +215,8 @@ class DefaultSessionRepository internal constructor(
     private fun shouldRefresh(): Boolean {
         val current = _state.value
         val eligible = current is SessionState.Authenticated ||
-            (current is SessionState.Anonymous && current.error?.isRetryable == true)
+            (current is SessionState.Anonymous &&
+                current.source == SessionErrorSource.Session && current.error?.isRetryable == true)
         return eligible && !storageBlocked &&
             (lastCheckMillis?.let { clockMillis() - it >= REFRESH_INTERVAL_MILLIS } ?: true)
     }

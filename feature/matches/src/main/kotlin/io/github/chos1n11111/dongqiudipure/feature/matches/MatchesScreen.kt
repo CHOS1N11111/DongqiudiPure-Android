@@ -38,6 +38,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import io.github.chos1n11111.dongqiudipure.core.designsystem.component.MatchRow
@@ -61,6 +66,16 @@ fun MatchesRoute(
 ) {
     LaunchedEffect(selectedCompetitionIds, defaultCompetitionId) {
         viewModel.configureCompetitions(selectedCompetitionIds, defaultCompetitionId)
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner, viewModel) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.onForeground()
+            while (isActive) {
+                delay(60_000)
+                viewModel.refreshCalendar()
+            }
+        }
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     MatchesScreen(
