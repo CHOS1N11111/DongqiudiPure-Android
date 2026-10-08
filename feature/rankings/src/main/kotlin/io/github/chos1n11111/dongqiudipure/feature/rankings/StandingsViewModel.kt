@@ -47,19 +47,37 @@ class StandingsViewModel @Inject constructor(
     val uiState: StateFlow<RankingsUiState> = _uiState.asStateFlow()
 
     private var configuredCompetitionIds: Set<String>? = null
+    private var catalogLoaded = false
     private var catalogJob: Job? = null
     private var contentJob: Job? = null
 
     fun loadHub(selectedIds: Set<String>) {
-        if (configuredCompetitionIds == selectedIds) return
+        if (configuredCompetitionIds == selectedIds &&
+            (catalogLoaded || catalogJob?.isActive == true)
+        ) return
         configuredCompetitionIds = selectedIds
+        catalogLoaded = false
         catalogJob?.cancel()
+        contentJob?.cancel()
+        _uiState.update {
+            it.copy(table = SectionState.Loading, statisticTable = SectionState.Loading)
+        }
         catalogJob = viewModelScope.launch {
-            val catalog = when (val result = catalogRepository.loadCompetitionCatalog()) {
-                is DataResult.Success -> result.value.flatMap { it.competitions }
-                is DataResult.Failure -> repository.defaultCompetitions
-            }
+            val result = catalogRepository.loadCompetitionCatalog()
             if (configuredCompetitionIds != selectedIds) return@launch
+            val catalog = when (result) {
+                is DataResult.Success -> result.value.flatMap { it.competitions }
+                is DataResult.Failure -> {
+                    _uiState.update {
+                        it.copy(
+                            table = SectionState.Failed(result.error),
+                            statisticTable = SectionState.Failed(result.error),
+                        )
+                    }
+                    return@launch
+                }
+            }
+            catalogLoaded = true
             val competitions = catalog
                 .distinctBy { it.id }
                 .filter { it.id.raw in selectedIds }
@@ -174,6 +192,11 @@ class StandingsViewModel @Inject constructor(
     }
 
     fun retry() {
+        val ids = configuredCompetitionIds
+        if (ids != null && !catalogLoaded) {
+            loadHub(ids)
+            return
+        }
         val competition = _uiState.value.selectedCompetition ?: return
         if (_uiState.value.seasons.isEmpty()) loadCompetition(competition)
         else loadCurrentContent(competition)

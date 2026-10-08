@@ -58,10 +58,14 @@ data class MatchesUiState(
  * 详见 docs/engineering/BACKEND-CONTRACT-TODO.md §2.3
  */
 @HiltViewModel
-class MatchesViewModel @Inject constructor(
+class MatchesViewModel internal constructor(
     private val repository: MatchRepository,
     private val catalogRepository: FootballCatalogRepository,
+    private val currentDate: () -> LocalDate,
 ) : ViewModel() {
+    @Inject
+    constructor(repository: MatchRepository, catalogRepository: FootballCatalogRepository) :
+        this(repository, catalogRepository, { LocalDate.now() })
 
     private val _uiState = MutableStateFlow(MatchesUiState())
     val uiState: StateFlow<MatchesUiState> = _uiState.asStateFlow()
@@ -72,11 +76,37 @@ class MatchesViewModel @Inject constructor(
     private var initialDefaultApplied = false
 
     init {
-        val today = LocalDate.now()
+        val today = currentDate()
         _uiState.update {
             it.copy(days = buildDays(today), selectedDate = today)
         }
         loadMatches()
+    }
+
+    fun onForeground() {
+        refreshCalendar()
+        if (loadJob?.isActive != true) retry()
+    }
+
+    fun refreshCalendar() {
+        val today = currentDate()
+        val state = _uiState.value
+        val previousToday = state.days.firstOrNull { it.isToday }?.date
+        if (today == previousToday) return
+        val days = buildDays(today)
+        val selectedDate = state.selectedDate.takeIf { selected ->
+            selected != previousToday && days.any { it.date == selected }
+        } ?: today
+        _uiState.update {
+            it.copy(
+                days = days.map { day ->
+                    day.copy(hasLiveMatch = state.days.firstOrNull { it.date == day.date }?.hasLiveMatch == true)
+                },
+                selectedDate = selectedDate,
+                groups = if (selectedDate != state.selectedDate) SectionState.Loading else it.groups,
+            )
+        }
+        if (selectedDate != state.selectedDate) loadMatches()
     }
 
     fun selectDate(date: LocalDate) {

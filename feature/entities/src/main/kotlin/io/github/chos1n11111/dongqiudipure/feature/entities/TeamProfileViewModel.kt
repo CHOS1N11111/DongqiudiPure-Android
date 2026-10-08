@@ -49,6 +49,7 @@ enum class TeamScheduleFilter(@param:StringRes val labelRes: Int) {
 }
 
 data class TeamProfileUiState(
+    val entityId: TeamId? = null,
     val profile: SectionState<TeamProfile> = SectionState.Loading,
     val schedule: SectionState<TeamScheduleData> = SectionState.Loading,
     val squad: SectionState<TeamSquadData> = SectionState.Loading,
@@ -179,7 +180,7 @@ class TeamProfileViewModel @Inject constructor(
         squadSeasonId = null
         transferWindowId = null
         circleGroupId.value = null
-        _uiState.value = TeamProfileUiState(selectedTab = _uiState.value.selectedTab)
+        _uiState.value = TeamProfileUiState(entityId = id, selectedTab = _uiState.value.selectedTab)
         loadProfile(id)
         loadSchedule(id, null)
         loadSquad(id, null)
@@ -215,7 +216,7 @@ class TeamProfileViewModel @Inject constructor(
         jobs["schedule"] = viewModelScope.launch {
             val state = when (val result = repository.loadTeamSchedule(id, seasonId)) {
                 is DataResult.Failure -> SectionState.Failed(result.error)
-                is DataResult.Success -> result.value.toSectionState { it.matches.isNotEmpty() }
+                is DataResult.Success -> SectionState.Content(result.value)
             }
             updateIfCurrent(id) { it.copy(schedule = state) }
         }
@@ -241,7 +242,7 @@ class TeamProfileViewModel @Inject constructor(
         jobs["squad"] = viewModelScope.launch {
             val state = when (val result = repository.loadTeamSquad(id, seasonId)) {
                 is DataResult.Failure -> SectionState.Failed(result.error)
-                is DataResult.Success -> result.value.toSectionState { it.groups.isNotEmpty() }
+                is DataResult.Success -> SectionState.Content(result.value)
             }
             updateIfCurrent(id) { it.copy(squad = state) }
         }

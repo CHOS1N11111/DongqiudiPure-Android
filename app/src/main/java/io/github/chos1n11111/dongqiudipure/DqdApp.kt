@@ -2,6 +2,9 @@ package io.github.chos1n11111.dongqiudipure
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -61,6 +64,11 @@ fun DqdApp(
 
     NavigationSuiteScaffold(
         modifier = modifier,
+        layoutType = if (isRootDestination) {
+            NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
+        } else {
+            NavigationSuiteType.None
+        },
         navigationSuiteItems = {
             if (!isRootDestination) return@NavigationSuiteScaffold
             DqdDestination.entries.forEach { destination ->
