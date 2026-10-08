@@ -42,9 +42,10 @@ News/20441 Android/13 NewsApp/20441 SDK/33 VERSION/8.7.2 dproClientApp
 
 这只是证据样本，不是永久常量。实现要求：
 
-- `ClientProfile` 集中保存 app version name/code、Android version 和 SDK 信息。
-- profile 更新不修改页面或 Repository。
-- 运行时根据应用包信息生成 User-Agent，不把调研样本中的官方版本号写成永久常量。
+- 匿名请求使用运行时应用版本生成的 `DongqiudiPure-Android` User-Agent。
+- 登录与会话校验使用独立的兼容 profile，保留上述 `News`、`NewsApp`、`VERSION` 格式；Android version 与 SDK 取自当前设备。
+- 兼容版本由 `gradle.properties` 的 `dqd.auth.versionName` / `dqd.auth.versionCode` 配置，也可通过 Gradle `-P` 参数覆盖，无需修改页面或 Repository。
+- 默认值 `8.7.2` / `20441` 仅来自归档调研样本，尚未验证当前服务是否接受，更不代表真实账号登录已可用。遇到 `40026` 时应依据新的验证结果更新这两个配置。
 - UUID 使用随机生成的稳定 UUID；调研中的占位 UUID 不得进入正式实现。
 - 匿名 Request 默认不携带 Authorization。
 - 不伪造与功能无关的设备标识，也不收集 IMEI、广告 ID 或硬件序列号。

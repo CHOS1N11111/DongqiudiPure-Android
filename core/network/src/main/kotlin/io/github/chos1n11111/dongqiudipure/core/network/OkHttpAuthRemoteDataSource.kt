@@ -34,7 +34,7 @@ class OkHttpAuthRemoteDataSource @Inject constructor(
     @param:AuthClient private val client: OkHttpClient,
     private val json: Json,
     @param:ApiBaseUrl private val baseUrl: HttpUrl,
-    private val clientProfile: DqdClientProfile,
+    @param:AuthClient private val clientProfile: DqdClientProfile,
 ) : AuthRemoteDataSource {
 
     override suspend fun login(

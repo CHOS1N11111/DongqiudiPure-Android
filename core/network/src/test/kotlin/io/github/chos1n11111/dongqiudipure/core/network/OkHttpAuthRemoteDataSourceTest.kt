@@ -31,7 +31,7 @@ class OkHttpAuthRemoteDataSourceTest {
             client = NewsNetworkModule.provideAuthOkHttpClient(),
             json = NewsNetworkModule.provideJson(),
             baseUrl = server.url("/"),
-            clientProfile = DqdClientProfile("FixtureClient/1"),
+            clientProfile = DqdClientProfile.forAuthentication("9.1.0", 30001, "16", 36),
         )
     }
 
@@ -51,7 +51,10 @@ class OkHttpAuthRemoteDataSourceTest {
         assertEquals("POST", request.method)
         assertEquals("/v2/user/login", request.target)
         assertEquals(FIXTURE_UUID, request.headers["UUID"])
-        assertEquals("FixtureClient/1", request.headers["User-Agent"])
+        assertEquals(
+            "News/30001 Android/16 NewsApp/30001 SDK/36 VERSION/9.1.0 dproClientApp",
+            request.headers["User-Agent"],
+        )
         assertNull(request.headers["Authorization"])
         assertNull(request.headers["Cookie"])
         assertEquals(
@@ -101,6 +104,10 @@ class OkHttpAuthRemoteDataSourceTest {
         assertEquals("GET", request.method)
         assertEquals("/v2/user/is_login", request.target)
         assertEquals("Bearer fixture-token", request.headers["Authorization"])
+        assertEquals(
+            "News/30001 Android/16 NewsApp/30001 SDK/36 VERSION/9.1.0 dproClientApp",
+            request.headers["User-Agent"],
+        )
         assertEquals(FIXTURE_UUID, request.headers["UUID"])
     }
 

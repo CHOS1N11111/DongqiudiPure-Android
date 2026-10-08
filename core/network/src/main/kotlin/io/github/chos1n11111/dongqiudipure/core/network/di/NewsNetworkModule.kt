@@ -11,6 +11,7 @@ import dagger.hilt.components.SingletonComponent
 import io.github.chos1n11111.dongqiudipure.core.network.NewsRemoteDataSource
 import io.github.chos1n11111.dongqiudipure.core.network.FootballRemoteDataSource
 import io.github.chos1n11111.dongqiudipure.core.network.AuthRemoteDataSource
+import io.github.chos1n11111.dongqiudipure.core.network.BuildConfig
 import io.github.chos1n11111.dongqiudipure.core.network.DqdClientProfile
 import io.github.chos1n11111.dongqiudipure.core.network.OkHttpNewsRemoteDataSource
 import io.github.chos1n11111.dongqiudipure.core.network.OkHttpFootballRemoteDataSource
@@ -128,6 +129,16 @@ abstract class NewsNetworkModule {
                 },
             )
         }
+
+        @Provides
+        @Singleton
+        @AuthClient
+        fun provideAuthClientProfile(): DqdClientProfile = DqdClientProfile.forAuthentication(
+            versionName = BuildConfig.DQD_AUTH_VERSION_NAME,
+            versionCode = BuildConfig.DQD_AUTH_VERSION_CODE,
+            androidVersion = Build.VERSION.RELEASE,
+            sdk = Build.VERSION.SDK_INT,
+        )
 
         @Provides
         @ApiBaseUrl

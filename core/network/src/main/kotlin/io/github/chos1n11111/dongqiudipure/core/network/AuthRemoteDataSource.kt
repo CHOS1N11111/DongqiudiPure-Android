@@ -32,4 +32,16 @@ interface AuthRemoteDataSource {
 
 data class DqdClientProfile(
     val userAgent: String,
-)
+) {
+    companion object {
+        fun forAuthentication(
+            versionName: String,
+            versionCode: Int,
+            androidVersion: String,
+            sdk: Int,
+        ): DqdClientProfile = DqdClientProfile(
+            "News/$versionCode Android/$androidVersion NewsApp/$versionCode " +
+                "SDK/$sdk VERSION/$versionName dproClientApp",
+        )
+    }
+}
